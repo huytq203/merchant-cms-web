@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/shared/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 
 export default function DashboardLoading() {
   return (

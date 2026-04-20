@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/shared/ui/button";
+import { Button } from "@/components/ui/button/Button";
 
 export default function NotFound() {
   return (
@@ -15,7 +15,7 @@ export default function NotFound() {
         <p className="mt-3 text-sm text-muted-foreground">
           Đường dẫn bạn truy cập không tồn tại hoặc đã bị di chuyển.
         </p>
-        <Button asChild className="mt-6">
+        <Button  className="mt-6">
           <Link href="/dashboard">Về trang chủ</Link>
         </Button>
       </div>

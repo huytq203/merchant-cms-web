@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { Button } from "@/components/shared/ui/button";
+import { Button } from "@/components/ui/button/Button";
 
 export default function GlobalError({
   error,
