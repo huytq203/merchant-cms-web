@@ -48,7 +48,7 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
     return (
       <BaseField.Root className="flex flex-col gap-1.5 w-full">
         {label && (
-          <BaseField.Label htmlFor={inputId} className="text-sm font-medium text-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          <BaseField.Label htmlFor={inputId} className="text-sm font-medium text-foreground ">
             {label}
           </BaseField.Label>
         )}
@@ -58,10 +58,10 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
               {icon}
             </div>
           )}
-          <BaseField.Control render={<BaseInput
+          <BaseInput
             ref={ref}
             id={inputId}
-            type={inputType}
+            type={inputType || 'text'}
             className={cn(
               inputVariants({ variant }),
               icon && 'pl-9',
@@ -70,7 +70,7 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
               className
             )}
             {...props}
-          />} />
+          />
           {isPassword ? (
             <Toggle
               type="button"

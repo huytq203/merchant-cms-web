@@ -1,40 +1,40 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Lock } from 'lucide-react';
-import AppImage from '../../../../public/images/image.webp';
-import EarthImage from '../../../../public/images/earth.png';
-import { Form, FormField } from '@/components/ui/form/Form';
-import { Input } from '@/components/ui/input/Input';
-import { Button } from '@/components/ui/button/Button';
-import { Checkbox } from '@/components/ui/checkbox/Checkbox';
-import { useLoginMutation } from '@/features/auth/hooks/use-login-mutation';
-import { loginSchema, type LoginInput } from '@/features/auth/schemas';
-import Image from 'next/image';
-import LogoImage from '../../../../public/images/logo.png';
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock } from "lucide-react";
+import AppImage from "../../../../public/images/image.webp";
+import EarthImage from "../../../../public/images/earth.png";
+import { Form, FormField } from "@/components/ui/form/Form";
+import { Input } from "@/components/ui/input/Input";
+import { Button } from "@/components/ui/button/Button";
+import { Checkbox } from "@/components/ui/checkbox/Checkbox";
+import { useLoginMutation } from "@/features/auth/hooks/use-login-mutation";
+import { loginSchema, type LoginInput } from "@/features/auth/schemas";
+import Image from "next/image";
+import LogoImage from "../../../../public/images/logo.png";
 
-const DEFAULT_REDIRECT = '/dashboard';
+const DEFAULT_REDIRECT = "/dashboard";
 
 function safeCallback(url: string | null): string {
   if (!url) return DEFAULT_REDIRECT;
-  if (!url.startsWith('/') || url.startsWith('//')) return DEFAULT_REDIRECT;
+  if (!url.startsWith("/") || url.startsWith("//")) return DEFAULT_REDIRECT;
   return url;
 }
 
 export function LoginFullScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = safeCallback(searchParams.get('callbackUrl'));
+  const callbackUrl = safeCallback(searchParams.get("callbackUrl"));
 
   const loginMutation = useLoginMutation();
   const [formError, setFormError] = React.useState<string | null>(null);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: '', password: '' },
+    defaultValues: { username: "", password: "" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -56,7 +56,6 @@ export function LoginFullScreen() {
     <div className="h-screen w-full flex">
       {/* Left: Color panel */}
       <div className="hidden md:flex w-[60%] flex-col justify-between p-12 bg-linear-to-br bg-primary/85 relative overflow-hidden">
-
         {/* 3 decorative circles */}
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/5 rounded-full" />
         <div className="absolute top-1/2 -right-32 w-72 h-72 bg-white/5 rounded-full" />
@@ -76,11 +75,11 @@ export function LoginFullScreen() {
 
         {/* Logo Section */}
         <div className="relative flex items-center gap-5">
-          <Image 
-            src={LogoImage} 
-            alt="Flexpay Logo" 
-            width={180} 
-            height={60} 
+          <Image
+            src={LogoImage}
+            alt="Flexpay Logo"
+            width={180}
+            height={60}
             className="h-12 w-auto object-contain mb-2"
           />
           <div className="h-6 w-px bg-white/20" aria-hidden="true" />
@@ -97,14 +96,14 @@ export function LoginFullScreen() {
           </div>
 
           {/* Mockup image */}
-          <div className="relative w-full max-w-[580px] min-w-[360px] aspect-500/380 drop-shadow-[0_32px_48px_rgba(0,0,0,0.35)]">
+          <div className="relative w-full max-w-[320px] lg:max-w-[420px] xl:max-w-[420px] 2xl:max-w-[600px] aspect-500/380 drop-shadow-[0_32px_48px_rgba(0,0,0,0.35)]">
             <Image
               src={AppImage}
               alt="Flexpay bảo vệ bạn"
-              fill
-              sizes="(max-width: 1024px) 360px, (max-width: 1280px) 480px, 580px"
-              className="object-contain rounded-2xl"
               priority
+              fill
+              sizes="(max-width: 1023px) 320px, (max-width: 1279px) 420px, (max-width: 1535px) 420px, 600px"
+              className="object-contain rounded-2xl"
             />
           </div>
 
@@ -114,12 +113,15 @@ export function LoginFullScreen() {
               Flexpay bảo vệ bạn
             </p>
             <p className="text-white/55 text-sm leading-relaxed">
-              Bảo mật thông tin khách hàng luôn được đặt lên hàng đầu tại Flexpay.
+              Bảo mật thông tin khách hàng luôn được đặt lên hàng đầu tại
+              Flexpay.
             </p>
           </div>
         </div>
 
-        <p className="relative text-white/30 text-xs">© 2026 Flexpay. All rights reserved.</p>
+        <p className="relative text-white/30 text-xs">
+          © 2026 Flexpay. All rights reserved.
+        </p>
       </div>
 
       {/* Right: Form panel */}
@@ -127,12 +129,23 @@ export function LoginFullScreen() {
         {/* Top bar */}
         <div className="flex items-center justify-between p-8">
           <div className="flex items-center gap-2 md:invisible">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs select-none">UI</span>
-            </div>
-            <span className="font-semibold text-foreground text-sm">Flexpay</span>
+            <Image
+              src={LogoImage}
+              alt="Flexpay Logo"
+              width={180}
+              height={60}
+              className="h-12 w-auto object-contain mb-2"
+            />
+            {/* <div className="h-6 w-px bg-foreground/20" aria-hidden="true" />
+            <span className="text-sm font-medium tracking-[0.2em] text-foreground uppercase">
+              Giải pháp thanh toán
+            </span> */}
           </div>
-          <Button variant="ghost" size="sm" className="text-sm text-muted-foreground ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-sm text-muted-foreground ml-auto"
+          >
             Chưa có tài khoản?&nbsp;
             <span className="text-primary font-semibold">Đăng ký</span>
           </Button>
@@ -142,8 +155,12 @@ export function LoginFullScreen() {
         <div className="flex-1 flex items-center justify-center px-8 pb-12">
           <div className="w-full max-w-sm space-y-8">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Chào mừng trở lại</h1>
-              <p className="text-muted-foreground text-sm">Đăng nhập để tiếp tục sử dụng dịch vụ</p>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                Chào mừng trở lại
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Đăng nhập để tiếp tục sử dụng dịch vụ
+              </p>
             </div>
 
             <Form {...form}>
@@ -179,10 +196,7 @@ export function LoginFullScreen() {
 
                 <div className="flex items-center justify-between">
                   <div className="text-sm">
-                    <Checkbox
-                      id="remember"
-                      label="Ghi nhớ đăng nhập"
-                    />
+                    <Checkbox id="remember" label="Ghi nhớ đăng nhập" />
                   </div>
                   <Button variant="link" type="button" className="px-0 text-sm">
                     Quên mật khẩu?
@@ -190,12 +204,21 @@ export function LoginFullScreen() {
                 </div>
 
                 {formError && (
-                  <p className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger" role="alert">
+                  <p
+                    className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger"
+                    role="alert"
+                  >
                     {formError}
                   </p>
                 )}
 
-                <Button type="submit" className="w-full" size="lg" isLoading={busy} disabled={busy}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  isLoading={busy}
+                  disabled={busy}
+                >
                   Đăng nhập
                 </Button>
 

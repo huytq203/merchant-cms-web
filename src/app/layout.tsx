@@ -4,6 +4,7 @@ import { AppProviders } from "@/components/providers/app-providers";
 import { publicEnv } from "@/lib/env/public";
 import { siteConfig } from "@/config/site";
 import "@/styles/index.css";
+import { Toaster } from '@/components/ui/toast/Toaster';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,7 @@ export default function RootLayout({
     >
       <body className="min-h-dvh">
         <AppProviders>{children}</AppProviders>
+        <Toaster position="top-center" expand={true} richColors />
       </body>
     </html>
   );

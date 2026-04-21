@@ -6,7 +6,24 @@
       "Bash(npx tsc *)",
       "Bash(npx next *)",
       "Bash(npm run *)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(py -3 -c ' *)",
+      "Read(//usr/**)",
+      "Read(//usr/local/**)",
+      "Bash(/c/Users/HuyTrầnQuang/AppData/Local/Microsoft/WindowsApps/python -c ' *)",
+      "Bash(npx eslint *)",
+      "Bash(python3.exe --version)",
+      "Bash(python.exe --version)",
+      "Bash(py --version)",
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Read(//tmp/docx_extract/**)",
+      "Read(//tmp/**)",
+      "Bash(mkdir -p \"C:/docx_extract\")",
+      "Read(//c//**)",
+      "Bash(npm init *)"
     ]
   }
 }

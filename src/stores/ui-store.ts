@@ -1,24 +1,17 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-type UIState = {
-  sidebarCollapsed: boolean;
-  toggleSidebar: () => void;
-  setSidebar: (collapsed: boolean) => void;
-};
+interface UIState {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
 
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      sidebarCollapsed: false,
-      toggleSidebar: () =>
-        set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      setSidebar: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      sidebarOpen: true,
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
     }),
-    {
-      name: "beam-cms-ui",
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed }),
-    },
+    { name: 'merchant-ui' },
   ),
 );

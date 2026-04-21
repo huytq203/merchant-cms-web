@@ -28,7 +28,6 @@ export async function loginAction(
     );
 
     if (!res.success || !res.data?.accessToken) {
-      console.log(res);
       return fail(res.message ?? "Đăng nhập thất bại", "UNAUTHORIZED");
     }
 
