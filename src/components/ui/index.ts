@@ -25,3 +25,5 @@ export * from "./tooltip/Tooltip";
 export * from "./typography/Typography";
 export * from "./combobox/ComboBox";
 export * from "./datepicker/DatePicker";
+export * from './textarea/Textarea';
+export * from './file-upload/FileUpload';

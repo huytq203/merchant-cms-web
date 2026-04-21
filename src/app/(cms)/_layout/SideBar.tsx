@@ -61,7 +61,7 @@ const SideBar = () => {
       <SidebarContent>
         {routesConfig.map((route, idx) => {
           const isChildActive = route.items.some(
-            (item) => pathname === item.href,
+            (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
           );
           const shouldDefaultOpen = isChildActive || route.defaultOpen === true;
 
@@ -85,7 +85,7 @@ const SideBar = () => {
                           isChildActive={isChildActive}
                         >
                           {route.items.map((item, i) => {
-                            const isActive = pathname === item.href;
+                            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                             return (
                               <SidebarMenuSubItem key={i}>
                                 <Link href={item.href}>

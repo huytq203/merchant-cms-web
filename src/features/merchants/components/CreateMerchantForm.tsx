@@ -1,109 +1,98 @@
-'use client';
+"use client";
 import {
   Button,
+  Checkbox,
+  ComboBox,
   DatePicker,
+  FileUpload,
   Form,
   FormField,
   Input,
-} from '@/components/ui';
-import * as Card from '@/components/ui/card/Card';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Building2, FileText, Save, User, Wallet } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import mockData from '@/mock/data-merchant.json';
-import { createMerchantSchema, type CreateMerchantValues } from '../schemas';
-import { useCreateMerchantMutation } from '../hooks/use-merchant-mutations';
-import Link from 'next/link';
+  Text,
+  Textarea,
+} from "@/components/ui";
+import * as Card from "@/components/ui/card/Card";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ArrowLeft,
+  Building2,
+  FileText,
+  Save,
+  User,
+  Wallet,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import mockData from "@/mock/data-merchant.json";
+import { createMerchantSchema, type CreateMerchantValues } from "../schemas";
+import { useCreateMerchantMutation } from "../hooks/use-merchant-mutations";
+import Link from "next/link";
 
 const MERCHANT_TYPES = [
-  { value: 'individual', label: 'Cá nhân' },
-  { value: 'household', label: 'Hộ kinh doanh' },
-  { value: 'business', label: 'Doanh nghiệp' },
+  { value: "individual", label: "Cá nhân" },
+  { value: "household", label: "Hộ kinh doanh" },
+  { value: "business", label: "Doanh nghiệp" },
 ];
-
-interface SelectFieldProps {
-  label: string;
-  required?: boolean;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  error?: string;
-}
-
-function SelectField({ label, required, options, value, onChange, placeholder, error }: SelectFieldProps) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-foreground">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      <select
-        className="flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:border-primary disabled:opacity-50"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{placeholder ?? '-- Chọn --'}</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-      {error && <p className="text-xs text-red-500">{error}</p>}
-    </div>
-  );
-}
 
 export function CreateMerchantForm() {
   const router = useRouter();
   const { mutate, isPending } = useCreateMerchantMutation();
   const [isDirty, setIsDirty] = useState(false);
-
+  const [dateExpiry, setDateExpiry] = useState<Date | undefined>(undefined);
+  const [files, setFiles] = useState<File[]>([]);
   const form = useForm<CreateMerchantValues>({
     resolver: zodResolver(createMerchantSchema),
     defaultValues: {
-      email: '',
-      phone: '',
-      name: '',
+      email: "",
+      phone: "",
+      name: "",
       merchantType: undefined,
-      taxCode: '',
-      businessType: '',
+      taxCode: "",
+      businessType: "",
       copyEmail: false,
-      emailReconciliation: '',
-      emailInvoice: '',
-      address: '',
-      representativeName: '',
-      representativePosition: '',
-      representativeCccd: '',
-      representativeCccdExpiry: '',
-      representativeOtpPhone: '',
+      emailReconciliation: "",
+      emailInvoice: "",
+      address: "",
+      representativeName: "",
+      representativePosition: "",
+      representativeCccd: "",
+      representativeCccdExpiry: "",
+      representativeOtpPhone: "",
     },
   });
 
-  const watchedMerchantType = useWatch({ control: form.control, name: 'merchantType' });
-  const watchedEmail = useWatch({ control: form.control, name: 'email' });
-  const watchedCopyEmail = useWatch({ control: form.control, name: 'copyEmail' });
-  const needsTaxAndLicense = watchedMerchantType && watchedMerchantType !== 'individual';
+  const watchedMerchantType = useWatch({
+    control: form.control,
+    name: "merchantType",
+  });
+  const watchedEmail = useWatch({ control: form.control, name: "email" });
+  const watchedCopyEmail = useWatch({
+    control: form.control,
+    name: "copyEmail",
+  });
+  const needsTaxAndLicense =
+    watchedMerchantType && watchedMerchantType !== "individual";
 
   useEffect(() => {
     if (watchedCopyEmail && watchedEmail) {
-      form.setValue('emailReconciliation', watchedEmail);
-      form.setValue('emailInvoice', watchedEmail);
+      form.setValue("emailReconciliation", watchedEmail);
+      form.setValue("emailInvoice", watchedEmail);
     }
   }, [watchedCopyEmail, watchedEmail, form]);
 
   const handleSubmit = (values: CreateMerchantValues) => {
     mutate(values as unknown as Record<string, unknown>, {
-      onSuccess: () => router.push('/merchants'),
+      onSuccess: () => router.push("/merchants"),
     });
   };
 
   const handleBack = () => {
     if (isDirty) {
-      if (!confirm('Dữ liệu chưa lưu sẽ bị mất. Bạn có chắc muốn thoát?')) return;
+      if (!confirm("Dữ liệu chưa lưu sẽ bị mất. Bạn có chắc muốn thoát?"))
+        return;
     }
-    router.push('/merchants');
+    router.push("/merchants");
   };
 
   return (
@@ -116,16 +105,21 @@ export function CreateMerchantForm() {
         {/* Top nav */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon-sm"
               onClick={handleBack}
-              className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
+              leftIcon={<ArrowLeft className="h-4 w-4 " />}
+            ></Button>
+
             <div>
-              <h1 className="text-xl font-bold text-foreground">Thêm mới merchant</h1>
-              <p className="text-sm text-muted-foreground">Điền đầy đủ thông tin để tạo hồ sơ merchant</p>
+              <Text as="h1" className="text-xl font-bold text-foreground">
+                Thêm mới merchant
+              </Text>
+              <Text as="p" className="text-sm text-muted-foreground">
+                Điền đầy đủ thông tin để tạo hồ sơ merchant
+              </Text>
             </div>
           </div>
           <div className="flex gap-2">
@@ -209,11 +203,13 @@ export function CreateMerchantForm() {
                 name="merchantType"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <SelectField
+                  <ComboBox
+                    placeholder="-- Chọn loại merchant --"
                     label="Loại merchant"
+                    autocomplete={false}
                     required
                     options={MERCHANT_TYPES}
-                    value={field.value ?? ''}
+                    value={field.value ?? ""}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
                   />
@@ -241,11 +237,13 @@ export function CreateMerchantForm() {
                 name="businessType"
                 control={form.control}
                 render={({ field, fieldState }) => (
-                  <SelectField
+                  <ComboBox
+                    placeholder="-- Chọn lĩnh vực kinh doanh --"
                     label="Lĩnh vực kinh doanh"
+                    autocomplete={false}
                     required
                     options={mockData.businessTypes}
-                    value={field.value}
+                    value={field.value ?? ""}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
                   />
@@ -258,15 +256,11 @@ export function CreateMerchantForm() {
                 name="copyEmail"
                 control={form.control}
                 render={({ field }) => (
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input
-                      type="checkbox"
-                      className="rounded border-border"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                    Sao chép email đăng ký cho email đối soát & hóa đơn
-                  </label>
+                  <Checkbox
+                    label="Sao chép email đăng ký cho email đối soát & hóa đơn"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 )}
               />
             </div>
@@ -306,20 +300,13 @@ export function CreateMerchantForm() {
               name="address"
               control={form.control}
               render={({ field, fieldState }) => (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
-                    Địa chỉ trụ sở <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    className="flex min-h-[80px] w-full rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:border-primary resize-none"
-                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
-                    maxLength={500}
-                    {...field}
-                  />
-                  {fieldState.error && (
-                    <p className="text-xs text-red-500">{fieldState.error.message}</p>
-                  )}
-                </div>
+                <Textarea
+                  label="Địa chỉ trụ sở"
+                  required
+                  placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+                  error={fieldState.error?.message}
+                  {...field}
+                />
               )}
             />
           </Card.CardContent>
@@ -378,16 +365,11 @@ export function CreateMerchantForm() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <DatePicker
+                  required
                   label="Ngày hết hạn CCCD"
                   placeholder="Chọn ngày"
-                  date={field.value ? new Date(field.value) : undefined}
-                  onDateChange={(d) => {
-                    if (d instanceof Date) {
-                      field.onChange(d.toISOString().split('T')[0]);
-                    } else {
-                      field.onChange('');
-                    }
-                  }}
+                  date={dateExpiry}
+                  onDateChange={(d) => setDateExpiry(d as Date | undefined)}
                   disablePastDates
                   error={fieldState.error?.message}
                 />
@@ -398,11 +380,10 @@ export function CreateMerchantForm() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
-                    SĐT nhận OTP <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-end">
                     <Input
+                      label="SĐT nhận OTP"
+                      required
                       placeholder="0901234567"
                       error={fieldState.error?.message}
                       {...field}
@@ -413,7 +394,10 @@ export function CreateMerchantForm() {
                       size="md"
                       className="shrink-0 text-xs"
                       onClick={() =>
-                        form.setValue('representativeOtpPhone', form.getValues('phone'))
+                        form.setValue(
+                          "representativeOtpPhone",
+                          form.getValues("phone"),
+                        )
                       }
                     >
                       Sao chép từ SĐT liên hệ
@@ -437,12 +421,29 @@ export function CreateMerchantForm() {
             </Card.CardDescription>
           </Card.CardHeader>
           <Card.CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <UploadBox label="CCCD mặt trước" required accept="image/*" />
-            <UploadBox label="CCCD mặt sau" required accept="image/*" />
-            {needsTaxAndLicense && (
-              <UploadBox label="Đăng ký kinh doanh" required accept="image/*,.pdf" />
-            )}
-            <UploadBox label="Hợp đồng hợp tác" required accept=".pdf" hint="PDF nhiều trang" />
+            <FileUpload
+              showPreview
+              previewVariant="fill"
+              value={files}
+              onChange={setFiles}
+              label="CCCD mặt trước"
+              description="JPG/PNG tối đa 5MB"
+            />
+            <FileUpload
+              showPreview
+              previewVariant="fill"
+              value={files}
+              onChange={setFiles}
+              label="CCCD mặt sau"
+              description="JPG/PNG tối đa 5MB"
+            />
+            <FileUpload
+              multiple
+              value={files}
+              onChange={setFiles}
+              label="Ảnh hồ sơ kinh doanh"
+              description="JPG/PNG tối đa 5MB"
+            />
           </Card.CardContent>
         </Card.Card>
 
@@ -459,56 +460,5 @@ export function CreateMerchantForm() {
         </div>
       </form>
     </Form>
-  );
-}
-
-interface UploadBoxProps {
-  label: string;
-  required?: boolean;
-  accept?: string;
-  hint?: string;
-}
-
-function UploadBox({ label, required, accept, hint }: UploadBoxProps) {
-  const [preview, setPreview] = useState<string | null>(null);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
-      setPreview(url);
-    } else {
-      setPreview(file.name);
-    }
-  };
-
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-foreground">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-        {hint && <span className="ml-1 text-xs text-muted-foreground">({hint})</span>}
-      </label>
-      <label className="relative flex flex-col items-center justify-center h-36 rounded-lg border-2 border-dashed border-border bg-muted/20 cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
-        {preview ? (
-          preview.startsWith('blob:') ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt={label} className="h-full w-full object-contain rounded-lg" />
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <FileText className="h-5 w-5 text-muted-foreground" />
-              <span className="truncate max-w-[150px]">{preview}</span>
-            </div>
-          )
-        ) : (
-          <div className="flex flex-col items-center gap-1 text-muted-foreground">
-            <FileText className="h-8 w-8 opacity-40" />
-            <span className="text-xs">Click để tải lên</span>
-          </div>
-        )}
-        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept={accept} onChange={handleChange} />
-      </label>
-    </div>
   );
 }
