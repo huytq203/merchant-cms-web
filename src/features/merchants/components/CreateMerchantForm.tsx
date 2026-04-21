@@ -436,7 +436,7 @@ export function CreateMerchantForm() {
               Ảnh: JPG/PNG tối đa 5MB · Tài liệu: PDF tối đa 10MB
             </Card.CardDescription>
           </Card.CardHeader>
-          <Card.CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Card.CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <UploadBox label="CCCD mặt trước" required accept="image/*" />
             <UploadBox label="CCCD mặt sau" required accept="image/*" />
             {needsTaxAndLicense && (

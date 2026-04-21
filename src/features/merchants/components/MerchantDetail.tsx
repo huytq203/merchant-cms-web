@@ -320,7 +320,7 @@ export function MerchantDetail({ merchant }: MerchantDetailProps) {
             </Card.CardTitle>
           </Card.CardHeader>
           <Card.CardContent className="pt-0">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <DocPreview url={merchant.documents.cccdFront} label="CCCD mặt trước" />
               <DocPreview url={merchant.documents.cccdBack} label="CCCD mặt sau" />
               {merchant.merchantType !== 'individual' && (
