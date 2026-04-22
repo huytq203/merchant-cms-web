@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
 import { tv, type VariantProps } from 'tailwind-variants';
+import { cn } from '@/lib/utils/cn';
 
 const separatorVariants = tv({
   base: 'shrink-0 bg-border',
@@ -40,7 +41,7 @@ const Separator = React.forwardRef<HTMLDivElement, SeparatorProps>(
       ref={ref}
       role={decorative ? 'none' : 'separator'}
       aria-orientation={decorative ? undefined : orientation}
-      className={separatorVariants({ orientation, variant, className })}
+      className={cn(separatorVariants({ orientation, variant }), className)}
       {...props}
     />
   )

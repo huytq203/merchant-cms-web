@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,7 +30,12 @@ const SideBar = () => {
   const { logout, isPending } = useLogoutMutation();
   const isCollapsed = state === "collapsed";
   return (
-    <Sidebar collapsible="icon" variant="sidebar" side="left" data-lenis-prevent>
+    <Sidebar
+      collapsible="icon"
+      variant="sidebar"
+      side="left"
+      data-lenis-prevent
+    >
       <SidebarHeader>
         <Link href="/blocks">
           <div
@@ -61,7 +66,8 @@ const SideBar = () => {
       <SidebarContent>
         {routesConfig.map((route, idx) => {
           const isChildActive = route.items.some(
-            (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
+            (item) =>
+              pathname === item.href || pathname.startsWith(item.href + "/"),
           );
           const shouldDefaultOpen = isChildActive || route.defaultOpen === true;
 
@@ -69,7 +75,7 @@ const SideBar = () => {
             <SidebarGroup key={idx}>
               {route.collapsible ? (
                 <>
-                  <SidebarGroupLabel>{route.title}</SidebarGroupLabel>
+                  {/* <SidebarGroupLabel>{route.title}</SidebarGroupLabel> */}
                   <SidebarGroupContent>
                     <SidebarMenu>
                       <SidebarMenuItem>
@@ -85,7 +91,9 @@ const SideBar = () => {
                           isChildActive={isChildActive}
                         >
                           {route.items.map((item, i) => {
-                            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                            const isActive =
+                              pathname === item.href ||
+                              pathname.startsWith(item.href + "/");
                             return (
                               <SidebarMenuSubItem key={i}>
                                 <Link href={item.href}>
@@ -98,10 +106,14 @@ const SideBar = () => {
                                         "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                                     )}
                                   >
-                                    <span className="shrink-0 w-4 h-4 flex items-center justify-center">
-                                      {item.icon}
+                                    {item.icon && (
+                                      <span className="shrink-0 w-4 h-4 flex items-center justify-center">
+                                        {item.icon}
+                                      </span>
+                                    )}
+                                    <span className="truncate">
+                                      {item.title}
                                     </span>
-                                    <span className="truncate">{item.title}</span>
                                   </SidebarMenuButton>
                                 </Link>
                               </SidebarMenuSubItem>
@@ -114,7 +126,7 @@ const SideBar = () => {
                 </>
               ) : (
                 <>
-                  <SidebarGroupLabel>{route.title}</SidebarGroupLabel>
+                  {/* <SidebarGroupLabel>{route.title}</SidebarGroupLabel> */}
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {route.items.map((item, i) => {
@@ -131,9 +143,11 @@ const SideBar = () => {
                                     "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                                 )}
                               >
-                                <span className="shrink-0 w-4 h-4 flex items-center justify-center">
-                                  {item.icon}
-                                </span>
+                                {item.icon && (
+                                  <span className="shrink-0 w-4 h-4 flex items-center justify-center">
+                                    {item.icon}
+                                  </span>
+                                )}
                                 <span className="truncate">{item.title}</span>
                               </SidebarMenuButton>
                             </Link>

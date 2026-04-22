@@ -23,7 +23,8 @@
       "Read(//tmp/**)",
       "Bash(mkdir -p \"C:/docx_extract\")",
       "Read(//c//**)",
-      "Bash(npm init *)"
+      "Bash(npm init *)",
+      "Bash(xargs ls *)"
     ]
   }
 }

@@ -1,11 +1,16 @@
 'use client';
 import { Button, Separator, SidebarTrigger } from '@/components/ui'
 import { Autocomplete } from '@/components/ui/autocomplete/Autocomplete'
-import { Bell, Code, Home, Search, Settings } from 'lucide-react'
+import { Bell, Home, Search, Settings } from 'lucide-react'
 import React from 'react'
 import Link from 'next/link'
+import { getBreadcrumbs } from './constants/route.constants';
+import { usePathname } from 'next/navigation';
 
 const Header = () => {
+  const pathname = usePathname();
+  const breadcrumbs = getBreadcrumbs(pathname);
+
   return (
     <header className="h-[60px] sticky top-0 flex items-center gap-3 border-b border-border bg-background/80 backdrop-blur-md px-4 py-2 shrink-0">
       <SidebarTrigger />
@@ -18,6 +23,24 @@ const Header = () => {
         >
           <Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">Home</span>
         </Link>
+
+        {breadcrumbs.map((segment, index) => (
+          <React.Fragment key={`${segment.title}-${index}`}>
+            <Separator orientation="vertical" className="mx-0.5 h-4 shrink-0" />
+            {segment.href ? (
+              <Link
+                href={segment.href}
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {segment.title}
+              </Link>
+            ) : (
+              <span className="truncate font-medium tracking-tight text-foreground">
+                {segment.title}
+              </span>
+            )}
+          </React.Fragment>
+        ))}
 
         <Autocomplete
           options={[]}

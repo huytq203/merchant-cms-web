@@ -1,34 +1,33 @@
 "use client";
 import * as Card from "@/components/ui/card/Card";
 import { Button } from "@/components/ui";
-import { MerchantFilters } from "@/features/merchants/components/MerchantFilters";
-import { MerchantTable } from "@/features/merchants/components/MerchantTable";
-import { useMerchantsQuery } from "@/features/merchants/hooks/use-merchants-query";
-import type { MerchantFilterValues } from "@/features/merchants/schemas";
-import { Download, Filter, Plus, Search } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
+import { TransactionFilters } from "@/features/transactions/components/TransactionFilters";
+import { TransactionTable } from "@/features/transactions/components/TransactionTable";
+import { useTransactionsQuery } from "@/features/transactions/hooks/use-transactions-query";
+import type { TransactionFilterValues } from "@/features/transactions/schemas";
 import {
   Sheet,
   SheetBody,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet/Sheet";
+import { Download, Filter } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-export default function MerchantsPage() {
-  const [filter, setFilter] = useState<MerchantFilterValues>({});
+export default function TransactionsPage() {
+  const [filter, setFilter] = useState<TransactionFilterValues>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const { data, isLoading } = useMerchantsQuery({ ...filter, page, pageSize });
+  const { data, isLoading } = useTransactionsQuery({ ...filter, page, pageSize });
 
-  const handleSearch = (values: MerchantFilterValues) => {
+  const handleSearch = (values: TransactionFilterValues) => {
     setFilter(values);
     setPage(1);
+    setIsFilterOpen(false);
   };
 
   const handleExport = () => {
@@ -41,10 +40,10 @@ export default function MerchantsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Danh sách Merchant
+            Danh sách giao dịch
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Quản lý hồ sơ, trạng thái và hiệu quả kinh doanh của các merchant
+            Theo dõi và quản lý tất cả giao dịch của các merchant
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -56,11 +55,6 @@ export default function MerchantsPage() {
           >
             Xuất Excel
           </Button>
-          <Link href="/merchants/new">
-            <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
-              Thêm merchant
-            </Button>
-          </Link>
           <Button
             size="sm"
             leftIcon={<Filter className="h-4 w-4" />}
@@ -71,13 +65,6 @@ export default function MerchantsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      {/* <Card.Card>
-        <Card.CardContent className="pt-6">
-          <MerchantFilters onSearch={handleSearch} defaultValues={filter} />
-        </Card.CardContent>
-      </Card.Card> */}
-
       {/* Table */}
       <Card.Card>
         <Card.CardHeader className="pb-3">
@@ -86,15 +73,15 @@ export default function MerchantsPage() {
               Kết quả tìm kiếm
               {data && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({data.pagination.total} merchant)
+                  ({data.pagination.total} giao dịch)
                 </span>
               )}
             </Card.CardTitle>
           </div>
         </Card.CardHeader>
-        <Card.CardContent className="">
-          <MerchantTable
-            data={data?.merchants ?? []}
+        <Card.CardContent>
+          <TransactionTable
+            data={data?.transactions ?? []}
             isLoading={isLoading}
             total={data?.pagination.total}
             page={page}
@@ -106,13 +93,15 @@ export default function MerchantsPage() {
           />
         </Card.CardContent>
       </Card.Card>
+
+      {/* Filter Sheet */}
       <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <SheetContent direction="top" className="h-fit">
           <SheetHeader>
             <SheetTitle>Tìm kiếm nâng cao</SheetTitle>
           </SheetHeader>
           <SheetBody>
-            <MerchantFilters onSearch={handleSearch} defaultValues={filter} />
+            <TransactionFilters onSearch={handleSearch} defaultValues={filter} />
           </SheetBody>
         </SheetContent>
       </Sheet>

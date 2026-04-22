@@ -1,26 +1,21 @@
-'use client';
+"use client";
 import React from "react";
 import {
   BookOpen,
-  ChevronsUpDown,
-  FormInput,
-  Info,
-  LayoutGrid,
-  ListChecks,
-  Minus,
-  ScrollText,
-  Settings,
-  Square,
-  Tag,
-  TextCursorInput,
-  UserCircle,
+ 
 } from "lucide-react";
+
+export interface SubPage {
+  title: string;
+  href: string;
+}
 
 interface SidebarItem {
   title: string;
   href: string;
   icon?: React.ReactNode;
   badge?: string;
+  subPages?: SubPage[];
 }
 
 interface SidebarSection {
@@ -31,21 +26,41 @@ interface SidebarSection {
   items: SidebarItem[];
 }
 
+export interface BreadcrumbSegment {
+  title: string;
+  href?: string;
+}
+
+export function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
+  for (const section of routesConfig) {
+    for (const item of section.items) {
+      if (pathname !== item.href && !pathname.startsWith(item.href + "/")) {
+        continue;
+      }
+
+      const isSubRoute = pathname !== item.href;
+
+      const segments: BreadcrumbSegment[] = [
+        { title: item.title, href: isSubRoute ? item.href : undefined },
+      ];
+
+      return segments;
+    }
+  }
+
+  return [];
+}
+
 export const routesConfig: SidebarSection[] = [
   {
-    title: "Tổng quan",
+    title: "Quản lý giao dịch",
     icon: <BookOpen className="w-4 h-4" />,
     collapsible: true,
     items: [
       {
-        title: "Dashboard",
-        href: "/dashboard",
-      },
-      {
-        title: "Quản lý danh sách merchants",
+        title: "Danh sách giao dịch",
         href: "/merchants",
       },
-     
     ],
   },
 ];
