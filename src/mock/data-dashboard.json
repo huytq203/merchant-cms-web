@@ -1,0 +1,69 @@
+{
+  "recentTransactions": [
+    {
+      "id": "1",
+      "code": "TXN12345678",
+      "customerName": "nguyen***@gmail.com",
+      "amount": 500000,
+      "createdAt": "2026-01-02T10:25:00",
+      "status": "success",
+      "cardType": "VISA",
+      "cardNumber": "4111 22** **** 1111",
+      "bankCode": "Vietcombank"
+    },
+    {
+      "id": "2",
+      "code": "TXN12345679",
+      "customerName": "tran***@gmail.com",
+      "amount": 1200000,
+      "createdAt": "2026-01-02T10:20:00",
+      "status": "pending",
+      "cardType": "MASTERCARD",
+      "cardNumber": "0968 *** 123",
+      "bankCode": "Techcombank"
+    },
+    {
+      "id": "3",
+      "code": "TXN12345680",
+      "customerName": "le****@yahoo.com",
+      "amount": 350000,
+      "createdAt": "2026-01-02T10:15:00",
+      "status": "success",
+      "cardType": "NAPAS",
+      "cardNumber": "9704 16** **** 8888",
+      "bankCode": "MB"
+    },
+    {
+      "id": "4",
+      "code": "TXN12345681",
+      "customerName": "pham**@gmail.com",
+      "amount": 2500000,
+      "createdAt": "2026-01-02T10:10:00",
+      "status": "failed",
+      "cardType": "VISA",
+      "cardNumber": "**** **** **** 4444",
+      "bankCode": "ACB"
+    },
+    {
+      "id": "5",
+      "code": "TXN12345682",
+      "customerName": "vo***@gmail.com",
+      "amount": 750000,
+      "createdAt": "2026-01-02T10:05:00",
+      "status": "success",
+      "cardType": "MASTERCARD",
+      "cardNumber": "**** **** **** 2222",
+      "bankCode": "VPBank"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 10,
+    "total": 5
+  },
+  "totalBalance": 1250000000,
+  "dailyRevenue": 45800000,
+  "dailyTransactions": 1204,
+  "conversionRate": 94.2
+
+}

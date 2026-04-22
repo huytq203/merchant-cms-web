@@ -27,7 +27,6 @@ export default function TransactionsPage() {
   const handleSearch = (values: TransactionFilterValues) => {
     setFilter(values);
     setPage(1);
-    setIsFilterOpen(false);
   };
 
   const handleExport = () => {

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -16,28 +16,20 @@ import {
   SidebarMenuCollapsible,
   SidebarMenuSubItem,
   useSidebar,
-  SidebarFooter,
-  UserMenuPopover,
-  UserMenuItem,
 } from "@/components/ui/sidebar/Sidebar";
+import { Separator } from "@/components/ui/separator/Separator";
 import { routesConfig } from "./constants/route.constants";
-import { BadgeCheck, BellIcon, Loader2, LogOut, Sparkles } from "lucide-react";
-import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
+import { Badge } from "@/components/ui/badge/Badge";
 
-const SideBar = () => {
+export default function DocSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
-  const { logout, isPending } = useLogoutMutation();
   const isCollapsed = state === "collapsed";
   return (
-    <Sidebar
-      collapsible="icon"
-      variant="sidebar"
-      side="left"
-      data-lenis-prevent
-    >
-      <SidebarHeader>
-        <Link href="/blocks">
+    <Sidebar collapsible="icon" variant="sidebar" side="left">
+      {/* Logo */}
+      <SidebarHeader className="">
+        <Link href="/">
           <div
             className={cn(
               "flex items-center gap-3 px-2 py-2 rounded-md transition-all duration-200",
@@ -46,57 +38,59 @@ const SideBar = () => {
           >
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0 shadow-sm flex-none">
               <span className="text-primary-foreground font-bold text-sm select-none">
-                FP
+                UI
               </span>
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate leading-tight">
-                  Flexpay
+                  UI Library
                 </p>
                 <p className="text-xs text-muted-foreground truncate leading-tight">
-                  Merchant CMS
+                  Component Showcase
                 </p>
               </div>
             )}
           </div>
         </Link>
       </SidebarHeader>
-
+      {/* Navigation */}
       <SidebarContent>
-        {routesConfig.map((route, idx) => {
-          const isChildActive = route.items.some(
-            (item) =>
-              pathname === item.href || pathname.startsWith(item.href + "/"),
+        {routesConfig.map((section) => {
+          const isChildActive = section.items.some(
+            (item) => pathname === item.href,
           );
-          const shouldDefaultOpen = isChildActive || route.defaultOpen === true;
+          // Open if: (1) child is active OR (2) config has defaultOpen: true
+          const shouldDefaultOpen =
+            isChildActive || section.defaultOpen === true;
 
           return (
-            <SidebarGroup key={idx}>
-              {route.collapsible ? (
+            <SidebarGroup key={section.title}>
+              {section.collapsible ? (
                 <>
-                  {/* <SidebarGroupLabel>{route.title}</SidebarGroupLabel> */}
+                  <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      <SidebarMenuItem>
+                      <SidebarMenuItem className="">
                         <SidebarMenuCollapsible
-                          id={route.title}
+                          id={section.title}
                           icon={
                             <span className="shrink-0 w-4 h-4 flex items-center justify-center">
-                              {route.icon}
+                              {section.icon}
                             </span>
                           }
-                          label={route.title}
+                          label={section.title}
                           defaultOpen={shouldDefaultOpen}
                           isChildActive={isChildActive}
                         >
-                          {route.items.map((item, i) => {
-                            const isActive =
-                              pathname === item.href ||
-                              pathname.startsWith(item.href + "/");
+                          {section.items.map((item) => {
+                            const isActive = pathname === item.href;
                             return (
-                              <SidebarMenuSubItem key={i}>
-                                <Link href={item.href}>
+                              <SidebarMenuSubItem key={item.href}>
+                                <Link
+                                  href={item.href}
+                                  className="w-full text-foreground"
+                                >
                                   <SidebarMenuButton
                                     isActive={isActive}
                                     tooltip={item.title}
@@ -111,33 +105,46 @@ const SideBar = () => {
                                         {item.icon}
                                       </span>
                                     )}
+
                                     <span className="truncate">
                                       {item.title}
                                     </span>
+                                    {item.badge && (
+                                      <Badge
+                                        size="sm"
+                                        variant="soft-primary"
+                                        className=" ml-auto "
+                                      >
+                                        {item.badge}
+                                      </Badge>
+                                    )}
                                   </SidebarMenuButton>
                                 </Link>
                               </SidebarMenuSubItem>
                             );
                           })}
                         </SidebarMenuCollapsible>
+                        <Separator className="mt-2" />
                       </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </>
               ) : (
                 <>
-                  {/* <SidebarGroupLabel>{route.title}</SidebarGroupLabel> */}
+                  <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {route.items.map((item, i) => {
+                      {section.items.map((item) => {
                         const isActive = pathname === item.href;
                         return (
-                          <SidebarMenuItem key={i}>
-                            <Link href={item.href}>
+                          <SidebarMenuItem key={item.href}>
+                            <Link
+                              href={item.href}
+                              className="w-full text-foreground"
+                            >
                               <SidebarMenuButton
                                 isActive={isActive}
                                 tooltip={item.title}
-                                size="sm"
                                 className={cn(
                                   isActive &&
                                     "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
@@ -149,6 +156,15 @@ const SideBar = () => {
                                   </span>
                                 )}
                                 <span className="truncate">{item.title}</span>
+                                {item.badge && (
+                                  <Badge
+                                    size="sm"
+                                    variant="soft-primary"
+                                    className=" ml-auto "
+                                  >
+                                    {item.badge}
+                                  </Badge>
+                                )}
                               </SidebarMenuButton>
                             </Link>
                           </SidebarMenuItem>
@@ -162,46 +178,6 @@ const SideBar = () => {
           );
         })}
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border pb-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <UserMenuPopover
-              name="admin2"
-              email="admin@example.com"
-              avatar="https://i.pravatar.cc/100"
-            >
-              <UserMenuItem icon={<Sparkles className="w-4 h-4" />}>
-                Upgrade to Pro
-              </UserMenuItem>
-              <div className="h-px bg-border/50 my-1" />
-              <UserMenuItem icon={<BadgeCheck className="w-4 h-4" />}>
-                Account
-              </UserMenuItem>
-              <UserMenuItem icon={<BellIcon className="w-4 h-4" />}>
-                Notifications
-              </UserMenuItem>
-              <div className="h-px bg-border/50 my-1" />
-              <UserMenuItem
-                icon={
-                  isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <LogOut className="w-4 h-4" />
-                  )
-                }
-                destructive
-                disabled={isPending}
-                onClick={logout}
-              >
-                {isPending ? "Đang đăng xuất…" : "Log out"}
-              </UserMenuItem>
-            </UserMenuPopover>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
-};
-
-export default SideBar;
+}

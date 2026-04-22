@@ -2,8 +2,10 @@
 import React from "react";
 import {
   BookOpen,
+  Type,
  
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge/Badge";
 
 export interface SubPage {
   title: string;
@@ -53,6 +55,18 @@ export function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
 
 export const routesConfig: SidebarSection[] = [
   {
+    title: "Dashboard",
+    icon: <BookOpen className="w-4 h-4" />,
+    collapsible: false,
+    items: [
+      {
+        title: "Tổng quan",
+        href: "/dashboard",
+        icon: <Type className="w-4 h-4" />,
+      },
+    ],
+  },
+  {
     title: "Quản lý giao dịch",
     icon: <BookOpen className="w-4 h-4" />,
     collapsible: true,
@@ -60,6 +74,8 @@ export const routesConfig: SidebarSection[] = [
       {
         title: "Danh sách giao dịch",
         href: "/merchants",
+        icon: <Type className="w-4 h-4" />,
+        badge:"new",
       },
     ],
   },
