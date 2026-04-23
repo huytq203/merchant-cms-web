@@ -42,7 +42,7 @@ export interface TransactionListFilter {
 }
 
 export interface TransactionListResponse {
-  transactions: Transaction[];
+  data: Transaction[];
   pagination: {
     total: number;
     page: number;

@@ -17,3 +17,30 @@ export interface DashboardResponse {
     total: number;
   };
 }
+
+// ─── Chart types ──────────────────────────────────────────────────────────────
+
+export type ChartPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RevenueDataPoint {
+  label: string;
+  revenue: number;       // đơn vị: VND
+  transactions: number;
+}
+
+export interface RevenueSummary {
+  totalRevenue: number;        // đơn vị: VND
+  totalTransactions: number;
+  growthRate: number;          // phần trăm, dương = tăng
+}
+
+export interface RevenueChartResponse {
+  points: RevenueDataPoint[];
+  summary: RevenueSummary;
+}
+
+export interface ChartParams {
+  period: ChartPeriod;
+  year?: number;
+   [key: string]: string | number | boolean | null | undefined
+}

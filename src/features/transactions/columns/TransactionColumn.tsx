@@ -5,23 +5,8 @@ import { format } from 'date-fns';
 import { Eye, RotateCcw } from 'lucide-react';
 import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
 import type { Transaction } from '../types';
+import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
 
-function formatAmount(amount: number) {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' vnđ';
-}
-
-function formatDate(dateStr: string) {
-  try {
-    return format(new Date(dateStr), 'dd/MM/yyyy HH:mm');
-  } catch {
-    return dateStr;
-  }
-}
-
-function maskPhone(phone: string) {
-  if (phone.length <= 6) return phone;
-  return phone.slice(0, 3) + '****' + phone.slice(-3);
-}
 
 export const getColumn = (
   onViewDetail: (transaction: Transaction) => void,

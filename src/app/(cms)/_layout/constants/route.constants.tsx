@@ -64,16 +64,23 @@ export const routesConfig: SidebarSection[] = [
         href: "/dashboard",
         icon: <Type className="w-4 h-4" />,
       },
+      
     ],
   },
   {
-    title: "Quản lý giao dịch",
+    title: "Quản lý Merchant",
     icon: <BookOpen className="w-4 h-4" />,
     collapsible: true,
     items: [
       {
         title: "Danh sách giao dịch",
         href: "/merchants",
+        icon: <Type className="w-4 h-4" />,
+        badge:"new",
+      },
+      {
+        title: "Danh sách Sub Merchant",
+        href: "/sub-merchants",
         icon: <Type className="w-4 h-4" />,
         badge:"new",
       },

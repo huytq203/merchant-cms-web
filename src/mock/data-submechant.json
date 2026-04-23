@@ -1,0 +1,57 @@
+{
+  "subMerchants": [
+    {
+      "id": "SUB-00123",
+      "name": "Cửa hàng Thời trang ABC",
+      "businessType": "Business Retail",
+      "contact": "0909 123 456",
+      "status": "active",
+      "createdAt": "2026-01-05T08:00:00Z"
+    },
+    {
+      "id": "SUB-00124",
+      "name": "Quán Cà phê XYZ",
+      "businessType": "F&B Service",
+      "contact": "0912 345 678",
+      "status": "inactive",
+      "createdAt": "2026-01-04T09:30:00Z"
+    },
+    {
+      "id": "SUB-00125",
+      "name": "Siêu thị Mini Mart",
+      "businessType": "Grocery",
+      "contact": "0988 777 666",
+      "status": "active",
+      "createdAt": "2026-01-02T14:15:00Z"
+    },
+    {
+      "id": "SUB-00126",
+      "name": "Nhà thuốc Bình An",
+      "businessType": "Healthcare",
+      "contact": "0977 111 222",
+      "status": "active",
+      "createdAt": "2026-01-01T10:00:00Z"
+    },
+    {
+      "id": "SUB-00127",
+      "name": "Tiệm Bánh Mì Sài Gòn",
+      "businessType": "F&B Service",
+      "contact": "0966 333 444",
+      "status": "active",
+      "createdAt": "2025-12-28T07:30:00Z"
+    },
+    {
+      "id": "SUB-00128",
+      "name": "Điện máy Xanh Mini",
+      "businessType": "Electronics",
+      "contact": "0955 888 999",
+      "status": "locked",
+      "createdAt": "2025-12-25T16:45:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 6,
+    "page": 1,
+    "pageSize": 10
+  }
+}

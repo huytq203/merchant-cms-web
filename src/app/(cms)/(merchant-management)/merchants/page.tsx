@@ -15,14 +15,17 @@ import {
 import { Download, Filter } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import usePagination from "@/hooks/usePagination";
 
 export default function TransactionsPage() {
   const [filter, setFilter] = useState<TransactionFilterValues>({});
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const { setPage, setPageSize, params,page,pageSize } = usePagination();
 
-  const { data, isLoading } = useTransactionsQuery({ ...filter, page, pageSize });
+  const payload = {
+    ...params,
+  };
+  const { data, isLoading } = useTransactionsQuery(payload);
 
   const handleSearch = (values: TransactionFilterValues) => {
     setFilter(values);
@@ -70,7 +73,7 @@ export default function TransactionsPage() {
           <div className="flex items-center justify-between">
             <Card.CardTitle className="text-base">
               Kết quả tìm kiếm
-              {data && (
+              {!!data && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({data.pagination.total} giao dịch)
                 </span>
@@ -80,7 +83,7 @@ export default function TransactionsPage() {
         </Card.CardHeader>
         <Card.CardContent>
           <TransactionTable
-            data={data?.transactions ?? []}
+            data={data?.data ?? []}
             isLoading={isLoading}
             total={data?.pagination.total}
             page={page}
@@ -100,7 +103,10 @@ export default function TransactionsPage() {
             <SheetTitle>Tìm kiếm nâng cao</SheetTitle>
           </SheetHeader>
           <SheetBody>
-            <TransactionFilters onSearch={handleSearch} defaultValues={filter} />
+            <TransactionFilters
+              onSearch={handleSearch}
+              defaultValues={filter}
+            />
           </SheetBody>
         </SheetContent>
       </Sheet>

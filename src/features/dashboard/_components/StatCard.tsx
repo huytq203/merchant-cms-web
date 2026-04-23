@@ -29,7 +29,7 @@ export function StatCard({ title, value, trend, icon, iconClassName }: StatCardP
             {icon}
           </div>
           <div className="flex-1 min-w-0">
-            <Text size="sm" color="muted" weight="medium" as="p">
+            <Text size="sm" color="muted" weight="medium" as="p" className='truncate w-full'>
               {title}
             </Text>
             <Text
@@ -37,7 +37,7 @@ export function StatCard({ title, value, trend, icon, iconClassName }: StatCardP
               weight="bold"
               as="p"
               numeric
-              className="tracking-tight mt-1 leading-tight"
+              className="tracking-tight mt-1 leading-tight truncate w-full"
             >
               {value}
             </Text>
@@ -52,7 +52,7 @@ export function StatCard({ title, value, trend, icon, iconClassName }: StatCardP
                 : <TrendingDown className="w-3.5 h-3.5 shrink-0" />
               }
               <span>{trend.value}</span>
-              <span className="text-muted-foreground font-normal">{trend.label}</span>
+              <span className="text-muted-foreground font-normal ">{trend.label}</span>
             </div>
           </div>
         </div>

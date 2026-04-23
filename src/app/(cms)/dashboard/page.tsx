@@ -2,9 +2,9 @@ import * as React from 'react';
 import { Wallet, TrendingUp, CreditCard, Target } from 'lucide-react';
 import { getServerSession } from '@/lib/auth/session';
 import { Text } from '@/components/ui/typography/Typography';
-import type { StatCardProps } from '../../../features/dashboard/_components/StatCard';
-import { StatCard } from '../../../features/dashboard/_components/StatCard';
-import { RecentTransactions } from '../../../features/dashboard/_components/RecentTransactions';
+import type { StatCardProps } from '@/features/dashboard/_components/StatCard';
+import { StatCard } from '@/features/dashboard/_components/StatCard';
+import { RecentTransactions } from '@/features/dashboard/_components/RecentTransactions';
 import RevenueChart from '@/features/dashboard/_components/RevenueChart';
 
 function getVietnameseGreeting(): string {

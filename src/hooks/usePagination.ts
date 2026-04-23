@@ -25,8 +25,8 @@ const usePagination = (options?: UsePaginationOptions) => {
 
   const [page, setPage] = useState(defaultPage)
   const [pageSize, setPageSize] = useState(defaultPageSize)
-  const [sort, setSort] = useState(defaultSort)
-  const [sortBy, setSortBy] = useState(defaultSortBy)
+  const [sortBy, setSortBy] = useState(defaultSort)
+  const [sortDirection, setSortDirection] = useState(defaultSortBy)
 
   return {
     /**
@@ -43,24 +43,24 @@ const usePagination = (options?: UsePaginationOptions) => {
      * @abstract
      * @returns {string} sort : createdAt, updatedAt, id, ...
      */
-    sort,
+    sortBy,
     /**
      * @abstract
      * @returns {string} sortBy : ASC, DESC
      */
-    sortBy,
-    size:pageSize,
+    sortDirection,
 
     setPage,
     setPageSize,
-    setSort,
     setSortBy,
+    setSortDirection
+    ,
 
     params: {
       page,
-      size: pageSize,
-      sort,
-      sortBy
+      pageSize,
+      sortBy,
+      sortDirection
     }
   }
 }
