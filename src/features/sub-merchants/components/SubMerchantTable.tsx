@@ -14,7 +14,7 @@ interface SubMerchantTableProps {
   pageSize?: number;
   onPageChange?: (page: number, pageSize: number) => void;
   onEdit: (item: SubMerchant) => void;
-  onDelete: (item: SubMerchant) => void;
+  onUpdate: (item: SubMerchant) => void;
 }
 
 export function SubMerchantTable({
@@ -25,13 +25,13 @@ export function SubMerchantTable({
   pageSize = 10,
   onPageChange,
   onEdit,
-  onDelete,
+  onUpdate,
 }: SubMerchantTableProps) {
   const [selected, setSelected] = useState<SubMerchant | null>(null);
 
   const columns = useMemo<ColumnDef<SubMerchant>[]>(
-    () => getColumn(setSelected, onEdit, onDelete),
-    [onEdit, onDelete],
+    () => getColumn(setSelected, onEdit, onUpdate),
+    [onEdit, onUpdate],
   );
 
   return (

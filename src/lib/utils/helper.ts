@@ -6,7 +6,7 @@ export function formatAmount(amount: number) {
 
 export function formatDate(dateStr: string) {
   try {
-    return format(new Date(dateStr), 'dd/MM/yyyy HH:mm');
+    return format(new Date(dateStr), 'dd/MM/yyyy HH:mm:ss');
   } catch {
     return dateStr;
   }

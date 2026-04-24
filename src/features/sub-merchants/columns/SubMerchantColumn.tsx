@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge/Badge";
 import { cn } from "@/lib/utils/cn";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Edit, Eye, Trash2 } from "lucide-react";
+import { Edit, Eye, Lock, Unlock } from "lucide-react";
 import { SUB_MERCHANT_STATUS_OPTIONS } from "../constants/SubMerchant.constants";
 import type { SubMerchant } from "../types";
 import { maskPhone } from "@/lib/utils/helper";
@@ -19,7 +19,7 @@ function formatDate(dateStr: string) {
 export const getColumn = (
   onViewDetail: (item: SubMerchant) => void,
   onEdit: (item: SubMerchant) => void,
-  onDelete: (item: SubMerchant) => void,
+  onUpdate: (item: SubMerchant) => void,
 ): ColumnDef<SubMerchant>[] => [
   {
     id: "id",
@@ -88,23 +88,15 @@ export const getColumn = (
   },
   {
     id: "actions",
-    header: "",
+    header: "Hành động",
+     
     meta: { align: "center" },
     enableSorting: false,
     cell: ({ row }) => {
       const item = row.original;
+      const isLocked = item.status === "locked";
       return (
         <div className="flex items-center justify-center gap-1">
-          <Button
-            size="xs"
-            variant="success-outline"
-            onClick={() => onViewDetail(item)}
-            title="Xem chi tiết"
-            className="rounded-md"
-          >
-            <Eye className="h-3 w-3" />
-            Chi tiết
-          </Button>
           <Button
             size="xs"
             variant="info-outline"
@@ -114,17 +106,34 @@ export const getColumn = (
             className="rounded-md"
           >
             <Edit className="h-3 w-3" />
-            Sửa
           </Button>
           <Button
-            onClick={() => onDelete(item)}
-            title="Xóa"
-            variant="danger-outline"
             size="xs"
+            variant="success-outline"
+            onClick={() => onViewDetail(item)}
+            title="Xem chi tiết"
             className="rounded-md"
           >
-            <Trash2 className="h-3 w-3" />
-            Xóa
+            <Eye className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="xs"
+            variant={isLocked ? "danger-outline" : "warning-outline"}
+            type="button"
+            onClick={() => onUpdate(item)}
+            title={isLocked ? "Mở khóa" : "Khóa"}
+            className={cn("rounded-md")}
+          >
+            {isLocked ? (
+              <>
+                <Unlock className="h-3 w-3" />
+              </>
+            ) : (
+              <>
+                <Lock className="h-3 w-3" />
+              </>
+            )}
           </Button>
         </div>
       );

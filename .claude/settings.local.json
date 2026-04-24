@@ -26,7 +26,8 @@
       "Bash(npm init *)",
       "Bash(xargs ls *)",
       "Bash(gh api *)",
-      "Bash(python -c \"import json,sys; pkg=json.load\\(sys.stdin\\); deps={**pkg.get\\('dependencies',{}\\), **pkg.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\)]\")"
+      "Bash(python -c \"import json,sys; pkg=json.load\\(sys.stdin\\); deps={**pkg.get\\('dependencies',{}\\), **pkg.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\)]\")",
+      "Bash(xargs grep *)"
     ]
   }
 }

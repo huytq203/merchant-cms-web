@@ -1,6 +1,7 @@
 'use client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
@@ -17,10 +18,15 @@ import {
   Textarea,
 } from '@/components/ui';
 import { BUSINESS_TYPE_OPTIONS } from '../constants/SubMerchant.constants';
-import { useCreateSubMerchant } from '../hooks/use-sub-merchant-mutations';
+import { useCreateSubMerchantFull, useUpdateSubMerchantFull } from '../hooks/use-sub-merchant-mutations';
 import { newSubMerchantSchema, type NewSubMerchantFormValues } from '../schemas';
+import type { SubMerchant } from '../types';
 import { BankAccountSection } from './BankAccountSection';
 import { NotificationSection } from './NotificationSection';
+
+interface NewSubMerchantFormProps {
+  initialData?: SubMerchant;
+}
 
 const DEFAULT_VALUES: NewSubMerchantFormValues = {
   name: '',
@@ -44,33 +50,80 @@ const DEFAULT_VALUES: NewSubMerchantFormValues = {
   eInvoiceEmails: '',
 };
 
-export function NewSubMerchantForm() {
+function generateAlphanumeric(length: number) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function toFormValues(data: SubMerchant): NewSubMerchantFormValues {
+  return {
+    name: data.name,
+    businessType: data.businessType,
+    taxCode: data.taxCode ?? '',
+    representative: data.representative ?? '',
+    address: data.address ?? '',
+    webhookUrl: data.webhookUrl ?? '',
+    bankName: data.bankName ?? '',
+    bankBranch: data.bankBranch ?? '',
+    accountNumber: data.accountNumber ?? '',
+    accountName: data.accountName ?? '',
+    notifyEnabled: data.notifyEnabled ?? false,
+    notifyTxSuccess: data.notifyTxSuccess ?? true,
+    notifyTxFailed: data.notifyTxFailed ?? false,
+    notifyDispute: data.notifyDispute ?? true,
+    notifyFreeze: data.notifyFreeze ?? true,
+    notifyPolicyChange: data.notifyPolicyChange ?? false,
+    notifyEmails: data.notifyEmails ?? '',
+    eInvoiceEnabled: data.eInvoiceEnabled ?? false,
+    eInvoiceEmails: data.eInvoiceEmails ?? '',
+  };
+}
+
+export function NewSubMerchantForm({ initialData }: NewSubMerchantFormProps) {
   const router = useRouter();
-  const { mutate, isPending } = useCreateSubMerchant();
+  const isEditMode = !!initialData;
+
+  const { mutate: createMutate, isPending: isCreating } = useCreateSubMerchantFull();
+  const { mutate: updateMutate, isPending: isUpdating } = useUpdateSubMerchantFull(initialData?.id ?? '');
+  const isPending = isCreating || isUpdating;
+
+  const previewKeys = useMemo(
+    () => ({
+      merchantId: initialData?.merchantId ?? `MCH-${generateAlphanumeric(8).toUpperCase()}`,
+      accessKey: initialData?.accessKey ?? generateAlphanumeric(24),
+      secretKey: initialData?.secretKey ?? generateAlphanumeric(48),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const form = useForm<NewSubMerchantFormValues>({
     resolver: zodResolver(newSubMerchantSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: initialData ? toFormValues(initialData) : DEFAULT_VALUES,
   });
 
   const ctrl = form.control;
 
   const onSubmit = (values: NewSubMerchantFormValues) => {
-    mutate(
-      {
-        name: values.name,
-        businessType: values.businessType,
-        contact: values.notifyEmails ?? '',
-        status: 'active',
-      },
-      {
+    const payload = { ...values, ...previewKeys, contact: values.notifyEmails ?? '' };
+
+    if (isEditMode) {
+      updateMutate(payload, {
+        onSuccess: () => {
+          toast.success('Cập nhật Sub-merchant thành công');
+          router.push('/sub-merchants');
+        },
+        onError: () => toast.error('Cập nhật Sub-merchant thất bại'),
+      });
+    } else {
+      createMutate(payload, {
         onSuccess: () => {
           toast.success('Tạo Sub-merchant thành công');
           router.push('/sub-merchants');
         },
         onError: () => toast.error('Tạo Sub-merchant thất bại'),
-      },
-    );
+      });
+    }
   };
 
   return (
@@ -101,7 +154,8 @@ export function NewSubMerchantForm() {
               render={({ field, fieldState }) => (
                 <ComboBox
                   autocomplete
-                  label="Lĩnh vực kinh doanh *"
+                  label="Lĩnh vực kinh doanh"
+                  required
                   placeholder="-- Chọn lĩnh vực --"
                   value={field.value}
                   onValueChange={(v) => field.onChange(typeof v === 'string' ? v : (v[0] ?? ''))}
@@ -138,7 +192,11 @@ export function NewSubMerchantForm() {
               render={({ field, fieldState }) => (
                 <div className="md:col-span-2">
                   <Textarea
-                    label="Địa chỉ trụ sở *"
+                    label="Địa chỉ trụ sở"
+                    required
+                    showCount
+                    maxLength={255}
+                    minLength={1}
                     placeholder="Số nhà, đường, phường/xã, quận/huyện..."
                     error={fieldState.error?.message}
                     {...field}
@@ -156,9 +214,9 @@ export function NewSubMerchantForm() {
             <CardDescription>Merchant ID và Access Key được tạo tự động sau khi lưu</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input label="Merchant ID (Auto)" placeholder="Tự động tạo sau khi lưu" disabled />
-            <Input label="Access Key" placeholder="Tự động tạo sau khi lưu" disabled />
-            <Input label="Secret Key" placeholder="Tự động tạo sau khi lưu" type="password" disabled />
+            <Input label="Merchant ID (Auto)" value={previewKeys.merchantId} readOnly />
+            <Input label="Access Key" value={previewKeys.accessKey} readOnly />
+            <Input label="Secret Key" value={previewKeys.secretKey} type="password" readOnly />
             <FormField
               name="webhookUrl"
               control={ctrl}
@@ -188,7 +246,7 @@ export function NewSubMerchantForm() {
             Hủy bỏ
           </Button>
           <Button type="submit" isLoading={isPending}>
-            Lưu thiết lập
+            {isEditMode ? 'Lưu thay đổi' : 'Lưu thiết lập'}
           </Button>
         </div>
       </form>

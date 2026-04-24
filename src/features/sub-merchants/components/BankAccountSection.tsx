@@ -21,7 +21,8 @@ export function BankAccountSection({ control }: BankAccountSectionProps) {
           render={({ field, fieldState }) => (
             <ComboBox
               autocomplete
-              label="Ngân hàng thụ hưởng *"
+              label="Ngân hàng thụ hưởng"
+              required
               placeholder="Chọn ngân hàng"
               value={field.value}
               onValueChange={(v) => field.onChange(typeof v === 'string' ? v : (v[0] ?? ''))}

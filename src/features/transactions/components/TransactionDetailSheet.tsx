@@ -69,11 +69,10 @@ export function TransactionDetailSheet({
   open,
   onOpenChange,
 }: TransactionDetailSheetProps) {
-  if (!transaction) return null;
-
-  const statusOption = TRANSACTION_STATUS_OPTIONS.find(
-    (o) => o.value === transaction.status,
-  );
+  const data = transaction;
+  const statusOption = data
+    ? TRANSACTION_STATUS_OPTIONS.find((o) => o.value === data.status)
+    : undefined;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -81,84 +80,72 @@ export function TransactionDetailSheet({
         <SheetHeader>
           <SheetTitle>Chi tiết giao dịch</SheetTitle>
         </SheetHeader>
-        <SheetBody>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 items-start">
-            {/* Thông tin cơ bản */}
-            <SectionTitle>Thông tin cơ bản</SectionTitle>
-            <DetailRow label="Mã giao dịch">
-              <span className="font-mono text-primary">{transaction.code}</span>
-            </DetailRow>
-            <DetailRow label="Trạng thái">
-              <Badge variant={statusOption?.variant ?? 'outline'} size="sm">
-                {statusOption?.label ?? transaction.status}
-              </Badge>
-            </DetailRow>
-            <DetailRow label="Thời gian tạo">
-              {formatDate(transaction.createdAt)}
-            </DetailRow>
-            <DetailRow label="Mô tả">
-              {transaction.description}
-            </DetailRow>
+        {data && (
+          <SheetBody>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 items-start">
+              {/* Thông tin cơ bản */}
+              <SectionTitle>Thông tin cơ bản</SectionTitle>
+              <DetailRow label="Mã giao dịch">
+                <span className="font-mono text-primary">{data.code}</span>
+              </DetailRow>
+              <DetailRow label="Trạng thái">
+                <Badge variant={statusOption?.variant ?? 'outline'} size="sm">
+                  {statusOption?.label ?? data.status}
+                </Badge>
+              </DetailRow>
+              <DetailRow label="Thời gian tạo">{formatDate(data.createdAt)}</DetailRow>
+              <DetailRow label="Mô tả">{data.description}</DetailRow>
 
-            {/* Thông tin thẻ */}
-            <SectionTitle>Thông tin thẻ</SectionTitle>
-            <DetailRow label="Loại thẻ">
-              {CARD_TYPE_LABELS[transaction.cardType]}
-            </DetailRow>
-            <DetailRow label="Số thẻ">
-              <span className="font-mono">{transaction.cardNumber}</span>
-            </DetailRow>
-            <DetailRow label="Chủ thẻ">
-              {transaction.cardHolderName}
-            </DetailRow>
-            <DetailRow label="Ngân hàng">
-              {transaction.bankCode}
-            </DetailRow>
+              {/* Thông tin thẻ */}
+              <SectionTitle>Thông tin thẻ</SectionTitle>
+              <DetailRow label="Loại thẻ">{CARD_TYPE_LABELS[data.cardType]}</DetailRow>
+              <DetailRow label="Số thẻ">
+                <span className="font-mono">{data.cardNumber}</span>
+              </DetailRow>
+              <DetailRow label="Chủ thẻ">{data.cardHolderName}</DetailRow>
+              <DetailRow label="Ngân hàng">{data.bankCode}</DetailRow>
 
-            {/* Thông tin thanh toán */}
-            <SectionTitle>Thông tin thanh toán</SectionTitle>
-            <DetailRow label="Số tiền">
-              <span className="font-mono font-semibold text-foreground">
-                {formatAmount(transaction.amount)}
-              </span>
-            </DetailRow>
-            <DetailRow label="Phí giao dịch">
-              <span className="font-mono text-muted-foreground">
-                {formatAmount(transaction.fee)}
-              </span>
-            </DetailRow>
-            <DetailRow label="Thực nhận">
-              <span className="font-mono font-semibold text-emerald-600">
-                {formatAmount(transaction.netAmount)}
-              </span>
-            </DetailRow>
+              {/* Thông tin thanh toán */}
+              <SectionTitle>Thông tin thanh toán</SectionTitle>
+              <DetailRow label="Số tiền">
+                <span className="font-mono font-semibold text-foreground">
+                  {formatAmount(data.amount)}
+                </span>
+              </DetailRow>
+              <DetailRow label="Phí giao dịch">
+                <span className="font-mono text-muted-foreground">
+                  {formatAmount(data.fee)}
+                </span>
+              </DetailRow>
+              <DetailRow label="Thực nhận">
+                <span className="font-mono font-semibold text-emerald-600">
+                  {formatAmount(data.netAmount)}
+                </span>
+              </DetailRow>
 
-            {/* Sub-merchant */}
-            <SectionTitle>Sub-merchant</SectionTitle>
-            <DetailRow label="Tên Sub-merchant">
-              {transaction.subMerchantName}
-            </DetailRow>
+              {/* Sub-merchant */}
+              <SectionTitle>Sub-merchant</SectionTitle>
+              <DetailRow label="Tên Sub-merchant">{data.subMerchantName}</DetailRow>
 
-            {/* Khách hàng */}
-            <SectionTitle>Khách hàng</SectionTitle>
-            <DetailRow label="Tên khách hàng">
-              {transaction.customerName}
-            </DetailRow>
-            <DetailRow label="Số điện thoại">
-              <span className="font-mono">{maskPhone(transaction.customerPhone)}</span>
-            </DetailRow>
+              {/* Khách hàng */}
+              <SectionTitle>Khách hàng</SectionTitle>
+              <DetailRow label="Tên khách hàng">{data.customerName}</DetailRow>
+              <DetailRow label="Số điện thoại">
+                <span className="font-mono">{maskPhone(data.customerPhone)}</span>
+              </DetailRow>
 
-            {/* Kỹ thuật */}
-            <SectionTitle>Thông tin kỹ thuật</SectionTitle>
-            <DetailRow label="Mã tham chiếu">
-              <span className="font-mono text-xs">{transaction.referenceCode}</span>
-            </DetailRow>
-            <DetailRow label="Mã phản hồi">
-              <span className="font-mono">{transaction.responseCode}</span>
-            </DetailRow>
-            <DetailRow label="Thông báo">{transaction.responseMessage}</DetailRow>
-          </dl>
-        </SheetBody>
+              {/* Kỹ thuật */}
+              <SectionTitle>Thông tin kỹ thuật</SectionTitle>
+              <DetailRow label="Mã tham chiếu">
+                <span className="font-mono text-xs">{data.referenceCode}</span>
+              </DetailRow>
+              <DetailRow label="Mã phản hồi">
+                <span className="font-mono">{data.responseCode}</span>
+              </DetailRow>
+              <DetailRow label="Thông báo">{data.responseMessage}</DetailRow>
+            </dl>
+          </SheetBody>
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -3,13 +3,13 @@ import React from "react";
 import {
   BookOpen,
   Type,
- 
+
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge/Badge";
 
 export interface SubPage {
   title: string;
-  href: string;
+  href?: string;     // exact match
+  pattern?: string;  // pattern match, dùng [segment] cho dynamic (e.g. "/sub-merchants/[id]/edit")
 }
 
 interface SidebarItem {
@@ -33,20 +33,36 @@ export interface BreadcrumbSegment {
   href?: string;
 }
 
+function matchesPattern(pathname: string, pattern: string): boolean {
+  const patternParts = pattern.split("/");
+  const pathParts = pathname.split("/");
+  if (patternParts.length !== pathParts.length) return false;
+  return patternParts.every((part, i) => part.startsWith("[") || part === pathParts[i]);
+}
+
 export function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
   for (const section of routesConfig) {
     for (const item of section.items) {
-      if (pathname !== item.href && !pathname.startsWith(item.href + "/")) {
-        continue;
+      if (pathname === item.href) {
+        return [{ title: item.title }];
       }
 
-      const isSubRoute = pathname !== item.href;
+      if (pathname.startsWith(item.href + "/")) {
+        const parent: BreadcrumbSegment = { title: item.title, href: item.href };
 
-      const segments: BreadcrumbSegment[] = [
-        { title: item.title, href: isSubRoute ? item.href : undefined },
-      ];
+        if (item.subPages) {
+          const matchedSub = item.subPages.find(
+            (sp) =>
+              (sp.href && sp.href === pathname) ||
+              (sp.pattern && matchesPattern(pathname, sp.pattern)),
+          );
+          if (matchedSub) {
+            return [parent, { title: matchedSub.title }];
+          }
+        }
 
-      return segments;
+        return [parent];
+      }
     }
   }
 
@@ -56,34 +72,47 @@ export function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
 export const routesConfig: SidebarSection[] = [
   {
     title: "Dashboard",
-    icon: <BookOpen className="w-4 h-4" />,
+    // icon: <BookOpen className="w-4 h-4" />,
     collapsible: false,
     items: [
       {
         title: "Tổng quan",
         href: "/dashboard",
-        icon: <Type className="w-4 h-4" />,
+        // icon: <Type className="w-4 h-4" />,
       },
-      
     ],
   },
   {
     title: "Quản lý Merchant",
-    icon: <BookOpen className="w-4 h-4" />,
-    collapsible: true,
+    // icon: <BookOpen className="w-4 h-4" />,
+    collapsible: false,
     items: [
       {
-        title: "Danh sách giao dịch",
-        href: "/merchants",
-        icon: <Type className="w-4 h-4" />,
-        badge:"new",
+        title: "Quản lý quyền hạn",
+        href: "/permissions",
+        // icon: <Type className="w-4 h-4" />,
       },
       {
         title: "Danh sách Sub Merchant",
         href: "/sub-merchants",
-        icon: <Type className="w-4 h-4" />,
-        badge:"new",
+        // icon: <Type className="w-4 h-4" />,
+        subPages: [
+          { title: "Tạo mới Sub Merchant", pattern: "/sub-merchants/new" },
+          { title: "Chỉnh sửa Sub Merchant", pattern: "/sub-merchants/[id]/edit" },
+        ],
       },
     ],
   },
+  {
+    title:"Quản lý giao dịch Merchant",
+    // icon: <BookOpen className="w-4 h-4" />,
+    collapsible: false,
+    items: [
+      {
+        title: "Danh sách giao dịch",
+        href: "/merchants",
+        // icon: <Type className="w-4 h-4" />,
+      },
+    ],
+  }
 ];

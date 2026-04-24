@@ -38,16 +38,16 @@ export default function DocSidebar() {
           >
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0 shadow-sm flex-none">
               <span className="text-primary-foreground font-bold text-sm select-none">
-                UI
+                FP
               </span>
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate leading-tight">
-                  UI Library
+                  FlexPay
                 </p>
                 <p className="text-xs text-muted-foreground truncate leading-tight">
-                  Component Showcase
+                  Merchant Admin CMS
                 </p>
               </div>
             )}
@@ -58,7 +58,7 @@ export default function DocSidebar() {
       <SidebarContent>
         {routesConfig.map((section) => {
           const isChildActive = section.items.some(
-            (item) => pathname === item.href,
+            (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
           );
           // Open if: (1) child is active OR (2) config has defaultOpen: true
           const shouldDefaultOpen =
@@ -76,7 +76,7 @@ export default function DocSidebar() {
                           id={section.title}
                           icon={
                             <span className="shrink-0 w-4 h-4 flex items-center justify-center">
-                              {section.icon}
+                              {section?.icon}
                             </span>
                           }
                           label={section.title}
@@ -84,7 +84,7 @@ export default function DocSidebar() {
                           isChildActive={isChildActive}
                         >
                           {section.items.map((item) => {
-                            const isActive = pathname === item.href;
+                            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                             return (
                               <SidebarMenuSubItem key={item.href}>
                                 <Link
@@ -135,7 +135,7 @@ export default function DocSidebar() {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {section.items.map((item) => {
-                        const isActive = pathname === item.href;
+                        const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                         return (
                           <SidebarMenuItem key={item.href}>
                             <Link

@@ -6,6 +6,7 @@ import { Eye, RotateCcw } from 'lucide-react';
 import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
 import type { Transaction } from '../types';
 import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
+import { Button } from '@/components/ui';
 
 
 export const getColumn = (
@@ -131,15 +132,16 @@ export const getColumn = (
             <RotateCcw className="h-3 w-3" />
             Hoàn tiền
           </button>
-          <button
-            type="button"
+          <Button
             onClick={() => onViewDetail(t)}
             title="Xem chi tiết"
-            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+            variant="outline"
+            size="sm"
+            leftIcon={<Eye className="h-3 w-3" />}
+            className='rounded-md'
           >
-            <Eye className="h-3 w-3" />
             Chi tiết
-          </button>
+          </Button>
         </div>
       );
     },

@@ -218,9 +218,9 @@
         --chart-5: #f59e0b;
 
         /* ── Sidebar ── */
-        --sidebar: #fbfbfb;
+        --sidebar: #f5f6f7;
         --sidebar-foreground: #232929;
-        --sidebar-border: #eff1f1;          /* neutral-border */
+        --sidebar-border: #b6b6b6;          /* neutral-border */
         --sidebar-accent: #e9e4ff;          /* dark-blue-100 */
         --sidebar-accent-foreground: #6600ff; /* dark-blue-700 */
         --sidebar-ring: #058075;

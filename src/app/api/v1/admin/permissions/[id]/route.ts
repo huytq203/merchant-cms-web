@@ -1,0 +1,52 @@
+import { mockStore } from "@/lib/mock/mock-store";
+import { NextRequest, NextResponse } from "next/server";
+
+type Params = { params: Promise<{ id: string }> };
+type PermissionGroup = Record<string, unknown>;
+type MockData = { permissionGroups: PermissionGroup[] };
+const store = mockStore<MockData>("data-permission.json");
+const delay = () => new Promise((r) => setTimeout(r, 300));
+
+export async function GET(_request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  await delay();
+  const mockData = await store.read();
+  const item = mockData.permissionGroups.find(
+    (p) => p.id === Number(id) || p.id === String(id),
+  );
+  if (!item) {
+    return NextResponse.json(
+      { error: "Không tìm thấy permission" },
+      { status: 404 },
+    );
+  }
+  return NextResponse.json(item);
+}
+
+export async function PUT(_request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  await delay();
+  const mockData = await store.read();
+  const index = mockData.permissionGroups.findIndex((m) => m.id === Number(id)||String(id));
+  if (index === -1) {
+    return NextResponse.json(
+      { error: "Không tìm thấy permission" },
+      { status: 404 },
+    );
+  }
+  const existing = mockData.permissionGroups[index];
+  const body = await _request.json();
+  const updated: PermissionGroup = {
+    id,
+    name: body.name ?? existing?.name,
+    status: body.status ?? existing?.status,
+    permissions: body.permissions ?? existing?.permissions,
+    userCount: existing?.userCount ?? 0,
+    createdAt: existing?.createdAt,
+    updatedAt: new Date().toISOString(),
+    updatedBy: "admin",
+  };
+  mockData.permissionGroups[index] = updated;
+  await store.write(mockData);
+  return NextResponse.json(updated);
+}

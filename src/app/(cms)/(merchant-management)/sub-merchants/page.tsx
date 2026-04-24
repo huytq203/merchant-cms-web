@@ -2,97 +2,76 @@
 import * as Card from '@/components/ui/card/Card';
 import { Button } from '@/components/ui';
 import { SubMerchantFilters } from '@/features/sub-merchants/components/SubMerchantFilters';
-import { SubMerchantFormSheet } from '@/features/sub-merchants/components/SubMerchantFormSheet';
 import { SubMerchantTable } from '@/features/sub-merchants/components/SubMerchantTable';
-import {
-  useCreateSubMerchant,
-  useDeleteSubMerchant,
-  useUpdateSubMerchant,
-} from '@/features/sub-merchants/hooks/use-sub-merchant-mutations';
+import { useToggleSubMerchantStatus } from '@/features/sub-merchants/hooks/use-sub-merchant-mutations';
 import { useSubMerchantsQuery } from '@/features/sub-merchants/hooks/use-sub-merchants-query';
-import type { SubMerchantFilterValues, SubMerchantFormValues } from '@/features/sub-merchants/schemas';
+import type { SubMerchantFilterValues } from '@/features/sub-merchants/schemas';
 import type { SubMerchant } from '@/features/sub-merchants/types';
+import { DialogActive } from '@/features/sub-merchants/components/DialogActive';
+import { DialogUnActive } from '@/features/sub-merchants/components/DialogUnActive';
 import usePagination from '@/hooks/usePagination';
-import { Download, Filter, Plus } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet/Sheet';
 import Link from 'next/link';
 
 export default function SubMerchantsPage() {
   const [filter, setFilter] = useState<SubMerchantFilterValues>({});
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<SubMerchant | null>(null);
+  const [lockTarget, setLockTarget] = useState<SubMerchant | null>(null);
+  const [dialogMode, setDialogMode] = useState<'lock' | 'unlock' | null>(null);
+  const router = useRouter();
 
   const { setPage, setPageSize, params, page, pageSize } = usePagination();
-
   const { data, isLoading } = useSubMerchantsQuery({ ...params, ...filter });
-
-  const createMutation = useCreateSubMerchant();
-  const updateMutation = useUpdateSubMerchant(editTarget?.id ?? '');
-  const deleteMutation = useDeleteSubMerchant();
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleSubMerchantStatus();
 
   const handleSearch = (values: SubMerchantFilterValues) => {
     setFilter(values);
     setPage(1);
   };
 
-  const handleOpenCreate = () => {
-    setEditTarget(null);
-    setIsFormOpen(true);
-  };
-
   const handleEdit = (item: SubMerchant) => {
-    setEditTarget(item);
-    setIsFormOpen(true);
+    router.push(`/sub-merchants/${item.id}/edit`);
   };
 
-  const handleDelete = (item: SubMerchant) => {
-    if (!confirm(`Xác nhận xóa sub-merchant "${item.name}"?`)) return;
-
-    deleteMutation.mutate(item.id, {
-      onSuccess: () => toast.success('Đã xóa sub-merchant thành công'),
-      onError: () => toast.error('Xóa sub-merchant thất bại'),
-    });
+  const handleUpdate = (item: SubMerchant) => {
+    setLockTarget(item);
+    setDialogMode(item.status === 'locked' ? 'unlock' : 'lock');
   };
 
-  const handleFormSubmit = (values: SubMerchantFormValues) => {
-    if (editTarget) {
-      updateMutation.mutate(values, {
-        onSuccess: () => {
-          toast.success('Cập nhật sub-merchant thành công');
-          setIsFormOpen(false);
-        },
-        onError: () => toast.error('Cập nhật sub-merchant thất bại'),
-      });
-    } else {
-      createMutation.mutate(values, {
-        onSuccess: () => {
-          toast.success('Thêm sub-merchant thành công');
-          setIsFormOpen(false);
-        },
-        onError: () => toast.error('Thêm sub-merchant thất bại'),
-      });
-    }
+  const handleCloseDialog = () => {
+    setLockTarget(null);
+    setDialogMode(null);
   };
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const handleLockConfirm = (reason: string) => {
+    if (!lockTarget) return;
+    toggleStatus(
+      { id: lockTarget.id, status: 'locked', reason },
+      {
+        onSuccess: () => { toast.success('Đã khóa sub-merchant thành công'); handleCloseDialog(); },
+        onError: () => toast.error('Khóa sub-merchant thất bại'),
+      },
+    );
+  };
+
+  const handleUnlockConfirm = (reason: string) => {
+    if (!lockTarget) return;
+    toggleStatus(
+      { id: lockTarget.id, status: 'active', reason },
+      {
+        onSuccess: () => { toast.success('Đã mở khóa sub-merchant thành công'); handleCloseDialog(); },
+        onError: () => toast.error('Mở khóa sub-merchant thất bại'),
+      },
+    );
+  };
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Danh sách Sub-merchant
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Danh sách Sub-merchant</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Quản lý tất cả sub-merchant thuộc hệ thống
           </p>
@@ -106,41 +85,33 @@ export default function SubMerchantsPage() {
           >
             Xuất Excel
           </Button>
-        <Link href="/sub-merchants/new">
-          <Button
-            size="sm"
-            leftIcon={<Plus className="h-4 w-4" />}
-          >
-            Thêm mới
-          </Button>
-        </Link>
+          <Link href="/sub-merchants/new">
+            <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+              Thêm mới
+            </Button>
+          </Link>
         </div>
       </div>
+
       <Card.Card>
         <Card.CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <Card.CardTitle className="text-base">Tìm kiếm</Card.CardTitle>
-          </div>
+          <Card.CardTitle className="text-base">Tìm kiếm</Card.CardTitle>
         </Card.CardHeader>
-
         <Card.CardContent>
           <SubMerchantFilters onSearch={handleSearch} defaultValues={filter} />
         </Card.CardContent>
       </Card.Card>
 
-      {/* Table */}
       <Card.Card>
         <Card.CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <Card.CardTitle className="text-base">
-              Kết quả tìm kiếm
-              {!!data && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({data.pagination.total} sub-merchant)
-                </span>
-              )}
-            </Card.CardTitle>
-          </div>
+          <Card.CardTitle className="text-base">
+            Kết quả tìm kiếm
+            {!!data && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({data.pagination.total} sub-merchant)
+              </span>
+            )}
+          </Card.CardTitle>
         </Card.CardHeader>
         <Card.CardContent>
           <SubMerchantTable
@@ -149,22 +120,28 @@ export default function SubMerchantsPage() {
             total={data?.pagination.total}
             page={page}
             pageSize={pageSize}
-            onPageChange={(p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            }}
+            onPageChange={(p, ps) => { setPage(p); setPageSize(ps); }}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onUpdate={handleUpdate}
           />
         </Card.CardContent>
       </Card.Card>
-      {/* Form Sheet */}
-      <SubMerchantFormSheet
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        editTarget={editTarget}
-        onSubmit={handleFormSubmit}
-        isSubmitting={isSubmitting}
+
+      <DialogActive
+        open={dialogMode === 'lock'}
+        onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
+        merchantName={lockTarget?.name}
+        onConfirm={handleLockConfirm}
+        isLoading={isToggling}
+      />
+      <DialogUnActive
+        open={dialogMode === 'unlock'}
+        onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
+        lockReason={lockTarget?.reason}
+        lockedBy={lockTarget?.lockedBy}
+        lockedAt={lockTarget?.lockedAt}
+        onConfirm={handleUnlockConfirm}
+        isLoading={isToggling}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import usePagination from '@/hooks/usePagination'
 
 export const useHandle = () => {
 
-  const {page,pageSize,setPage,setPageSize,sort,sortBy}=usePagination()
+  const {page,pageSize}=usePagination()
   const payload={
     page,
     pageSize,

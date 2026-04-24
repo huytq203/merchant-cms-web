@@ -35,22 +35,42 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  if (!body.name || !body.businessType || !body.contact) {
+  if (!body.name || !body.businessType) {
     return NextResponse.json(
-      { error: "name, businessType, contact là bắt buộc" },
+      { error: "name, businessType là bắt buộc" },
       { status: 422 },
     );
   }
 
   await delay();
 
-  const created = {
+  const created: SubMerchant = {
     id: `SUB-${Date.now()}`,
     name: body.name,
     businessType: body.businessType,
-    contact: body.contact,
+    contact: body.contact ?? body.notifyEmails ?? "",
     status: body.status ?? "active",
     createdAt: new Date().toISOString(),
+    taxCode: body.taxCode ?? "",
+    representative: body.representative ?? "",
+    address: body.address ?? "",
+    merchantId: body.merchantId ?? `MCH-${Date.now()}`,
+    accessKey: body.accessKey ?? "",
+    secretKey: body.secretKey ?? "",
+    webhookUrl: body.webhookUrl ?? "",
+    bankName: body.bankName ?? "",
+    bankBranch: body.bankBranch ?? "",
+    accountNumber: body.accountNumber ?? "",
+    accountName: body.accountName ?? "",
+    notifyEnabled: body.notifyEnabled ?? false,
+    notifyTxSuccess: body.notifyTxSuccess ?? true,
+    notifyTxFailed: body.notifyTxFailed ?? false,
+    notifyDispute: body.notifyDispute ?? true,
+    notifyFreeze: body.notifyFreeze ?? true,
+    notifyPolicyChange: body.notifyPolicyChange ?? false,
+    notifyEmails: body.notifyEmails ?? "",
+    eInvoiceEnabled: body.eInvoiceEnabled ?? false,
+    eInvoiceEmails: body.eInvoiceEmails ?? "",
   };
 
   await store.update((mock) => ({

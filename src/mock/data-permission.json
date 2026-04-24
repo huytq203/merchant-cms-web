@@ -1,0 +1,126 @@
+{
+  "permissionGroups": [
+    {
+      "id": "1777020637944",
+      "name": "Tester",
+      "status": "active",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance"
+      ],
+      "userCount": 2,
+      "createdAt": "2026-01-01T09:30:00Z",
+      "updatedAt": "2026-04-24T10:23:34.116Z",
+      "updatedBy": "admin"
+    },
+    {
+      "id": "PG-002",
+      "name": "Kế toán đối soát",
+      "createdAt": "2026-01-02T14:15:00Z",
+      "status": "active",
+      "userCount": 5,
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-01-05T10:00:00Z",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "finance_view_balance"
+      ]
+    },
+    {
+      "id": "PG-003",
+      "name": "Nhân viên kỹ thuật",
+      "createdAt": "2026-01-05T10:00:00Z",
+      "status": "inactive",
+      "userCount": 0,
+      "createdBy": "Admin_02",
+      "updatedBy": null,
+      "updatedAt": null,
+      "permissions": [
+        "sub_merchant_view_list",
+        "sub_merchant_update"
+      ]
+    },
+    {
+      "id": 1777020637944,
+      "name": "Tester",
+      "userCount": 0,
+      "status": "active",
+      "permissions": [],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-24T08:50:37.944Z",
+      "createdAt": "2026-04-24T08:50:37.945Z"
+    }
+  ],
+  "permissionCategories": [
+    {
+      "id": "CAT-TXN",
+      "name": "Quản lý Giao dịch",
+      "permissions": [
+        {
+          "id": "txn_view_list",
+          "name": "Xem danh sách"
+        },
+        {
+          "id": "txn_search_detail",
+          "name": "Tra cứu chi tiết"
+        },
+        {
+          "id": "txn_export_report",
+          "name": "Xuất báo cáo"
+        },
+        {
+          "id": "txn_refund",
+          "name": "Hoàn tiền (Refund)"
+        }
+      ]
+    },
+    {
+      "id": "CAT-FIN",
+      "name": "Quản lý Tài chính",
+      "permissions": [
+        {
+          "id": "finance_view_balance",
+          "name": "Xem số dư ví"
+        },
+        {
+          "id": "finance_create_withdrawal",
+          "name": "Tạo yêu cầu rút tiền"
+        },
+        {
+          "id": "finance_manage_bank",
+          "name": "Quản lý TK ngân hàng"
+        }
+      ]
+    },
+    {
+      "id": "CAT-SUB",
+      "name": "Quản lý Sub-merchant",
+      "permissions": [
+        {
+          "id": "sub_merchant_view_list",
+          "name": "Xem danh sách"
+        },
+        {
+          "id": "sub_merchant_lock_unlock",
+          "name": "Khóa/Mở khóa"
+        },
+        {
+          "id": "sub_merchant_update",
+          "name": "Cập nhật thông tin"
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "total": 3,
+    "page": 1,
+    "pageSize": 10
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "users": [
+    {
+      "id": "USR-001",
+      "name": "Trần Quang Minh",
+      "email": "minh.tq@merchant.com",
+      "phone": "0912345678",
+      "permissionGroupId": "PG-002",
+      "permissionGroupName": "Kế toán trưởng",
+      "subMerchantScope": "specific",
+      "assignedSubMerchants": ["SUB-M001", "SUB-M002", "SUB-M003", "SUB-M004", "SUB-M005"],
+      "assignedSubMerchantCount": 5,
+      "createdAt": "2025-12-10T00:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-002",
+      "name": "Lê Thúy Hạnh",
+      "email": "hanh.lt@merchant.com",
+      "phone": "0987654321",
+      "permissionGroupId": "PG-003",
+      "permissionGroupName": "Nhân viên Sales",
+      "subMerchantScope": "all",
+      "assignedSubMerchants": [],
+      "assignedSubMerchantCount": null,
+      "createdAt": "2026-01-02T00:00:00Z",
+      "status": "locked"
+    },
+    {
+      "id": "USR-003",
+      "name": "Nguyễn Văn An",
+      "email": "an.nv@merchant.com",
+      "phone": "0901234567",
+      "permissionGroupId": "PG-001",
+      "permissionGroupName": "Quản trị viên (Admin)",
+      "subMerchantScope": "all",
+      "assignedSubMerchants": [],
+      "assignedSubMerchantCount": null,
+      "createdAt": "2025-11-15T08:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-004",
+      "name": "Phạm Thị Bích",
+      "email": "bich.pt@merchant.com",
+      "phone": "0978112233",
+      "permissionGroupId": "PG-002",
+      "permissionGroupName": "Kế toán trưởng",
+      "subMerchantScope": "specific",
+      "assignedSubMerchants": ["SUB-M001", "SUB-M003"],
+      "assignedSubMerchantCount": 2,
+      "createdAt": "2025-12-20T09:30:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-005",
+      "name": "Hoàng Minh Châu",
+      "email": "chau.hm@merchant.com",
+      "phone": "0966778899",
+      "permissionGroupId": "PG-003",
+      "permissionGroupName": "Nhân viên Sales",
+      "subMerchantScope": "specific",
+      "assignedSubMerchants": ["SUB-M002", "SUB-M004"],
+      "assignedSubMerchantCount": 2,
+      "createdAt": "2026-01-05T14:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-006",
+      "name": "Vũ Đức Kiên",
+      "email": "kien.vd@merchant.com",
+      "phone": "0944556677",
+      "permissionGroupId": "PG-001",
+      "permissionGroupName": "Quản trị viên (Admin)",
+      "subMerchantScope": "all",
+      "assignedSubMerchants": [],
+      "assignedSubMerchantCount": null,
+      "createdAt": "2025-10-01T07:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-007",
+      "name": "Đỗ Thị Lan",
+      "email": "lan.dt@merchant.com",
+      "phone": "0933221100",
+      "permissionGroupId": "PG-003",
+      "permissionGroupName": "Nhân viên Sales",
+      "subMerchantScope": "specific",
+      "assignedSubMerchants": ["SUB-M001"],
+      "assignedSubMerchantCount": 1,
+      "createdAt": "2026-01-08T10:15:00Z",
+      "status": "locked"
+    },
+    {
+      "id": "USR-008",
+      "name": "Bùi Thanh Long",
+      "email": "long.bt@merchant.com",
+      "phone": "0922113344",
+      "permissionGroupId": "PG-002",
+      "permissionGroupName": "Kế toán trưởng",
+      "subMerchantScope": "all",
+      "assignedSubMerchants": [],
+      "assignedSubMerchantCount": null,
+      "createdAt": "2025-12-05T11:45:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-009",
+      "name": "Trịnh Thị Mai",
+      "email": "mai.tt@merchant.com",
+      "phone": "0911998877",
+      "permissionGroupId": "PG-003",
+      "permissionGroupName": "Nhân viên Sales",
+      "subMerchantScope": "specific",
+      "assignedSubMerchants": ["SUB-M002", "SUB-M003", "SUB-M004"],
+      "assignedSubMerchantCount": 3,
+      "createdAt": "2026-01-10T08:30:00Z",
+      "status": "active"
+    },
+    {
+      "id": "USR-010",
+      "name": "Lý Văn Nam",
+      "email": "nam.lv@merchant.com",
+      "phone": "0900887766",
+      "permissionGroupId": "PG-001",
+      "permissionGroupName": "Quản trị viên (Admin)",
+      "subMerchantScope": "all",
+      "assignedSubMerchants": [],
+      "assignedSubMerchantCount": null,
+      "createdAt": "2025-09-20T16:00:00Z",
+      "status": "active"
+    }
+  ],
+  "subMerchantOptions": [
+    { "id": "SUB-M001", "code": "Sub-M001", "name": "Cửa hàng Quận 1" },
+    { "id": "SUB-M002", "code": "Sub-M002", "name": "Cửa hàng Quận 3" },
+    { "id": "SUB-M003", "code": "Sub-M003", "name": "Kho tổng HCM" },
+    { "id": "SUB-M004", "code": "Sub-M004", "name": "Đại lý Hà Nội" },
+    { "id": "SUB-M005", "code": "Sub-M005", "name": "Chi nhánh Đà Nẵng" },
+    { "id": "SUB-M006", "code": "Sub-M006", "name": "Cửa hàng Bình Dương" },
+    { "id": "SUB-M007", "code": "Sub-M007", "name": "Đại lý Cần Thơ" },
+    { "id": "SUB-M008", "code": "Sub-M008", "name": "Chi nhánh Nha Trang" }
+  ],
+  "pagination": {
+    "total": 45,
+    "page": 1,
+    "pageSize": 10
+  }
+}
