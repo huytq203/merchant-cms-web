@@ -23,18 +23,23 @@ function buildUrl(
   path: string,
   query?: RequestOptions["query"],
 ): string {
-  let base = publicEnv.NEXT_PUBLIC_API_LOGIN_URL.replace(/\/+$/, "");
+  const rel = path.startsWith("/") ? path : `/${path}`;
 
-  // Khi server-side và base là relative URL, cần prepend origin
-  if (base.startsWith("/") && typeof window === "undefined") {
-    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
-    const origin = vercelUrl
-      ? `https://${vercelUrl}`
-      : "http://localhost:3000";
-    base = `${origin}${base}`;
+  let base: string;
+  if (typeof window === "undefined") {
+    // Server-side (Server Action, Server Component): dùng absolute URL
+    const configuredBase = publicEnv.NEXT_PUBLIC_API_LOGIN_URL.replace(/\/+$/, "");
+    if (configuredBase.startsWith("/")) {
+      // Relative config → prepend localhost (chỉ dùng trong server action gọi mock)
+      base = `http://localhost:3000${configuredBase}`;
+    } else {
+      base = configuredBase;
+    }
+  } else {
+    // Client-side (browser): LUÔN dùng relative URL → same-origin, không CORS
+    base = "/api";
   }
 
-  const rel = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${rel}`;
   if (!query) return url;
 

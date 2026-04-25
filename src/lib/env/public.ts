@@ -1,26 +1,16 @@
 import { z } from "zod";
 
-function resolveApiUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_LOGIN_URL) {
-    return process.env.NEXT_PUBLIC_API_LOGIN_URL;
-  }
-  // Vercel tự động cung cấp VERCEL_URL, được expose qua next.config.ts
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api`;
-  }
-  return "http://localhost:3000/api";
-}
-
 const publicSchema = z.object({
   NEXT_PUBLIC_APP_NAME: z.string().default("Merchant Admin CMS"),
   NEXT_PUBLIC_APP_URL: z
     .string()
-    .url()
+    .refine((v) => URL.canParse(v), "NEXT_PUBLIC_APP_URL phải là URL hợp lệ")
     .default("https://merchant-cms-web.vercel.app/"),
+  // Chỉ dùng ở server-side. Client-side luôn gọi relative URL /api (same-origin).
   NEXT_PUBLIC_API_LOGIN_URL: z
     .string()
     .min(1, "NEXT_PUBLIC_API_LOGIN_URL không được để trống")
-    .default(resolveApiUrl()),
+    .default("http://localhost:3000/api"),
 });
 
 const parsed = publicSchema.safeParse({
