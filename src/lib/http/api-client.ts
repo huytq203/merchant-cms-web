@@ -23,7 +23,17 @@ function buildUrl(
   path: string,
   query?: RequestOptions["query"],
 ): string {
-  const base = publicEnv.NEXT_PUBLIC_API_LOGIN_URL.replace(/\/+$/, "");
+  let base = publicEnv.NEXT_PUBLIC_API_LOGIN_URL.replace(/\/+$/, "");
+
+  // Khi server-side và base là relative URL, cần prepend origin
+  if (base.startsWith("/") && typeof window === "undefined") {
+    const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL;
+    const origin = vercelUrl
+      ? `https://${vercelUrl}`
+      : "http://localhost:3000";
+    base = `${origin}${base}`;
+  }
+
   const rel = path.startsWith("/") ? path : `/${path}`;
   const url = `${base}${rel}`;
   if (!query) return url;
