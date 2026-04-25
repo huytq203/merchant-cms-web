@@ -5,11 +5,11 @@ const publicSchema = z.object({
   NEXT_PUBLIC_APP_URL: z
     .string()
     .url()
-    .default("https://mechant-owner.ewallet.devops.beamewa.com.vn/"),
+    .default("/api"),
   NEXT_PUBLIC_API_LOGIN_URL: z
     .string()
     .url("NEXT_PUBLIC_API_LOGIN_URL phải là URL hợp lệ")
-    .default("https://identity.ewallet.devops.beamewa.com.vn/api"),
+    .default("/api"),
 });
 
 const parsed = publicSchema.safeParse({
