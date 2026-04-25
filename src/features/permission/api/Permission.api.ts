@@ -12,7 +12,12 @@ export interface ParamsGetAll {
 
 export interface UpdatePermissionPayload {
   name: string
-  status: boolean
+  status: 'active' | 'inactive'
+  permissions: string[]
+}
+
+export interface CreatePermissionPayload {
+  name: string
   permissions: string[]
 }
 
@@ -21,6 +26,8 @@ export const permissionApi = {
     apiClient.get<PermissionAPI>(BASE, { query: params }),
   getById: (id: string) =>
     apiClient.get<PermissionData>(`${BASE}/${id}`),
+  create: (payload: CreatePermissionPayload) =>
+    apiClient.post<PermissionData>(BASE, payload),
   update: (id: string, payload: UpdatePermissionPayload) =>
-    apiClient.patch<PermissionData>(`${BASE}/${id}`, payload),
+    apiClient.put<PermissionData>(`${BASE}/${id}`, payload),
 }

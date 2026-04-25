@@ -1,10 +1,7 @@
-import NewPermission from '@/features/permission/components/NewPermission'
-import React from 'react'
+import PermissionForm from '@/features/permission/components/PermissionForm';
 
 const NewPermissionPage = () => {
-  return (
-    <div><NewPermission/></div>
-  )
-}
+  return <PermissionForm mode="create" />;
+};
 
-export default NewPermissionPage
+export default NewPermissionPage;

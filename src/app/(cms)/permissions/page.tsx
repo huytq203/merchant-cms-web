@@ -1,9 +1,7 @@
-import { Button, Card, CardContent, Input, Table, Text } from "@/components/ui";
-import { Badge } from "@/components/ui/badge/Badge";
+import { Button, Card, CardContent, Text } from "@/components/ui";
 import PermissionTable from "@/features/permission/components/PermissionTable";
-import { Plus, Search, ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 
 const page = () => {
   return (
@@ -30,11 +28,6 @@ const page = () => {
       </Card>
       <Card>
         <CardContent className="space-y-3">
-          <Input
-            icon={<Search className="h-4 w-4" />}
-            className="max-w-full"
-            placeholder="Search"
-          />
           <PermissionTable />
         </CardContent>
       </Card>

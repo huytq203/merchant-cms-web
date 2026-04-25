@@ -13,41 +13,62 @@ import {
   Form,
   FormField,
   Input,
+  Switch,
+  Text,
 } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import permissionData from '@/mock/data-permission.json';
-import { editPermissionSchema, type EditPermissionFormValues } from '../schemas/schema';
-import { useUpdatePermission } from '../hooks/use-permission-mutations';
+import { newPermissionSchema, editPermissionSchema, type EditPermissionFormValues, type NewPermissionFormValues } from '../schemas/schema';
+import { useUpdatePermission, useCreatePermission } from '../hooks/use-permission-mutations';
 import { PermissionCategoryGroup } from './PermissionCategoryGroup';
+import { usePermissionDetailQuery } from '../hooks/use-permission-query';
+import { useEffect } from 'react';
 
-interface EditPermissionProps {
-  id: string;
+interface PermissionFormProps {
+  mode: 'create' | 'edit';
+  id?: string;
 }
 
-function formatAuditDate(dateStr: string) {
-  try {
-    return format(new Date(dateStr), 'HH:mm - dd/MM/yyyy');
-  } catch {
-    return dateStr;
-  }
-}
+const DEFAULT_VALUES: NewPermissionFormValues = { name: '', permissions: [] };
 
-const EditPermission = ({ id }: EditPermissionProps) => {
+
+const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
   const router = useRouter();
-  const group = permissionData.permissionGroups.find((g) => g.id === id);
-  const { mutate: updatePermission, isPending } = useUpdatePermission(id);
+  const isEdit = mode === 'edit';
 
-  const form = useForm<EditPermissionFormValues>({
-    resolver: zodResolver(editPermissionSchema),
-    defaultValues: {
-      name: group?.name ?? '',
-      status: group?.status === 'active',
-      permissions: group?.permissions ?? [],
-    },
+  const { data, isLoading: isLoadingData } = usePermissionDetailQuery(isEdit ? id : '');
+  const { mutate: updatePermission, isPending: isUpdating } = useUpdatePermission(id);
+  const { mutate: createPermission, isPending: isCreating } = useCreatePermission();
+
+  const schema = isEdit ? editPermissionSchema : newPermissionSchema;
+
+  
+
+  const formDefaultValues =  isEdit
+    ? {
+        name: data?.name ?? '',
+        status: data?.status ?? 'inactive',
+        permissions: data?.permissions ?? [],
+      }
+    : DEFAULT_VALUES;
+
+  const form = useForm<EditPermissionFormValues | NewPermissionFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: formDefaultValues as EditPermissionFormValues & NewPermissionFormValues,
   });
+  
+  useEffect(() => {
+    if (data && isEdit) {
+      form.reset({
+        name: data.name,
+        status: (data.status ?? 'inactive') as 'active' | 'inactive',
+        permissions: data.permissions,
+      });
+    }
+  }, [data, isEdit, form]);
 
   const selectedPermissions = form.watch('permissions');
-  const statusValue = form.watch('status');
+  
   const totalPermissions = permissionData.permissionCategories.reduce(
     (acc, cat) => acc + cat.permissions.length,
     0,
@@ -70,14 +91,34 @@ const EditPermission = ({ id }: EditPermissionProps) => {
     form.setValue('permissions', next, { shouldValidate: true });
   };
 
-  const onSubmit = (values: EditPermissionFormValues) => {
-    updatePermission(
-      { name: values.name, status: values.status, permissions: values.permissions },
-      { onSuccess: () => router.back() },
-    );
+  const onSubmit = (values: EditPermissionFormValues | NewPermissionFormValues) => {
+    if (isEdit) {
+      const editValues = values as EditPermissionFormValues;
+      updatePermission(
+        {
+          name: editValues.name,
+          status: editValues.status,
+          permissions: editValues.permissions,
+        },
+        { onSuccess: () => router.back() },
+      );
+    } else {
+      const createValues = values as NewPermissionFormValues;
+      createPermission(createValues, {
+        onSuccess: () => router.back(),
+      });
+    }
   };
 
-  if (!group) {
+  if (isEdit && isLoadingData) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        Đang tải...
+      </div>
+    );
+  }
+
+  if (isEdit && !data) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         Không tìm thấy nhóm quyền.
@@ -85,8 +126,15 @@ const EditPermission = ({ id }: EditPermissionProps) => {
     );
   }
 
-  const userCount = (group as { userCount?: number }).userCount ?? 0;
+  const userCount = (data as { userCount?: number })?.userCount ?? 0;
   const permissionsError = form.formState.errors.permissions?.message;
+  const isPending = isUpdating || isCreating || isLoadingData;
+
+  const pageTitle = isEdit ? 'Cập nhật nhóm quyền' : 'Thiết lập nhóm quyền mới';
+  const pageDesc = isEdit
+    ? 'Chỉnh sửa tên, trạng thái và các quyền truy cập.'
+    : 'Định nghĩa tên và các quyền truy cập cho nhóm quyền này.';
+  const submitLabel = isEdit ? 'Cập nhật' : 'Lưu nhóm quyền';
 
   return (
     <div className="space-y-6">
@@ -97,22 +145,22 @@ const EditPermission = ({ id }: EditPermissionProps) => {
             <ShieldCheck className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Cập nhật nhóm quyền</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Chỉnh sửa tên, trạng thái và các quyền truy cập.
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">{pageTitle}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{pageDesc}</p>
           </div>
         </div>
-        <span className="rounded-lg bg-muted px-3 py-1.5 text-sm font-mono text-muted-foreground">
-          Mã nhóm: #{id}
-        </span>
+        {isEdit && (
+          <span className="rounded-lg bg-muted px-3 py-1.5 text-sm font-mono text-muted-foreground">
+            Mã nhóm: #{id}
+          </span>
+        )}
       </div>
 
-      {/* Warning if group has users */}
-      {userCount > 0 && (
+      {/* Warning if group has users (edit mode only) */}
+      {isEdit && userCount > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
-          <p className="text-sm text-warning-foreground">
+          <p className="text-sm text-warning">
             <span className="font-semibold">Lưu ý:</span> Nhóm quyền này đang có{' '}
             <span className="font-bold">{userCount} nhân viên</span> đang sử dụng. Mọi thay
             đổi về quyền sẽ có hiệu lực ngay lập tức với tất cả nhân viên trong nhóm.
@@ -122,42 +170,34 @@ const EditPermission = ({ id }: EditPermissionProps) => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          {/* Status toggle */}
-          <Card>
-            <CardContent className="pt-6">
-              <FormField
-                name="status"
-                control={form.control}
-                render={({ field }) => (
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Trạng thái hoạt động</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Nếu tắt, toàn bộ nhân viên trong nhóm sẽ bị chặn truy cập.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={field.value}
-                      onClick={() => field.onChange(!field.value)}
-                      className={cn(
-                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
-                        field.value ? 'bg-success' : 'bg-muted-foreground/30',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200',
-                          field.value ? 'translate-x-6' : 'translate-x-1',
-                        )}
+          {/* Status toggle (edit mode only) */}
+          {isEdit && (
+            <Card>
+              <CardContent className="pt-6">
+                <FormField
+                  name="status"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Trạng thái hoạt động</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Nếu tắt, toàn bộ nhân viên trong nhóm sẽ bị chặn truy cập.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={field.value === 'active'}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked ? 'active' : 'inactive')
+                        }
+                        size="md"
                       />
-                    </button>
-                  </div>
-                )}
-              />
-            </CardContent>
-          </Card>
+                    </div>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tên nhóm quyền */}
           <Card>
@@ -185,7 +225,7 @@ const EditPermission = ({ id }: EditPermissionProps) => {
                 <CardTitle>
                   Điều chỉnh phân quyền <span className="text-destructive">*</span>
                 </CardTitle>
-                <span
+                <Text
                   className={cn(
                     'rounded-full px-3 py-1 text-xs font-semibold tabular-nums',
                     selectedPermissions.length === 0
@@ -196,7 +236,7 @@ const EditPermission = ({ id }: EditPermissionProps) => {
                   )}
                 >
                   {selectedPermissions.length}/{totalPermissions} quyền đã chọn
-                </span>
+                </Text>
               </div>
               {permissionsError && (
                 <p className="text-xs font-medium text-danger mt-1">{permissionsError}</p>
@@ -218,36 +258,22 @@ const EditPermission = ({ id }: EditPermissionProps) => {
             </CardContent>
           </Card>
 
-          {/* Audit trail */}
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-            <span>
-              Khởi tạo bởi:{' '}
-              <span className="font-medium text-foreground">{group.createdBy ?? '—'}</span>
-              {group.createdAt && ` lúc ${formatAuditDate(group.createdAt)}`}
-            </span>
-            {group.updatedBy && group.updatedAt && (
-              <>
-                <span className="mx-2 text-border">|</span>
-                <span>
-                  Cập nhật lần cuối bởi:{' '}
-                  <span className="font-medium text-foreground">{group.updatedBy}</span>
-                  {` lúc ${formatAuditDate(group.updatedAt)}`}
-                </span>
-              </>
-            )}
-          </div>
-
           {/* Footer actions */}
           <div className="flex justify-end gap-3 pb-6">
-            <Button type="button" variant="secondary" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => router.back()}
+              disabled={isPending}
+            >
               Hủy bỏ
             </Button>
             <Button
               type="submit"
-              leftIcon={<Save className="h-4 w-4" />}
-              isLoading={isPending}
+              leftIcon={<ShieldCheck className="h-4 w-4" />}
+              disabled={isPending}
             >
-              Lưu thay đổi
+              {submitLabel}
             </Button>
           </div>
         </form>
@@ -256,4 +282,4 @@ const EditPermission = ({ id }: EditPermissionProps) => {
   );
 };
 
-export default EditPermission;
+export default PermissionForm;

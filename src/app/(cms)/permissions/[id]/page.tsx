@@ -1,4 +1,4 @@
-import EditPermission from '@/features/permission/components/EditPermission';
+import PermissionForm from '@/features/permission/components/PermissionForm';
 
 interface EditPermissionPageProps {
   params: Promise<{ id: string }>;
@@ -6,11 +6,7 @@ interface EditPermissionPageProps {
 
 const EditPermissionPage = async ({ params }: EditPermissionPageProps) => {
   const { id } = await params;
-  return (
-    <div>
-      <EditPermission id={id} />
-    </div>
-  );
+  return <PermissionForm mode="edit" id={id} />;
 };
 
 export default EditPermissionPage;

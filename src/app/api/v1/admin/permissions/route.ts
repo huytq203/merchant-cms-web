@@ -10,7 +10,6 @@ type PermissionType = {
   createdAt: string
   status: string
   permissions: string[]
-  userCount: number
   createdBy?: string
   updatedBy?: string
   updatedAt?: string
@@ -60,18 +59,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
   await delay();
-  const created: PermissionData = {
+  const created: PermissionType = {
     id: new Date().getTime(),
     name: body.name,
-    userCount: 0,
-    status: body.status,
+    status: 'inactive',
     permissions: body.permissions,
     createdBy: "Admin_01",
     updatedBy: "Admin_01",
     updatedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
-await store.update((mock) => ({...mock,permissionGroups: [...mock.permissionGroups, created]}))
+  await store.update((mock) => ({ ...mock, permissionGroups: [...mock?.permissionGroups, created] }));
 
 return NextResponse.json(created, { status: 201 });
 }

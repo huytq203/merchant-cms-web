@@ -1,6 +1,6 @@
 import { mockStore } from "@/lib/mock/mock-store";
 import { NextRequest, NextResponse } from "next/server";
-
+import dataUser from "@/mock/data-user.json";
 type Params = { params: Promise<{ id: string }> };
 type PermissionGroup = Record<string, unknown>;
 type MockData = { permissionGroups: PermissionGroup[] };
@@ -11,6 +11,16 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   await delay();
   const mockData = await store.read();
+  const userCountByGroupId = dataUser.users.reduce<Record<string, number>>(
+  (acc, user) => {
+    if (user.permissionGroupId) {
+      acc[user.permissionGroupId] = (acc[user.permissionGroupId] ?? 0) + 1;
+    }
+    return acc;
+  },
+  {},
+);
+
   const item = mockData.permissionGroups.find(
     (p) => p.id === Number(id) || p.id === String(id),
   );
@@ -20,7 +30,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
       { status: 404 },
     );
   }
-  return NextResponse.json(item);
+  const itemWithCount = {
+    ...item,
+    userCount: userCountByGroupId[String(item?.id)] ?? 0,
+  };
+  return NextResponse.json(itemWithCount);
 }
 
 export async function PUT(_request: NextRequest, { params }: Params) {

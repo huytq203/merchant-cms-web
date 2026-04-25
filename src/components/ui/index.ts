@@ -30,3 +30,4 @@ export * from './file-upload/FileUpload';
 export * from './select/MultiSelect';
 export * from './chart/Chart';
 export * from './tabs/Tabs';
+export * from './switch/Switch';

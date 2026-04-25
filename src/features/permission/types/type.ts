@@ -4,12 +4,12 @@ export interface PermissionAPI {
 }
 
 export interface PermissionData {
-  id: string|number
+  id: string | number
   name: string
   createdAt: string
   status: string
   permissions: string[]
-  userCount: number
+  userCount?: number
   createdBy?: string
   updatedBy?: string
   updatedAt?: string

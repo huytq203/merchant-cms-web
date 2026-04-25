@@ -45,12 +45,13 @@ export function PermissionCategoryGroup({
       >
         <div className="flex items-center gap-2">
           <Checkbox
+          label={<span className="text-sm font-semibold text-foreground">{name}</span>}
             size="sm"
             checked={allSelected}
             indeterminate={someSelected}
             onCheckedChange={() => onSelectAll(permIds)}
           />
-          <span className="text-sm font-semibold text-foreground">{name}</span>
+          
           <span
             className={cn(
               'rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
