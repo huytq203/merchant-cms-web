@@ -93,6 +93,11 @@ export const routesConfig: SidebarSection[] = [
         // icon: <Type className="w-4 h-4" />,
       },
       {
+        title: "Quản lý nhân sự",
+        href: "/users",
+        // icon: <Type className="w-4 h-4" />,
+      },
+      {
         title: "Danh sách Sub Merchant",
         href: "/sub-merchants",
         // icon: <Type className="w-4 h-4" />,

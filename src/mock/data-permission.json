@@ -2,7 +2,7 @@
   "permissionGroups": [
     {
       "id": "1777180056380",
-      "name": "tester2",
+      "name": "tester",
       "status": "active",
       "permissions": [
         "txn_view_list",
@@ -18,7 +18,7 @@
       ],
       "userCount": 0,
       "createdAt": "2026-01-02T14:15:00Z",
-      "updatedAt": "2026-04-26T05:16:56.382Z",
+      "updatedAt": "2026-04-26T12:42:24.498Z",
       "updatedBy": "admin"
     },
     {
