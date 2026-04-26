@@ -1,32 +1,64 @@
 {
   "permissionGroups": [
     {
-      "id": "PG-002",
-      "name": "Kế toán đối soát",
-      "createdAt": "2026-01-02T14:15:00Z",
+      "id": "1777180056380",
+      "name": "tester2",
       "status": "active",
-      "createdBy": "Admin_01",
-      "updatedBy": "Admin_01",
-      "updatedAt": "2026-01-05T10:00:00Z",
       "permissions": [
         "txn_view_list",
         "txn_search_detail",
         "txn_export_report",
-        "finance_view_balance"
-      ]
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "userCount": 0,
+      "createdAt": "2026-01-02T14:15:00Z",
+      "updatedAt": "2026-04-26T05:16:56.382Z",
+      "updatedBy": "admin"
     },
     {
-      "id": "PG-003",
-      "name": "Nhân viên kỹ thuật",
-      "createdAt": "2026-01-05T10:00:00Z",
+      "id": 1777180697039,
+      "name": "Đối soát viên",
       "status": "inactive",
-      "createdBy": "Admin_02",
-      "updatedBy": null,
-      "updatedAt": null,
       "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "admin",
+      "updatedAt": "2026-04-26T05:24:05.886Z",
+      "createdAt": "2026-04-26T05:18:17.039Z"
+    },
+    {
+      "id": 1777180735806,
+      "name": "Admin",
+      "status": "active",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
         "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
         "sub_merchant_update"
-      ]
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "admin",
+      "updatedAt": "2026-04-26T05:19:01.077Z",
+      "createdAt": "2026-04-26T05:18:55.806Z"
     }
   ],
   "permissionCategories": [

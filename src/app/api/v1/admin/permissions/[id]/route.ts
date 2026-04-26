@@ -41,7 +41,9 @@ export async function PUT(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   await delay();
   const mockData = await store.read();
-  const index = mockData.permissionGroups.findIndex((m) => m.id === Number(id)||String(id));
+  const index = mockData.permissionGroups.findIndex(
+    (m) => m.id === Number(id) || m.id === String(id),
+  );
   if (index === -1) {
     return NextResponse.json(
       { error: "Không tìm thấy permission" },
@@ -51,12 +53,10 @@ export async function PUT(_request: NextRequest, { params }: Params) {
   const existing = mockData.permissionGroups[index];
   const body = await _request.json();
   const updated: PermissionGroup = {
-    id,
+    ...existing,
     name: body.name ?? existing?.name,
     status: body.status ?? existing?.status,
     permissions: body.permissions ?? existing?.permissions,
-    userCount: existing?.userCount ?? 0,
-    createdAt: existing?.createdAt,
     updatedAt: new Date().toISOString(),
     updatedBy: "admin",
   };
