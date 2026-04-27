@@ -1,25 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import dataUser from "@/mock/data-user.json";
 import dataPermission from "@/mock/data-permission.json";
 import { mockStore } from "@/lib/mock/mock-store";
+import { createUserSchema } from "./types/schemas";
 
 interface UserType {
-    id: string;
-    name: string;
-    email: string;
-    phone: number;
-    permissionGroupId: string|number;
-    assignedSubMerchants: string[];
-    createdAt: string;
-    updatedAt: string;
-    status: 'active' | 'inactive';
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  permissionGroupId: string;
+  permissionGroupName: string;
+  subMerchantScope: string;
+  assignedSubMerchantsIds: string[];
+  assignedSubMerchantCount: number;
+  createdAt: string;
+  updatedAt: string;
+  status: "active" | "inactive";
 }
+
+interface LoginType {
+  id: string;
+  idUser: string;
+  username: string;
+  password: string;
+}
+
 type MockData = { users: UserType[] };
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 const store = mockStore<MockData>("data-user.json");
+const loginStore = mockStore<{ logins: LoginType[] }>("data-login.json");
 const permissionGroupMap = new Map(
-  dataPermission.permissionGroups.map((group) => [String(group.id), group.name])
+  dataPermission.permissionGroups.map((group) => [
+    String(group.id),
+    group.name,
+  ]),
 );
 
 export async function GET(_request: NextRequest) {
@@ -36,7 +53,7 @@ export async function GET(_request: NextRequest) {
     results = dataUser.users.filter(
       (user) =>
         user.name.toLowerCase().includes(kw) ||
-        user.email.toLowerCase().includes(kw)
+        user.email.toLowerCase().includes(kw),
     );
   }
 
@@ -47,33 +64,65 @@ export async function GET(_request: NextRequest) {
     permissionGroupName: permissionGroupMap.get(user.permissionGroupId) ?? null,
   }));
 
-  return NextResponse.json({ data: paged, pagination: { page, pageSize, total } });
+  return NextResponse.json({
+    data: paged,
+    pagination: { page, pageSize, total },
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    await delay();
+  const body = await request.json();
+  const validation = createUserSchema.safeParse(body);
 
-    const createdUser: UserType = {
-        id: Date.now().toString(),
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        permissionGroupId: body.permissionGroupId,
-        assignedSubMerchants: body.assignedSubMerchants,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: body.status,
-    }
-    await store.update((mock)=>({
-        ...mock,
-        users: [...mock.users, createdUser]
-    }))
-    return NextResponse.json(createdUser, { status: 201 });
-
-  } catch (error) {
-    return NextResponse.json({ error: error }, { status: 500 });
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: "Dữ liệu không hợp lệ", details: validation.error.flatten() },
+      { status: 422 },
+    );
   }
-}
 
+  await delay();
+
+  const createdUser: UserType = {
+    id: Date.now().toString(),
+    name: validation.data.name,
+    email: validation.data.email,
+    phone: validation.data.phone,
+    permissionGroupId: validation.data.permissionGroupId,
+    subMerchantScope: validation.data.subMerchantScope,
+    assignedSubMerchantsIds: validation.data.assignedSubMerchantsIds ?? [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    permissionGroupName:
+      dataPermission.permissionGroups.find(
+        (g) => g.id === validation.data.permissionGroupId,
+      )?.name ?? "Unknown",
+    assignedSubMerchantCount:
+      validation.data.assignedSubMerchantsIds?.length ?? 0,
+    status: "active",
+  } as UserType;
+
+  await store.update((mock) => ({
+    ...mock,
+    users: [...mock.users, createdUser],
+  }));
+
+  // Auto-create login entry with default password
+  const hashedPassword = await bcrypt.hash("111111", 10);
+  const loginId = Date.now().toString();
+
+  await loginStore.update((mock) => ({
+    ...mock,
+    logins: [
+      ...mock.logins,
+      {
+        id: loginId,
+        idUser: createdUser.id,
+        username: validation.data.email,
+        password: hashedPassword,
+      },
+    ],
+  }));
+
+  return NextResponse.json(createdUser, { status: 201 });
+}
