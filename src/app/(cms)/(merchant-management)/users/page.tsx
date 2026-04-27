@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, Text } from "@/components/ui";
-import UserTable from "@/features/users/components/UserTable";
+import UserSection from "@/features/users/components/UserSection";
 import { Plus, Users } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -12,8 +12,8 @@ const UsersPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
+                <Users className="h-5 w-5 text-primary" />
+              </div>
               <div className="">
                 <Text as="h2" className="font-semibold text-xl ">
                   Quản lý nhân viên
@@ -32,11 +32,7 @@ const UsersPage = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <UserTable />
-        </CardContent>
-      </Card>
+      <UserSection />
     </div>
   );
 };

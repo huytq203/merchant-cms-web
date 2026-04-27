@@ -3,7 +3,7 @@ export interface SubMerchant {
   name: string;
   businessType: string;
   contact: string;
-  status: "active" | "inactive";
+  status: "active" | "locked";
   createdAt: string;
   taxCode: string;
   representative: string;
@@ -25,4 +25,6 @@ export interface SubMerchant {
   notifyEmails: string;
   eInvoiceEnabled: boolean;
   eInvoiceEmails: string;
+  lockReason?: string | null;
+  lockedAt?: string | null;
 }

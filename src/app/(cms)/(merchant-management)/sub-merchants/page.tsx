@@ -19,7 +19,7 @@ import Link from 'next/link';
 export default function SubMerchantsPage() {
   const [filter, setFilter] = useState<SubMerchantFilterValues>({});
   const [lockTarget, setLockTarget] = useState<SubMerchant | null>(null);
-  const [dialogMode, setDialogMode] = useState<'lock' | 'unlock' | null>(null);
+  const [dialogMode, setDialogMode] = useState<'locked' | 'unlocked' | null>(null);
   const router = useRouter();
 
   const { setPage, setPageSize, params, page, pageSize } = usePagination();
@@ -37,7 +37,7 @@ export default function SubMerchantsPage() {
 
   const handleUpdate = (item: SubMerchant) => {
     setLockTarget(item);
-    setDialogMode(item.status === 'locked' ? 'unlock' : 'lock');
+    setDialogMode(item.status === 'locked' ? 'unlocked' : 'locked');
   };
 
   const handleCloseDialog = () => {
@@ -48,7 +48,7 @@ export default function SubMerchantsPage() {
   const handleLockConfirm = (reason: string) => {
     if (!lockTarget) return;
     toggleStatus(
-      { id: lockTarget.id, status: 'locked', reason },
+      { id: lockTarget.id, lockReason: reason, lockedAt: new Date().toISOString() },
       {
         onSuccess: () => { toast.success('Đã khóa sub-merchant thành công'); handleCloseDialog(); },
         onError: () => toast.error('Khóa sub-merchant thất bại'),
@@ -56,10 +56,10 @@ export default function SubMerchantsPage() {
     );
   };
 
-  const handleUnlockConfirm = (reason: string) => {
+  const handleUnlockConfirm = (_reason: string) => {
     if (!lockTarget) return;
     toggleStatus(
-      { id: lockTarget.id, status: 'active', reason },
+      { id: lockTarget.id, lockReason: null, lockedAt: null },
       {
         onSuccess: () => { toast.success('Đã mở khóa sub-merchant thành công'); handleCloseDialog(); },
         onError: () => toast.error('Mở khóa sub-merchant thất bại'),
@@ -128,14 +128,14 @@ export default function SubMerchantsPage() {
       </Card.Card>
 
       <DialogActive
-        open={dialogMode === 'lock'}
+        open={dialogMode === 'locked'}
         onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
         merchantName={lockTarget?.name}
         onConfirm={handleLockConfirm}
         isLoading={isToggling}
       />
       <DialogUnActive
-        open={dialogMode === 'unlock'}
+        open={dialogMode === 'unlocked'}
         onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
         lockReason={lockTarget?.reason}
         lockedBy={lockTarget?.lockedBy}

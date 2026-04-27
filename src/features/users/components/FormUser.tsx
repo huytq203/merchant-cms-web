@@ -21,15 +21,12 @@ import { useHandleAddUser, useHandleUpdateUser } from "../hooks/use-handle";
 
 interface FormUserProps {
   mode?: "new" | "update";
-  onSubmit?: (data: FormUserValues) => Promise<void> | void;
-  onCancel?: () => void;
   initialData?: User;
   isLoading?: boolean;
 }
 
 const FormUser: React.FC<FormUserProps> = ({
   mode,
-  onCancel,
   initialData,
 }) => {
   const router = useRouter();
@@ -140,7 +137,7 @@ const FormUser: React.FC<FormUserProps> = ({
             <Button
               type="button"
               variant="ghost"
-              onClick={onCancel}
+              onClick={() => router.back()}
               disabled={isSubmitting}
             >
               Hủy bỏ
@@ -150,6 +147,7 @@ const FormUser: React.FC<FormUserProps> = ({
               variant="solid"
               isLoading={isSubmitting}
               disabled={isSubmitting}
+              
             >
               {isUpdateMode ? "Cập nhật" : "Tạo"} nhân viên
             </Button>

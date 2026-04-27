@@ -19,10 +19,12 @@ export async function getServerSession(): Promise<SessionUser | null> {
   if (!payload || isTokenExpired(payload)) return null;
 
   return {
-    id: payload.sid,
-    username: payload.preferred_username,
-    roles: payload.roles ?? [],
-    permissions: payload.permissions ?? [],
+    userId: payload.userId,
+    username: payload.username,
+    email: payload.email,
+    phone: payload.phone,
+    permissionGroupId: payload.permissionGroupId,
+    permissionName: payload.permissionName,
   };
 }
 

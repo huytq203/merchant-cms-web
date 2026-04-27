@@ -72,13 +72,13 @@ export const useToggleSubMerchantStatus = () => {
   return useMutation({
     mutationFn: ({
       id,
-      status,
-      reason,
+      lockReason,
+      lockedAt,
     }: {
       id: string;
-      status: "active" | "locked";
-      reason?: string;
-    }) => subMerchantApi.toggleStatus(id, { status, reason }),
+      lockReason: string | null;
+      lockedAt: string | null;
+    }) => subMerchantApi.toggleStatus(id, { lockReason, lockedAt }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sub-merchants"] });
     },

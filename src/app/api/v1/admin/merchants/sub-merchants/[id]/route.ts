@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockStore } from "@/lib/mock/mock-store";
 import type { SubMerchant } from "@/app/api/v1/admin/merchants/types/merchants";
-import { updateSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/schemas";
+import {
+  updateSubMerchantSchema,
+  patchSubMerchantStatusSchema,
+} from "@/app/api/v1/admin/merchants/types/schemas";
 
 type Params = { params: Promise<{ id: string }> };
 type MockData = { subMerchants: SubMerchant[] };
@@ -48,7 +51,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 
   const existing = mock.subMerchants[index];
-  const updated = Object.assign({}, existing, validation.data, { id }) as SubMerchant;
+  const updated = Object.assign({}, existing, validation.data, {
+    id,
+  }) as SubMerchant;
 
   await store.update((m) => {
     const list = [...m.subMerchants];
@@ -62,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json();
-  const validation = updateSubMerchantSchema.safeParse(body);
+  const validation = patchSubMerchantStatusSchema.safeParse(body);
 
   if (!validation.success) {
     return NextResponse.json(
@@ -73,16 +78,29 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   await delay();
   const mock = await store.read();
-  const index = mock.subMerchants.findIndex((m) => m.id === id);
+  const index = mock.subMerchants.findIndex((item) => item.id === id);
   if (index === -1) {
     return NextResponse.json(
       { error: "Không tìm thấy sub-merchant" },
       { status: 404 },
     );
   }
-
   const existing = mock.subMerchants[index];
-  const updated = Object.assign({}, existing, validation.data, { id }) as SubMerchant;
+   const updateData = { ...validation.data };
+
+  const lockReason =
+    updateData.lockReason !== undefined
+      ? updateData.lockReason
+      : existing!.lockReason;
+  const status = lockReason ? "locked" : "active";
+
+  const updated = {
+    ...existing,
+    ...updateData,
+    id,
+    status,
+    updatedAt: new Date().toISOString(),
+  } as SubMerchant;
 
   await store.update((m) => {
     const list = [...m.subMerchants];

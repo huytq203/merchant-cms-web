@@ -26,7 +26,7 @@ export function SubMerchantDetailModal({
     queries: (merchantIds ?? []).map((id) => ({
       queryKey: ['sub-merchant', id],
       queryFn: () => subMerchantApi.getById(id),
-      enabled: !!id,
+      enabled: open && !!id,
       staleTime: 1000 * 60 * 5,
     })),
   });

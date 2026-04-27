@@ -29,6 +29,11 @@ export const subMerchantBaseSchema = z.object({
 
 export const createSubMerchantSchema = subMerchantBaseSchema;
 export const updateSubMerchantSchema = subMerchantBaseSchema.partial();
+export const patchSubMerchantStatusSchema = z.object({
+  lockReason: z.string().nullable().optional(),
+  lockedAt: z.string().nullable().optional(),
+});
 
 export type CreateSubMerchantInput = z.infer<typeof createSubMerchantSchema>;
 export type UpdateSubMerchantInput = z.infer<typeof updateSubMerchantSchema>;
+export type PatchSubMerchantStatusInput = z.infer<typeof patchSubMerchantStatusSchema>;

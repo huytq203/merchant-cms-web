@@ -46,7 +46,7 @@ export function DialogUnlock({
         <div className="space-y-4">
           {/* Success Section */}
           <div className="flex gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-green-900">
                 Mở khóa tài khoản <span className="font-semibold">{user?.name}</span>
@@ -61,7 +61,7 @@ export function DialogUnlock({
           {user?.lockReason && (
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
               <p className="text-xs font-medium text-gray-600 mb-2">Lý do khóa trước đó:</p>
-              <p className="text-sm text-gray-700 italic">"{user.lockReason}"</p>
+              <p className="text-sm text-gray-700 italic">{user.lockReason}</p>
             </div>
           )}
 

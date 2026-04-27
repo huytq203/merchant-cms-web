@@ -44,21 +44,14 @@ const Header = () => {
 
         <Autocomplete
           options={[]}
-          placeholder="Tìm kiếm component..."
+          placeholder="Tìm kiếm trang..."
           leftIcon={<Search className="h-4 w-4" />}
           clearOnSelect
-          emptyText="Không tìm thấy component"
+          emptyText="Không tìm thấy trang"
           className="ml-auto hidden md:flex md:w-[200px] lg:w-[240px]"
         />
 
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto md:ml-3 shrink-0">
-          <Button variant="outline" size="icon-sm" className="rounded-lg">
-            <Bell className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon-sm" className="rounded-lg">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
+        
       </nav>
     </header>
   )

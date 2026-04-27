@@ -13,7 +13,8 @@ export const authApi = {
   login: (input: LoginInput) =>
     apiClient.post<LoginResponse>("/v1/admin/auth/login", input),
   logout: () => apiClient.post<void>("/v1/admin/auth/logout"),
-  refresh: () => apiClient.get<SessionUser>("/v1/admin/auth/refresh"),
+  me: () => apiClient.get<SessionUser>("/v1/admin/auth/me"),
+  refresh: () => apiClient.post<SessionUser>("/v1/admin/auth/refresh"),
   forgotPassword: (input: { username?: string; email?: string }) =>
     apiClient.post<ForgotPasswordResponse>("/v1/admin/auth/forgot-password", input),
 };

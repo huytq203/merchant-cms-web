@@ -23,7 +23,7 @@
     {
       "id": "1777180697039",
       "name": "Đối soát viên",
-      "status": "inactive",
+      "status": "active",
       "permissions": [
         "txn_view_list",
         "txn_search_detail",
@@ -35,7 +35,7 @@
       ],
       "createdBy": "Admin_01",
       "updatedBy": "admin",
-      "updatedAt": "2026-04-26T05:24:05.886Z",
+      "updatedAt": "2026-04-27T13:39:19.750Z",
       "createdAt": "2026-04-26T05:18:17.039Z"
     },
     {
@@ -58,6 +58,155 @@
       "updatedBy": "admin",
       "updatedAt": "2026-04-26T05:19:01.077Z",
       "createdAt": "2026-04-26T05:18:55.806Z"
+    },
+    {
+      "id": "1777300356296",
+      "name": "Kế toán",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:32:36.297Z",
+      "createdAt": "2026-04-27T14:32:36.297Z"
+    },
+    {
+      "id": "1777300369252",
+      "name": "Vận Hành",
+      "status": "inactive",
+      "permissions": [
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:32:49.252Z",
+      "createdAt": "2026-04-27T14:32:49.252Z"
+    },
+    {
+      "id": "1777300386148",
+      "name": "Super admin",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:33:06.148Z",
+      "createdAt": "2026-04-27T14:33:06.148Z"
+    },
+    {
+      "id": "1777300411844",
+      "name": "Super admin",
+      "status": "inactive",
+      "permissions": [
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:33:31.844Z",
+      "createdAt": "2026-04-27T14:33:31.844Z"
+    },
+    {
+      "id": "1777300429794",
+      "name": "Quản trị bảo trì",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:33:49.794Z",
+      "createdAt": "2026-04-27T14:33:49.794Z"
+    },
+    {
+      "id": "1777300442263",
+      "name": "dev",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:34:02.263Z",
+      "createdAt": "2026-04-27T14:34:02.263Z"
+    },
+    {
+      "id": "1777300462700",
+      "name": "tester 2",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:34:22.700Z",
+      "createdAt": "2026-04-27T14:34:22.700Z"
+    },
+    {
+      "id": "1777300475835",
+      "name": "Nhân viên kỹ thuật",
+      "status": "inactive",
+      "permissions": [
+        "txn_view_list",
+        "txn_search_detail",
+        "txn_export_report",
+        "txn_refund",
+        "finance_view_balance",
+        "finance_create_withdrawal",
+        "finance_manage_bank",
+        "sub_merchant_view_list",
+        "sub_merchant_lock_unlock",
+        "sub_merchant_update"
+      ],
+      "createdBy": "Admin_01",
+      "updatedBy": "Admin_01",
+      "updatedAt": "2026-04-27T14:34:35.835Z",
+      "createdAt": "2026-04-27T14:34:35.835Z"
     }
   ],
   "permissionCategories": [

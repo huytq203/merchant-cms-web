@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   await delay();
   const created: PermissionType = {
-    id: new Date().getTime(),
+    id: Date.now().toString(),
     name: body.name,
     status: 'inactive',
     permissions: body.permissions,

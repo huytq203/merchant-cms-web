@@ -35,6 +35,6 @@ export const subMerchantApi = {
   ) => apiClient.put<SubMerchant>(`${BASE}/${id}`, data),
   toggleStatus: (
     id: string,
-    payload: { status: "active" | "locked"; reason?: string },
+    payload: { lockReason: string | null; lockedAt: string | null },
   ) => apiClient.patch<SubMerchant>(`${BASE}/${id}`, payload),
 };

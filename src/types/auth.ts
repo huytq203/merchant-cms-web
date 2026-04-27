@@ -1,18 +1,28 @@
 export type UserRole = "ACCOUNTANT" | "OPERATOR" | "SUPER_ADMIN" | string;
 
 export interface SessionUser {
-  id: string;
+  userId: string;
   username: string;
-  roles: UserRole[];
-  permissions: string[];
+  email?: string;
+  phone?: string;
+  permissionGroupId?: string;
+  permissionName?: string;
+  subMerchantScope?: string;
+  assignedSubMerchantsIds?: string[];
+  createdAt?: string;
+  status?: string;
 }
 
 /** Payload chuẩn của JWT access token từ Keycloak/BE */
 export interface JwtPayload {
-  sid: string;
-  preferred_username: string;
+  userId: string;
+  username: string;
+  email?: string;
+  phone?: string;
   roles?: string[];
   permissions?: string[];
+  permissionGroupId?: string;
+  permissionName?: string;
   exp: number;
   iat: number;
   jti: string;

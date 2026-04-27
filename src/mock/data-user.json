@@ -5,7 +5,7 @@
       "name": "Trần Quang Huy",
       "email": "huy.tq@merchant.com",
       "phone": "0912345678",
-      "permissionGroupId": "1777180735806",
+      "permissionGroupId": "1777300429794",
       "subMerchantScope": "all",
       "createdAt": "2025-12-10T00:00:00Z",
       "status": "active",
@@ -14,39 +14,41 @@
         "SUB-00125",
         "SUB-00126",
         "SUB-00127",
-        "SUB-00128"
+        "SUB-00128",
+        "SUB-00129",
+        "SUB-00130",
+        "SUB-00131",
+        "SUB-00132",
+        "SUB-00133",
+        "SUB-00134",
+        "SUB-00135",
+        "SUB-00136",
+        "SUB-00137",
+        "SUB-00138"
       ],
-      "updatedAt": "2026-04-27T06:35:16.882Z"
+      "updatedAt": "2026-04-27T14:50:18.296Z"
     },
     {
-      "id": "1777272836406",
-      "name": "Nông Thị Nga",
-      "email": "huytq@beamewa.com.vn",
+      "id": "1777297122085",
+      "name": "Nông Thị Thúy Nga",
+      "email": "nga@gmail.com",
       "phone": "0966778899",
-      "permissionGroupId": "1777180735806",
-      "subMerchantScope": "all",
-      "assignedSubMerchantsIds": [],
-      "createdAt": "2026-04-27T06:53:56.406Z",
-      "updatedAt": "2026-04-27T07:56:32.117Z",
-      "permissionGroupName": "Admin",
-      "assignedSubMerchantCount": 0,
-      "status": "active",
-      "lockReason": "",
-      "lockedAt": null
-    },
-    {
-      "id": "USR-007",
-      "name": "Đỗ Thị Lan",
-      "email": "lan.dt@merchant.com",
-      "phone": "0933221100",
-      "permissionGroupId": "1777180735806",
+      "permissionGroupId": "1777180697039",
       "subMerchantScope": "specific",
-      "assignedSubMerchantsIds": [],
-      "createdAt": "2026-01-08T10:15:00Z",
-      "updatedAt": "2026-04-25T14:30:00Z",
+      "assignedSubMerchantsIds": [
+        "SUB-00123",
+        "SUB-00125",
+        "SUB-00126",
+        "SUB-00129",
+        "SUB-00131"
+      ],
+      "createdAt": "2026-04-27T13:38:42.085Z",
+      "updatedAt": "2026-04-27T14:35:58.709Z",
+      "permissionGroupName": "Đối soát viên",
+      "assignedSubMerchantCount": 3,
       "status": "locked",
-      "lockReason": "Vi phạm chính sách bảo mật công ty",
-      "lockedAt": "2026-04-25T14:30:00Z"
+      "lockReason": "Vi phạm chính sách\n",
+      "lockedAt": "2026-04-27T14:35:58.319Z"
     }
   ],
   "pagination": {

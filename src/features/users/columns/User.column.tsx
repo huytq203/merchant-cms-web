@@ -13,6 +13,9 @@ import { DialogLock } from "../components/DialogLock";
 import { DialogUnlock } from "../components/DialogUnlock";
 import { KeyRound, Lock, Pencil, LockOpen } from "lucide-react";
 import { useLockUser, useUnlockUser } from "../hooks/use-mutation";
+import { useForgotPasswordMutation } from "@/features/auth/hooks/use-forgot-password-mutation";
+import { toast } from "sonner";
+import { maskPhone } from "@/lib/utils/helper";
 
 export const useUserColumns = (): ColumnDef<User>[] => {
   return [
@@ -30,8 +33,17 @@ export const useUserColumns = (): ColumnDef<User>[] => {
       },
     },
     {
+      accessorKey: "phone",
+      header: "Số điện thoại liên hệ",
+      cell:({row})=>{
+        return(
+            <Text italic>{maskPhone(row.original.phone)}</Text>
+        )
+      }
+    },
+    {
       accessorKey: "permissionGroupName",
-      header: "Số điện thoại",
+      header: "Nhóm quyền",
     },
     {
       accessorKey: "assignedSubMerchantsIds",
@@ -56,15 +68,15 @@ export const useUserColumns = (): ColumnDef<User>[] => {
       header: "Trạng thái",
       cell: ({ row }) => {
         const user = row.original;
-        const statusVariant = user.status === UserStatus.ACTIVE ? "soft-primary" : "soft-danger";
+        const statusVariant =
+          user.status === UserStatus.ACTIVE ? "soft-primary" : "soft-danger";
         const statusLabel =
-          user.status === UserStatus.ACTIVE ? "Hoạt động" :
-          user.status === "locked" ? "Bị khóa" : "Bị vô hiệu hóa";
-        return (
-          <Badge variant={statusVariant}>
-            {statusLabel}
-          </Badge>
-        );
+          user.status === UserStatus.ACTIVE
+            ? "Hoạt động"
+            : user.status === "locked"
+              ? "Bị khóa"
+              : "Bị vô hiệu hóa";
+        return <Badge variant={statusVariant}>{statusLabel}</Badge>;
       },
     },
     {
@@ -85,17 +97,30 @@ function UserActionsCell({ user }: { user: User }) {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const { mutate: lockMutate, isPending: isLocking } = useLockUser();
   const { mutate: unlockMutate, isPending: isUnlocking } = useUnlockUser();
-
+  const { mutate: resetMutate, isPending: isResetting } =
+    useForgotPasswordMutation();
   function handleResetConfirm(userId: string) {
-    // TODO: gọi API reset mật khẩu
-    console.log("reset password for", userId);
-    setResetOpen(false);
+    resetMutate(
+      { username: user.email },
+      {
+        onSuccess: () =>{
+             setResetOpen(false)
+             toast.success("Cấp lại mật khẩu thành công");
+        },
+        onError:(error) => {
+          toast.error(error.message);
+        }
+      },
+    );
   }
 
   function handleLockConfirm(userId: string, reason: string) {
-    lockMutate({ userId, lockReason: reason }, {
-      onSuccess: () => setLockOpen(false),
-    });
+    lockMutate(
+      { userId, lockReason: reason },
+      {
+        onSuccess: () => setLockOpen(false),
+      },
+    );
   }
 
   function handleUnlockConfirm(userId: string) {
@@ -111,9 +136,11 @@ function UserActionsCell({ user }: { user: User }) {
         variant="ghost"
         onClick={() => router.push(`/users/${user.id}`)}
         title="Chỉnh sửa"
+        disabled={user.status === "locked"}
       >
-        <span title="Chỉnh sửa"><Pencil className="h-4 w-4" /></span>
-        
+        <span title="Chỉnh sửa">
+          <Pencil className="h-4 w-4" />
+        </span>
       </Button>
 
       {user.status !== "locked" && (
@@ -123,8 +150,9 @@ function UserActionsCell({ user }: { user: User }) {
           onClick={() => setLockOpen(true)}
           title="Khóa tài khoản"
         >
-          <span title="Khóa tài khoản"><Lock className="h-4 w-4" /></span>
-
+          <span title="Khóa tài khoản">
+            <Lock className="h-4 w-4" />
+          </span>
         </Button>
       )}
 
@@ -135,8 +163,9 @@ function UserActionsCell({ user }: { user: User }) {
           onClick={() => setUnlockOpen(true)}
           title="Mở khóa tài khoản"
         >
-          <span title="Mở khóa tài khoản"><LockOpen className="h-4 w-4" /></span>
-
+          <span title="Mở khóa tài khoản">
+            <LockOpen className="h-4 w-4" />
+          </span>
         </Button>
       )}
 
@@ -145,8 +174,11 @@ function UserActionsCell({ user }: { user: User }) {
         variant="ghost"
         onClick={() => setResetOpen(true)}
         title="Cấp lại mật khẩu"
+        disabled={user.status === "locked"}
       >
-        <span title="Cấp lại mật khẩu"><KeyRound className="h-4 w-4" /></span>
+        <span title="Cấp lại mật khẩu">
+          <KeyRound className="h-4 w-4" />
+        </span>
       </Button>
 
       <DialogReset

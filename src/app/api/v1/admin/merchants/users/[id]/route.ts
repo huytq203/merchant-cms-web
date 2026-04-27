@@ -1,7 +1,7 @@
 import { mockStore } from "@/lib/mock/mock-store";
 import { NextRequest, NextResponse } from "next/server";
 import type { User } from "../types/User.type";
-import { updateUserSchema } from "../types/schemas";
+import { updateUserSchema, patchUserLockSchema } from "../types/schemas";
 
 type Params = { params: Promise<{ id: string }> };
 type MockData = { users: User[] };
@@ -75,7 +75,7 @@ export const PATCH = async (
 ) => {
   const { id } = await params;
   const body = await request.json();
-  const validation = updateUserSchema.safeParse(body);
+  const validation = patchUserLockSchema.safeParse(body);
 
   if (!validation.success) {
     return NextResponse.json(
@@ -96,16 +96,12 @@ export const PATCH = async (
   }
 
   const existing = mock.users[index];
-  const updateData: Record<string, unknown> = { ...validation.data };
+  const updateData = { ...validation.data };
 
-  if (body.lockReason !== undefined) {
-    updateData.lockReason = body.lockReason;
-  }
-  if (body.lockedAt !== undefined) {
-    updateData.lockedAt = body.lockedAt;
-  }
-
-  const lockReason = body.lockReason ?? existing!.lockReason;
+  const lockReason =
+    updateData.lockReason !== undefined
+      ? updateData.lockReason
+      : existing!.lockReason;
   const status = lockReason ? "locked" : "active";
 
   const updated = {
@@ -114,7 +110,6 @@ export const PATCH = async (
     id,
     status,
     updatedAt: new Date().toISOString(),
-    assignedSubMerchantsIds: updateData.assignedSubMerchantsIds ?? existing!.assignedSubMerchantsIds,
   } as User;
 
   await store.update((m) => {

@@ -8,27 +8,20 @@ import { PermissionData } from "../types/type";
 import { Search } from "lucide-react";
 import useDebounce from "@/hooks/useDebounce";
 import { useForm, useWatch } from "react-hook-form";
+import usePagination from "@/hooks/usePagination";
 
 const PermissionTable = () => {
   const router = useRouter();
-  const { data: permissionData, isLoading } = usePermissionQuery({});
+  const { page, pageSize, setPage, setPageSize, params } = usePagination();
 
-  const form = useForm({
-    defaultValues: {
-      keyword: "",
-    },
-  });
-
+  const form = useForm({ defaultValues: { keyword: "" } });
   const watched = useWatch({ control: form.control });
   const debouncedKeyword = useDebounce(watched.keyword ?? "", 400);
 
-   const filteredData = useMemo(() => {
-    if (!debouncedKeyword) return permissionData?.data ?? [];
-
-    return (permissionData?.data ?? []).filter((item) =>
-      item.name?.toLowerCase().includes(debouncedKeyword.toLowerCase()) 
-    );
-  }, [debouncedKeyword, permissionData]);
+  const { data: permissionData, isLoading } = usePermissionQuery({
+    ...params,
+    keyword: debouncedKeyword || undefined,
+  });
 
   const columns = useMemo(
     () =>
@@ -50,7 +43,7 @@ const PermissionTable = () => {
               label="Tên nhóm quyền"
               placeholder="Nhập tên nhóm quyền..."
               {...field}
-              value={field.value ?? ''}
+              value={field.value ?? ""}
             />
           )}
         />
@@ -58,8 +51,20 @@ const PermissionTable = () => {
 
       <Table
         columns={columns}
-        data={filteredData}
+        data={permissionData?.data ?? []}
         isLoading={isLoading}
+        labels={{ empty: "Không tìm thấy nhóm quyền nào phù hợp" }}
+        pagination={
+          permissionData?.pagination.total !== undefined
+            ? {
+                total: permissionData.pagination.total,
+                current: page,
+                pageSize,
+                pageSizeOptions: [10, 20, 50],
+                onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+              }
+            : false
+        }
       />
     </div>
   );

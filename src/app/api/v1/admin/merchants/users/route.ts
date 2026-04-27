@@ -44,7 +44,8 @@ export async function GET(_request: NextRequest) {
   const keyword = searchParams.get("name") || searchParams.get("email");
   const page = Number(searchParams.get("page")) || 1;
   const pageSize = Number(searchParams.get("pageSize")) || 10;
-
+  const permissionGroupId = searchParams.get("permissionGroupId");
+  const status = searchParams.get("status");
   await delay();
 
   let results = dataUser.users;
@@ -57,6 +58,16 @@ export async function GET(_request: NextRequest) {
     );
   }
 
+  if (permissionGroupId) {
+    results = results.filter(
+      (user) => user.permissionGroupId === permissionGroupId,
+    );
+  }
+
+  if (status) {
+    results = results.filter((user) => user.status === status);
+  }
+  
   const total = results.length;
   const start = (page - 1) * pageSize;
   const paged = results.slice(start, start + pageSize).map((user) => ({
