@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockStore } from "@/lib/mock/mock-store";
+import type { SubMerchant } from "@/app/api/v1/admin/merchants/types/merchants";
+import { createSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/schemas";
 
-type SubMerchant = Record<string, unknown>;
 type MockData = { subMerchants: SubMerchant[] };
 
 const store = mockStore<MockData>("data-submechant.json");
@@ -20,7 +21,9 @@ export async function GET(request: NextRequest) {
 
   if (keyword) {
     const kw = keyword.toLowerCase();
-    results = results.filter((item) => (item.name as string).toLowerCase().includes(kw));
+    results = results.filter((item) =>
+      (item.name as string).toLowerCase().includes(kw),
+    );
   }
   if (status) {
     results = results.filter((item) => item.status === status);
@@ -29,15 +32,19 @@ export async function GET(request: NextRequest) {
   const total = results.length;
   const paged = results.slice((page - 1) * pageSize, page * pageSize);
 
-  return NextResponse.json({ data: paged, pagination: { page, pageSize, total } });
+  return NextResponse.json({
+    data: paged,
+    pagination: { page, pageSize, total },
+  });
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+  const validation = createSubMerchantSchema.safeParse(body);
 
-  if (!body.name || !body.businessType) {
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "name, businessType là bắt buộc" },
+      { error: "Dữ liệu không hợp lệ", details: validation.error.flatten() },
       { status: 422 },
     );
   }
@@ -45,33 +52,11 @@ export async function POST(request: NextRequest) {
   await delay();
 
   const created: SubMerchant = {
+    ...(validation.data as Record<string, string | boolean>),
     id: `SUB-${Date.now()}`,
-    name: body.name,
-    businessType: body.businessType,
-    contact: body.contact ?? body.notifyEmails ?? "",
-    status: body.status ?? "active",
     createdAt: new Date().toISOString(),
-    taxCode: body.taxCode ?? "",
-    representative: body.representative ?? "",
-    address: body.address ?? "",
-    merchantId: body.merchantId ?? `MCH-${Date.now()}`,
-    accessKey: body.accessKey ?? "",
-    secretKey: body.secretKey ?? "",
-    webhookUrl: body.webhookUrl ?? "",
-    bankName: body.bankName ?? "",
-    bankBranch: body.bankBranch ?? "",
-    accountNumber: body.accountNumber ?? "",
-    accountName: body.accountName ?? "",
-    notifyEnabled: body.notifyEnabled ?? false,
-    notifyTxSuccess: body.notifyTxSuccess ?? true,
-    notifyTxFailed: body.notifyTxFailed ?? false,
-    notifyDispute: body.notifyDispute ?? true,
-    notifyFreeze: body.notifyFreeze ?? true,
-    notifyPolicyChange: body.notifyPolicyChange ?? false,
-    notifyEmails: body.notifyEmails ?? "",
-    eInvoiceEnabled: body.eInvoiceEnabled ?? false,
-    eInvoiceEmails: body.eInvoiceEmails ?? "",
-  };
+    merchantId: validation.data.merchantId ?? `MCH-${Date.now()}`,
+  } as SubMerchant;
 
   await store.update((mock) => ({
     ...mock,

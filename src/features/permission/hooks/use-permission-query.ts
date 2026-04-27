@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ParamsGetAll, permissionApi } from "../api/Permission.api";
+import { ParamsGetAll, permissionApi } from "../../../lib/api/Permission.api";
 import { PermissionAPI, PermissionData } from "../types/type";
 
 export const usePermissionQuery = (params: ParamsGetAll) => {

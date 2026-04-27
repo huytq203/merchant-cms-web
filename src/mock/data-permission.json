@@ -16,13 +16,12 @@
         "sub_merchant_lock_unlock",
         "sub_merchant_update"
       ],
-      "userCount": 0,
       "createdAt": "2026-01-02T14:15:00Z",
       "updatedAt": "2026-04-26T12:42:24.498Z",
       "updatedBy": "admin"
     },
     {
-      "id": 1777180697039,
+      "id": "1777180697039",
       "name": "Đối soát viên",
       "status": "inactive",
       "permissions": [
@@ -40,7 +39,7 @@
       "createdAt": "2026-04-26T05:18:17.039Z"
     },
     {
-      "id": 1777180735806,
+      "id": "1777180735806",
       "name": "Admin",
       "status": "active",
       "permissions": [

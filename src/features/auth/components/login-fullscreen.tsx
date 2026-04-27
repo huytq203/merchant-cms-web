@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button/Button";
 import { Checkbox } from "@/components/ui/checkbox/Checkbox";
 import { useLoginMutation } from "@/features/auth/hooks/use-login-mutation";
 import { loginSchema, type LoginInput } from "@/features/auth/schemas";
+import { ForgotPasswordDialog } from "@/features/auth/components/forgot-password-dialog";
 import Image from "next/image";
 import LogoImage from "../../../../public/images/logo.png";
 
@@ -31,6 +32,7 @@ export function LoginFullScreen() {
 
   const loginMutation = useLoginMutation();
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = React.useState(false);
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -198,7 +200,12 @@ export function LoginFullScreen() {
                   <div className="text-sm">
                     <Checkbox id="remember" label="Ghi nhớ đăng nhập" />
                   </div>
-                  <Button variant="link" type="button" className="px-0 text-sm">
+                  <Button
+                    variant="link"
+                    type="button"
+                    className="px-0 text-sm"
+                    onClick={() => setForgotPasswordOpen(true)}
+                  >
                     Quên mật khẩu?
                   </Button>
                 </div>
@@ -240,6 +247,11 @@ export function LoginFullScreen() {
           </div>
         </div>
       </div>
+
+      <ForgotPasswordDialog
+        open={forgotPasswordOpen}
+        onOpenChange={setForgotPasswordOpen}
+      />
     </div>
   );
 }

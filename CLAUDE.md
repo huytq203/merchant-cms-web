@@ -6,7 +6,7 @@ Tài liệu định hướng cho Claude Code khi làm việc với repo này. Re
 
 ## Nguyên tắc tối quan trọng
 - **Next.js 16**: đây là phiên bản có breaking changes (xem mục "Next.js 16 notes"). Luôn đọc `node_modules/next/dist/docs` trước khi dùng API mới.
-- **Front-end only**: tuyệt đối không thêm DB, password hashing, NextAuth, Prisma hay runtime BE trong repo này. Nếu cần mock, dùng công cụ riêng (MSW) — không commit vào source.
+<!-- - **Front-end only**: tuyệt đối không thêm DB, password hashing, NextAuth, Prisma hay runtime BE trong repo này. Nếu cần mock, dùng công cụ riêng (MSW) — không commit vào source. -->
 - **Wrap lib**: tất cả thư viện ngoài được wrap trong `src/lib` hoặc `src/features/*/api` để cô lập phụ thuộc.
 - Tuân theo Rules và Workflow đã tài liệu hóa.
 

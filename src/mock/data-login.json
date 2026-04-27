@@ -1,0 +1,28 @@
+{
+  "logins": [
+    {
+      "id": "1",
+      "idUser": "USR-001",
+      "username": "a",
+      "password": "$2b$10$RDgSTV8uW38mo/kUQQQ5ouw/5Y6/2aBSq4oeyOsiqQUWACul8bHFS"
+    },
+    {
+      "id": "2",
+      "idUser": "USR-002",
+      "username": "hanh.lt",
+      "password": "$2b$10$2AF/RCFJz6cA7bxIOK20mO2mPR6i5dpckN6X0yHz6xS2RsCJVmUEe"
+    },
+    {
+      "id": "3",
+      "idUser": "USR-003",
+      "username": "a",
+      "password": "$2b$10$DAqY5hmY9/6iAA.N6joEZ.RsQTmU4O52s2yO5EP1kZ07HGr5fgXQu"
+    },
+    {
+      "id": "1777272839326",
+      "idUser": "1777272836406",
+      "username": "huytq@beamewa.com.vn",
+      "password": "$2b$10$j8K4kys9JZddgYOUs4toauQ4eDlQm.Ouq7T7TbJ9Ka9W9kOGCR2si"
+    }
+  ]
+}

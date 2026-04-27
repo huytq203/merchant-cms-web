@@ -5,8 +5,8 @@ export interface User {
   phone: string;
   permissionGroupId: string;
   permissionGroupName: string;
-  subMerchantScope: string;
-  assignedSubMerchants: string[];
+  subMerchantScope: "all" | "specific";
+  assignedSubMerchantsIds: string[];
   assignedSubMerchantCount: number;
   createdAt: string;
   status: string;

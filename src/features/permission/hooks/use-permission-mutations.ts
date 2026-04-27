@@ -1,5 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { permissionApi, UpdatePermissionPayload, CreatePermissionPayload } from "../api/Permission.api";
+import {
+  permissionApi,
+  UpdatePermissionPayload,
+  CreatePermissionPayload,
+} from "../../../lib/api/Permission.api";
 
 export const useCreatePermission = () => {
   const queryClient = useQueryClient();

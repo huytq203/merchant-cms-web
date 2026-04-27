@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mockStore } from "@/lib/mock/mock-store";
+import type { SubMerchant } from "@/app/api/v1/admin/merchants/types/merchants";
+import { updateSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/schemas";
 
 type Params = { params: Promise<{ id: string }> };
-type SubMerchant = Record<string, unknown>;
 type MockData = { subMerchants: SubMerchant[] };
 
 const store = mockStore<MockData>("data-submechant.json");
@@ -15,19 +16,23 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const mock = await store.read();
   const item = mock.subMerchants.find((m) => m.id === id) ?? null;
   if (!item) {
-    return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   }
 
-  return NextResponse.json(item);
+  return NextResponse.json(item, { status: 200 });
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json();
+  const validation = updateSubMerchantSchema.safeParse(body);
 
-  if (!body.name || !body.businessType) {
+  if (!validation.success) {
     return NextResponse.json(
-      { error: "name, businessType là bắt buộc" },
+      { error: "Dữ liệu không hợp lệ", details: validation.error.flatten() },
       { status: 422 },
     );
   }
@@ -36,38 +41,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const mock = await store.read();
   const index = mock.subMerchants.findIndex((m) => m.id === id);
   if (index === -1) {
-    return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   }
 
   const existing = mock.subMerchants[index];
-  const updated: SubMerchant = {
-    id,
-    name: body.name,
-    businessType: body.businessType,
-    contact: body.contact ?? body.notifyEmails ?? existing?.contact ?? "",
-    status: body.status ?? existing?.status ?? "active",
-    createdAt: existing?.createdAt,
-    taxCode: body.taxCode ?? "",
-    representative: body.representative ?? "",
-    address: body.address ?? "",
-    merchantId: body.merchantId ?? existing?.merchantId,
-    accessKey: body.accessKey ?? existing?.accessKey,
-    secretKey: body.secretKey ?? existing?.secretKey,
-    webhookUrl: body.webhookUrl ?? "",
-    bankName: body.bankName ?? "",
-    bankBranch: body.bankBranch ?? "",
-    accountNumber: body.accountNumber ?? "",
-    accountName: body.accountName ?? "",
-    notifyEnabled: body.notifyEnabled ?? false,
-    notifyTxSuccess: body.notifyTxSuccess ?? true,
-    notifyTxFailed: body.notifyTxFailed ?? false,
-    notifyDispute: body.notifyDispute ?? true,
-    notifyFreeze: body.notifyFreeze ?? true,
-    notifyPolicyChange: body.notifyPolicyChange ?? false,
-    notifyEmails: body.notifyEmails ?? "",
-    eInvoiceEnabled: body.eInvoiceEnabled ?? false,
-    eInvoiceEmails: body.eInvoiceEmails ?? "",
-  };
+  const updated = Object.assign({}, existing, validation.data, { id }) as SubMerchant;
 
   await store.update((m) => {
     const list = [...m.subMerchants];
@@ -81,15 +62,28 @@ export async function PUT(request: NextRequest, { params }: Params) {
 export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await request.json();
+  const validation = updateSubMerchantSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: "Dữ liệu không hợp lệ", details: validation.error.flatten() },
+      { status: 422 },
+    );
+  }
 
   await delay();
   const mock = await store.read();
   const index = mock.subMerchants.findIndex((m) => m.id === id);
   if (index === -1) {
-    return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   }
 
-  const updated = { ...mock.subMerchants[index], ...body, id };
+  const existing = mock.subMerchants[index];
+  const updated = Object.assign({}, existing, validation.data, { id }) as SubMerchant;
+
   await store.update((m) => {
     const list = [...m.subMerchants];
     list[index] = updated;
@@ -106,7 +100,10 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const mock = await store.read();
   const index = mock.subMerchants.findIndex((m) => m.id === id);
   if (index === -1) {
-    return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   }
 
   await store.update((m) => ({
