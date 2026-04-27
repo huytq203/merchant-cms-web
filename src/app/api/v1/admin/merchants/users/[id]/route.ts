@@ -98,17 +98,21 @@ export const PATCH = async (
   const existing = mock.users[index];
   const updateData: Record<string, unknown> = { ...validation.data };
 
-  if (body.lockReason) {
+  if (body.lockReason !== undefined) {
     updateData.lockReason = body.lockReason;
   }
-  if (body.lockedAt) {
+  if (body.lockedAt !== undefined) {
     updateData.lockedAt = body.lockedAt;
   }
+
+  const lockReason = body.lockReason ?? existing!.lockReason;
+  const status = lockReason ? "locked" : "active";
 
   const updated = {
     ...existing,
     ...updateData,
     id,
+    status,
     updatedAt: new Date().toISOString(),
     assignedSubMerchantsIds: updateData.assignedSubMerchantsIds ?? existing!.assignedSubMerchantsIds,
   } as User;

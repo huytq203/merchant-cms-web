@@ -47,3 +47,14 @@ export const useLockUser = () => {
     },
   });
 };
+
+export const useUnlockUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => userApi.unlockUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+};

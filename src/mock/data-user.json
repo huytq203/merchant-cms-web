@@ -27,12 +27,12 @@
       "subMerchantScope": "all",
       "assignedSubMerchantsIds": [],
       "createdAt": "2026-04-27T06:53:56.406Z",
-      "updatedAt": "2026-04-27T07:36:52.292Z",
+      "updatedAt": "2026-04-27T07:56:32.117Z",
       "permissionGroupName": "Admin",
       "assignedSubMerchantCount": 0,
-      "status": "locked",
-      "lockReason": "okwwwwwwwwwwwww",
-      "lockedAt": "2026-04-27T07:36:51.781Z"
+      "status": "active",
+      "lockReason": "",
+      "lockedAt": null
     },
     {
       "id": "USR-007",

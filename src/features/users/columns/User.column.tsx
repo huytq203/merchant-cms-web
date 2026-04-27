@@ -10,8 +10,9 @@ import { UserStatus } from "../constants/User.constant";
 import { useRouter } from "next/navigation";
 import { DialogReset } from "../components/DialogReset";
 import { DialogLock } from "../components/DialogLock";
-import { KeyRound, Lock, Pencil } from "lucide-react";
-import { useLockUser } from "../hooks/use-mutation";
+import { DialogUnlock } from "../components/DialogUnlock";
+import { KeyRound, Lock, Pencil, LockOpen } from "lucide-react";
+import { useLockUser, useUnlockUser } from "../hooks/use-mutation";
 
 export const useUserColumns = (): ColumnDef<User>[] => {
   return [
@@ -81,7 +82,9 @@ function UserActionsCell({ user }: { user: User }) {
   const router = useRouter();
   const [resetOpen, setResetOpen] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
   const { mutate: lockMutate, isPending: isLocking } = useLockUser();
+  const { mutate: unlockMutate, isPending: isUnlocking } = useUnlockUser();
 
   function handleResetConfirm(userId: string) {
     // TODO: gọi API reset mật khẩu
@@ -92,6 +95,12 @@ function UserActionsCell({ user }: { user: User }) {
   function handleLockConfirm(userId: string, reason: string) {
     lockMutate({ userId, lockReason: reason }, {
       onSuccess: () => setLockOpen(false),
+    });
+  }
+
+  function handleUnlockConfirm(userId: string) {
+    unlockMutate(userId, {
+      onSuccess: () => setUnlockOpen(false),
     });
   }
 
@@ -107,16 +116,29 @@ function UserActionsCell({ user }: { user: User }) {
         
       </Button>
 
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        onClick={() => setLockOpen(true)}
-        title="Khóa tài khoản"
-        disabled={user.status === "locked"}
-      >
-        <span title="Khóa tài khoản"><Lock className="h-4 w-4" /></span>
-        
-      </Button>
+      {user.status !== "locked" && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => setLockOpen(true)}
+          title="Khóa tài khoản"
+        >
+          <span title="Khóa tài khoản"><Lock className="h-4 w-4" /></span>
+
+        </Button>
+      )}
+
+      {user.status === "locked" && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={() => setUnlockOpen(true)}
+          title="Mở khóa tài khoản"
+        >
+          <span title="Mở khóa tài khoản"><LockOpen className="h-4 w-4" /></span>
+
+        </Button>
+      )}
 
       <Button
         size="icon-sm"
@@ -140,6 +162,14 @@ function UserActionsCell({ user }: { user: User }) {
         onOpenChange={setLockOpen}
         onConfirm={handleLockConfirm}
         isLoading={isLocking}
+      />
+
+      <DialogUnlock
+        user={user}
+        open={unlockOpen}
+        onOpenChange={setUnlockOpen}
+        onConfirm={handleUnlockConfirm}
+        isLoading={isUnlocking}
       />
     </>
   );

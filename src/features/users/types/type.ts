@@ -10,6 +10,8 @@ export interface User {
   assignedSubMerchantCount: number;
   createdAt: string;
   status: string;
+  lockReason?: string;
+  lockedAt?: string;
 }
 export interface UserListResponse {
   data: User[];

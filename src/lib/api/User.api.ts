@@ -30,5 +30,7 @@ export const userApi = {
   changeStatus: (id: string, status: string) =>
     apiClient.patch<User>(`${BASE}/${id}`, { status }),
   lockUser: (id: string, lockReason: string) =>
-    apiClient.patch<User>(`${BASE}/${id}`, { status: "locked", lockReason, lockedAt: new Date().toISOString() }),
+    apiClient.patch<User>(`${BASE}/${id}`, { lockReason, lockedAt: new Date().toISOString() }),
+  unlockUser: (id: string) =>
+    apiClient.patch<User>(`${BASE}/${id}`, { lockReason: "", lockedAt: null }),
 };
