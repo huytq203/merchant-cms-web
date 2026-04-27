@@ -76,6 +76,8 @@ export function DialogLock({
               Lý do khóa <span className="text-red-500">*</span>
             </label>
             <Textarea
+              showCount={true}
+              maxLength={1000}
               placeholder="Nhập lý do khóa (tối thiểu 10 ký tự)..."
               value={reason}
               onChange={(e) => {

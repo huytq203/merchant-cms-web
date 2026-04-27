@@ -10,7 +10,7 @@ import { UserStatus } from "../constants/User.constant";
 import { useRouter } from "next/navigation";
 import { DialogReset } from "../components/DialogReset";
 import { DialogLock } from "../components/DialogLock";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Lock, Pencil } from "lucide-react";
 import { useLockUser } from "../hooks/use-mutation";
 
 export const useUserColumns = (): ColumnDef<User>[] => {
@@ -103,8 +103,8 @@ function UserActionsCell({ user }: { user: User }) {
         onClick={() => router.push(`/users/${user.id}`)}
         title="Chỉnh sửa"
       >
-        <span className="sr-only">Sửa</span>
-        ✏️
+        <span title="Chỉnh sửa"><Pencil className="h-4 w-4" /></span>
+        
       </Button>
 
       <Button
@@ -114,8 +114,8 @@ function UserActionsCell({ user }: { user: User }) {
         title="Khóa tài khoản"
         disabled={user.status === "locked"}
       >
-        <span className="sr-only">Khóa</span>
-        🔒
+        <span title="Khóa tài khoản"><Lock className="h-4 w-4" /></span>
+        
       </Button>
 
       <Button
@@ -124,8 +124,7 @@ function UserActionsCell({ user }: { user: User }) {
         onClick={() => setResetOpen(true)}
         title="Cấp lại mật khẩu"
       >
-        <KeyRound className="h-4 w-4" />
-        <span className="sr-only">Cấp lại mật khẩu</span>
+        <span title="Cấp lại mật khẩu"><KeyRound className="h-4 w-4" /></span>
       </Button>
 
       <DialogReset

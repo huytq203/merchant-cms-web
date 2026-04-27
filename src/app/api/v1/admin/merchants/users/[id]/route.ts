@@ -105,10 +105,13 @@ export const PATCH = async (
     updateData.lockedAt = body.lockedAt;
   }
 
-  const updated = Object.assign({}, existing, updateData, {
+  const updated = {
+    ...existing,
+    ...updateData,
     id,
     updatedAt: new Date().toISOString(),
-  }) as User;
+    assignedSubMerchantsIds: updateData.assignedSubMerchantsIds ?? existing!.assignedSubMerchantsIds,
+  } as User;
 
   await store.update((m) => {
     const list = [...m.users];
