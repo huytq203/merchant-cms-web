@@ -2,15 +2,12 @@
 import { Checkbox } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 
-interface Permission {
-  id: string;
-  name: string;
-}
+import { Permission } from '../types/type';
 
 interface PermissionCategoryGroupProps {
-  id: string;
+  id: string|number;
   name: string;
-  permissions: Permission[];
+  permissions: Permission[] ;
   selected: string[];
   onToggle: (id: string) => void;
   onSelectAll: (ids: string[]) => void;

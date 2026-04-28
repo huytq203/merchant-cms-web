@@ -1,14 +1,19 @@
+export interface Permission {
+  id: string
+  name: string
+}
+
 export interface PermissionAPI {
-  data: PermissionData[]
+  data: PermissionData<Permission>[]
   pagination: Pagination
 }
 
-export interface PermissionData {
+export interface PermissionData<T = string> {
   id: string | number
   name: string
   createdAt: string
   status: string
-  permissions: string[]
+  permissions: T[]
   userCount?: number
   createdBy?: string
   updatedBy?: string

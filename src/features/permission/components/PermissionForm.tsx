@@ -1,9 +1,9 @@
-'use client';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { AlertTriangle, Save, ShieldCheck } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+"use client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { AlertTriangle, Save, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import {
   Button,
   Card,
@@ -15,83 +15,96 @@ import {
   Input,
   Switch,
   Text,
-} from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import permissionData from '@/mock/data-permission.json';
-import { newPermissionSchema, editPermissionSchema, type EditPermissionFormValues, type NewPermissionFormValues } from '../schemas/schema';
-import { useUpdatePermission, useCreatePermission } from '../hooks/use-permission-mutations';
-import { PermissionCategoryGroup } from './PermissionCategoryGroup';
-import { usePermissionDetailQuery } from '../hooks/use-permission-query';
-import { useEffect } from 'react';
+} from "@/components/ui";
+import { cn } from "@/lib/utils/cn";
+import {
+  newPermissionSchema,
+  editPermissionSchema,
+  type EditPermissionFormValues,
+  type NewPermissionFormValues,
+} from "../schemas/schema";
+import {
+  useUpdatePermission,
+  useCreatePermission,
+} from "../hooks/use-permission-mutations";
+import { PermissionCategoryGroup } from "./PermissionCategoryGroup";
+import { usePermissionDetailQuery } from "../hooks/use-permission-query";
+import { useEffect } from "react";
+import { usePermissions } from "@/features/users/hooks/use-permissions";
 
 interface PermissionFormProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   id?: string;
 }
 
-const DEFAULT_VALUES: NewPermissionFormValues = { name: '', permissions: [] };
+const DEFAULT_VALUES: NewPermissionFormValues = { name: "", permissions: [] };
 
-
-const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
+const PermissionForm = ({ mode, id = "" }: PermissionFormProps) => {
   const router = useRouter();
-  const isEdit = mode === 'edit';
+  const isEdit = mode === "edit";
 
-  const { data, isLoading: isLoadingData } = usePermissionDetailQuery(isEdit ? id : '');
-  const { mutate: updatePermission, isPending: isUpdating } = useUpdatePermission(id);
-  const { mutate: createPermission, isPending: isCreating } = useCreatePermission();
-
+  const { data, isLoading: isLoadingData } = usePermissionDetailQuery(
+    isEdit ? id : "",
+  );
+  const { mutate: updatePermission, isPending: isUpdating } =
+    useUpdatePermission(id);
+  const { mutate: createPermission, isPending: isCreating } =
+    useCreatePermission();
+  const { data: permissionData, isLoading: isLoadingPermissionData } =
+    usePermissions();
   const schema = isEdit ? editPermissionSchema : newPermissionSchema;
 
-  
-
-  const formDefaultValues =  isEdit
+  const formDefaultValues = isEdit
     ? {
-        name: data?.name ?? '',
-        status: data?.status ?? 'inactive',
+        name: data?.name ?? "",
+        status: data?.status ?? "inactive",
         permissions: data?.permissions ?? [],
       }
     : DEFAULT_VALUES;
 
   const form = useForm<EditPermissionFormValues | NewPermissionFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: formDefaultValues as EditPermissionFormValues & NewPermissionFormValues,
+    defaultValues: formDefaultValues as EditPermissionFormValues &
+      NewPermissionFormValues,
   });
-  
+
   useEffect(() => {
     if (data && isEdit) {
       form.reset({
         name: data.name,
-        status: (data.status ?? 'inactive') as 'active' | 'inactive',
+        status: (data.status ?? "inactive") as "active" | "inactive",
         permissions: data.permissions,
       });
     }
   }, [data, isEdit, form]);
 
-  const selectedPermissions = form.watch('permissions');
-  
-  const totalPermissions = permissionData.permissionCategories.reduce(
+  const selectedPermissions = form.watch("permissions");
+
+  const totalPermissions = permissionData?.data.reduce(
     (acc, cat) => acc + cat.permissions.length,
     0,
   );
 
   const handleTogglePermission = (permId: string) => {
-    const current = form.getValues('permissions');
+    const current = form.getValues("permissions");
     const next = current.includes(permId)
       ? current.filter((p) => p !== permId)
       : [...current, permId];
-    form.setValue('permissions', next, { shouldValidate: true });
+    form.setValue("permissions", next, { shouldValidate: true });
   };
 
   const handleSelectAll = (categoryPermIds: string[]) => {
-    const current = form.getValues('permissions');
+    const current = form.getValues("permissions");
     const allSelected = categoryPermIds.every((id) => current.includes(id));
     const next = allSelected
       ? current.filter((p) => !categoryPermIds.includes(p))
       : [...new Set([...current, ...categoryPermIds])];
-    form.setValue('permissions', next, { shouldValidate: true });
+    form.setValue("permissions", next, { shouldValidate: true });
   };
 
-  const onSubmit = (values: EditPermissionFormValues | NewPermissionFormValues) => {
+  const onSubmit = (
+    values: EditPermissionFormValues | NewPermissionFormValues,
+  ) => {
     if (isEdit) {
       const editValues = values as EditPermissionFormValues;
       updatePermission(
@@ -130,11 +143,11 @@ const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
   const permissionsError = form.formState.errors.permissions?.message;
   const isPending = isUpdating || isCreating || isLoadingData;
 
-  const pageTitle = isEdit ? 'Cập nhật nhóm quyền' : 'Thiết lập nhóm quyền mới';
+  const pageTitle = isEdit ? "Cập nhật nhóm quyền" : "Thiết lập nhóm quyền mới";
   const pageDesc = isEdit
-    ? 'Chỉnh sửa tên, trạng thái và các quyền truy cập.'
-    : 'Định nghĩa tên và các quyền truy cập cho nhóm quyền này.';
-  const submitLabel = isEdit ? 'Cập nhật' : 'Lưu nhóm quyền';
+    ? "Chỉnh sửa tên, trạng thái và các quyền truy cập."
+    : "Định nghĩa tên và các quyền truy cập cho nhóm quyền này.";
+  const submitLabel = isEdit ? "Cập nhật" : "Lưu nhóm quyền";
 
   return (
     <div className="space-y-6">
@@ -161,9 +174,10 @@ const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
         <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3">
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
           <p className="text-sm text-warning">
-            <span className="font-semibold">Lưu ý:</span> Nhóm quyền này đang có{' '}
-            <span className="font-bold">{userCount} nhân viên</span> đang sử dụng. Mọi thay
-            đổi về quyền sẽ có hiệu lực ngay lập tức với tất cả nhân viên trong nhóm.
+            <span className="font-semibold">Lưu ý:</span> Nhóm quyền này đang có{" "}
+            <span className="font-bold">{userCount} nhân viên</span> đang sử
+            dụng. Mọi thay đổi về quyền sẽ có hiệu lực ngay lập tức với tất cả
+            nhân viên trong nhóm.
           </p>
         </div>
       )}
@@ -180,15 +194,18 @@ const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
                   render={({ field }) => (
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Trạng thái hoạt động</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          Trạng thái hoạt động
+                        </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Nếu tắt, toàn bộ nhân viên trong nhóm sẽ bị chặn truy cập.
+                          Nếu tắt, toàn bộ nhân viên trong nhóm sẽ bị chặn truy
+                          cập.
                         </p>
                       </div>
                       <Switch
-                        checked={field.value === 'active'}
+                        checked={field.value === "active"}
                         onCheckedChange={(checked) =>
-                          field.onChange(checked ? 'active' : 'inactive')
+                          field.onChange(checked ? "active" : "inactive")
                         }
                         size="md"
                       />
@@ -223,27 +240,30 @@ const PermissionForm = ({ mode, id = '' }: PermissionFormProps) => {
             <CardHeader>
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <CardTitle>
-                  Điều chỉnh phân quyền <span className="text-destructive">*</span>
+                  Điều chỉnh phân quyền{" "}
+                  <span className="text-destructive">*</span>
                 </CardTitle>
                 <Text
                   className={cn(
-                    'rounded-full px-3 py-1 text-xs font-semibold tabular-nums',
+                    "rounded-full px-3 py-1 text-xs font-semibold tabular-nums",
                     selectedPermissions.length === 0
-                      ? 'bg-muted text-muted-foreground'
+                      ? "bg-muted text-muted-foreground"
                       : selectedPermissions.length === totalPermissions
-                        ? 'bg-success/15 text-success'
-                        : 'bg-primary/10 text-primary',
+                        ? "bg-success/15 text-success"
+                        : "bg-primary/10 text-primary",
                   )}
                 >
                   {selectedPermissions.length}/{totalPermissions} quyền đã chọn
                 </Text>
               </div>
               {permissionsError && (
-                <p className="text-xs font-medium text-danger mt-1">{permissionsError}</p>
+                <p className="text-xs font-medium text-danger mt-1">
+                  {permissionsError}
+                </p>
               )}
             </CardHeader>
             <CardContent className="p-0">
-              {permissionData.permissionCategories.map((category, index) => (
+              {permissionData?.data.map((category, index) => (
                 <PermissionCategoryGroup
                   key={category.id}
                   id={category.id}
