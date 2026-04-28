@@ -3,8 +3,8 @@ export interface Permission {
   name: string
 }
 
-export interface PermissionAPI {
-  data: PermissionData<Permission>[]
+export interface PermissionAPI<T = string> {
+  data: PermissionData<T>[]
   pagination: Pagination
 }
 

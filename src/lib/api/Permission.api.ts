@@ -25,8 +25,8 @@ export interface CreatePermissionPayload {
 }
 
 export const permissionApi = {
-  getAll: (params: ParamsGetAll) =>
-    apiClient.get<PermissionAPI>(BASE, { query: params }),
+  getAll: <T = string>(params: ParamsGetAll) =>
+    apiClient.get<PermissionAPI<T>>(BASE, { query: params }),
   getById: (id: string) => apiClient.get<PermissionData>(`${BASE}/${id}`),
   create: (payload: CreatePermissionPayload) =>
     apiClient.post<PermissionData>(BASE, payload),
