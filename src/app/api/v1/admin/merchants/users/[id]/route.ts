@@ -1,37 +1,22 @@
-import { mockStore } from "@/lib/mock/mock-store";
 import { NextRequest, NextResponse } from "next/server";
-import type { User } from "../types/User.type";
 import { updateUserSchema, patchUserLockSchema } from "../types/schemas";
+import {
+  getUserById,
+  updateUserById,
+  patchUserLock,
+  removeUser,
+} from "@/server/modules/users/user.service";
 
 type Params = { params: Promise<{ id: string }> };
-type MockData = { users: User[] };
 
-const store = mockStore<MockData>("data-user.json");
-const delay = () => new Promise((r) => setTimeout(r, 300));
-
-export const GET = async (
-  _request: NextRequest,
-  { params }: Params,
-) => {
+export const GET = async (_request: NextRequest, { params }: Params) => {
   const { id } = await params;
-  await delay();
-  const mock = await store.read();
-  const result = mock.users.find((item) => item.id === id) ?? null;
-
-  if (!result) {
-    return NextResponse.json(
-      { error: "Không tìm thấy user" },
-      { status: 404 },
-    );
-  }
-
-  return NextResponse.json(result, { status: 200 });
+  const user = await getUserById(id);
+  if (!user) return NextResponse.json({ error: "Không tìm thấy user" }, { status: 404 });
+  return NextResponse.json(user);
 };
 
-export const PUT = async (
-  request: NextRequest,
-  { params }: Params,
-) => {
+export const PUT = async (request: NextRequest, { params }: Params) => {
   const { id } = await params;
   const body = await request.json();
   const validation = updateUserSchema.safeParse(body);
@@ -43,36 +28,12 @@ export const PUT = async (
     );
   }
 
-  await delay();
-  const mock = await store.read();
-  const index = mock.users.findIndex((item) => item.id === id);
-
-  if (index === -1) {
-    return NextResponse.json(
-      { error: "Không tìm thấy user" },
-      { status: 404 },
-    );
-  }
-
-  const existing = mock.users[index];
-  const updated = Object.assign({}, existing, validation.data, {
-    id,
-    updatedAt: new Date().toISOString(),
-  }) as User;
-
-  await store.update((m) => {
-    const list = [...m.users];
-    list[index] = updated;
-    return { ...m, users: list };
-  });
-
-  return NextResponse.json(updated, { status: 200 });
+  const updated = await updateUserById(id, validation.data);
+  if (!updated) return NextResponse.json({ error: "Không tìm thấy user" }, { status: 404 });
+  return NextResponse.json(updated);
 };
 
-export const PATCH = async (
-  request: NextRequest,
-  { params }: Params,
-) => {
+export const PATCH = async (request: NextRequest, { params }: Params) => {
   const { id } = await params;
   const body = await request.json();
   const validation = patchUserLockSchema.safeParse(body);
@@ -84,66 +45,14 @@ export const PATCH = async (
     );
   }
 
-  await delay();
-  const mock = await store.read();
-  const index = mock.users.findIndex((item) => item.id === id);
-
-  if (index === -1) {
-    return NextResponse.json(
-      { error: "Không tìm thấy user" },
-      { status: 404 },
-    );
-  }
-
-  const existing = mock.users[index];
-  const updateData = { ...validation.data };
-
-  const lockReason =
-    updateData.lockReason !== undefined
-      ? updateData.lockReason
-      : existing!.lockReason;
-  const status = lockReason ? "locked" : "active";
-
-  const updated = {
-    ...existing,
-    ...updateData,
-    id,
-    status,
-    updatedAt: new Date().toISOString(),
-  } as User;
-
-  await store.update((m) => {
-    const list = [...m.users];
-    list[index] = updated;
-    return { ...m, users: list };
-  });
-
-  return NextResponse.json(updated, { status: 200 });
+  const updated = await patchUserLock(id, validation.data);
+  if (!updated) return NextResponse.json({ error: "Không tìm thấy user" }, { status: 404 });
+  return NextResponse.json(updated);
 };
 
-export const DELETE = async (
-  _request: NextRequest,
-  { params }: Params,
-) => {
+export const DELETE = async (_request: NextRequest, { params }: Params) => {
   const { id } = await params;
-
-  await delay();
-  const mock = await store.read();
-  const index = mock.users.findIndex((item) => item.id === id);
-
-  if (index === -1) {
-    return NextResponse.json(
-      { error: "Không tìm thấy user" },
-      { status: 404 },
-    );
-  }
-
-  await store.update((m) => ({
-    ...m,
-    users: m.users.filter((item) => item.id !== id),
-  }));
-
+  const removed = await removeUser(id);
+  if (!removed) return NextResponse.json({ error: "Không tìm thấy user" }, { status: 404 });
   return new NextResponse(null, { status: 204 });
 };
-
-

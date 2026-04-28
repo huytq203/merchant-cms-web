@@ -1,41 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockStore } from "@/lib/mock/mock-store";
-import type { SubMerchant } from "@/app/api/v1/admin/merchants/types/merchants";
 import { createSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/schemas";
-
-type MockData = { subMerchants: SubMerchant[] };
-
-const store = mockStore<MockData>("data-submechant.json");
-const delay = () => new Promise((r) => setTimeout(r, 300));
+import { getSubMerchantList, createSubMerchant } from "@/server/modules/sub-merchants/sub-merchant.service";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
-  const page = Number(searchParams.get("page")) || 1;
-  const pageSize = Number(searchParams.get("pageSize")) || 10;
-  const keyword = searchParams.get("keyword") ?? "";
-  const status = searchParams.get("status") ?? "";
 
-  await delay();
-  const mock = await store.read();
-  let results = [...mock.subMerchants];
-
-  if (keyword) {
-    const kw = keyword.toLowerCase();
-    results = results.filter((item) =>
-      (item.name as string).toLowerCase().includes(kw),
-    );
-  }
-  if (status) {
-    results = results.filter((item) => item.status === status);
-  }
-
-  const total = results.length;
-  const paged = results.slice((page - 1) * pageSize, page * pageSize);
-
-  return NextResponse.json({
-    data: paged,
-    pagination: { page, pageSize, total },
+  const result = await getSubMerchantList({
+    page: Number(searchParams.get("page")) || 1,
+    pageSize: Number(searchParams.get("pageSize")) || 10,
+    keyword: searchParams.get("keyword") ?? "",
+    status: searchParams.get("status") ?? "",
   });
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
@@ -49,19 +26,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await delay();
-
-  const created: SubMerchant = {
-    ...(validation.data as Record<string, string | boolean>),
-    id: `SUB-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    merchantId: validation.data.merchantId ?? `MCH-${Date.now()}`,
-  } as SubMerchant;
-
-  await store.update((mock) => ({
-    ...mock,
-    subMerchants: [...mock.subMerchants, created],
-  }));
+  const created = await createSubMerchant({
+    ...validation.data,
+    merchantId: validation.data.merchantId ?? "",
+  });
 
   return NextResponse.json(created, { status: 201 });
 }

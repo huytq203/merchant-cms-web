@@ -4,7 +4,7 @@ export const subMerchantBaseSchema = z.object({
   name: z.string().min(1, "Tên bắt buộc"),
   businessType: z.string().min(1, "Loại hình kinh doanh bắt buộc"),
   contact: z.string().default(""),
-  status: z.enum(["active", "inactive"]).default("active"),
+  status: z.enum(["active", "locked"]).default("active"),
   taxCode: z.string().default(""),
   representative: z.string().default(""),
   address: z.string().default(""),

@@ -5,9 +5,8 @@ import { cookies } from "next/headers";
 import type { BeLoginResponse, SessionUser } from "@/types/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import loginData from "@/mock/data-login.json";
-import userData from "@/mock/data-user.json";
-import permissionData from "@/mock/data-permission.json";
+import type { RowDataPacket } from "mysql2/promise";
+import { dbQuery } from "@/lib/db/db";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "default-jwt-secret-change-in-production";
@@ -30,7 +29,7 @@ interface AuthResponse extends BeLoginResponse {
   };
 }
 
-interface ResponseToken {
+interface TokenPayload {
   userId: string;
   name: string;
   email: string;
@@ -43,14 +42,7 @@ interface ResponseToken {
   status: string;
 }
 
-function resolvePermissionName(permissionGroupId: string): string {
-  const group = permissionData.permissionGroups.find(
-    (g) => g.id === permissionGroupId,
-  );
-  return group?.name ?? "";
-}
-
-function signAccessToken(user: ResponseToken) {
+function signAccessToken(user: TokenPayload) {
   return jwt.sign(
     {
       userId: user.userId,
@@ -72,35 +64,58 @@ function signRefreshToken(userId: string): string {
   });
 }
 
+async function getAssignedSubMerchants(userId: string): Promise<string[]> {
+  const rows = await dbQuery<RowDataPacket[]>(
+    "SELECT sub_merchant_id FROM user_assigned_sub_merchants WHERE user_id = ?",
+    [userId],
+  );
+  return rows.map((r) => r.sub_merchant_id as string);
+}
+
 export async function authenticateUser(
   username: string,
   password: string,
 ): Promise<AuthResponse | null> {
-  const loginEntry = loginData.logins.find((item) => item.username === username);
-  if (!loginEntry) return null;
+  const loginRows = await dbQuery<RowDataPacket[]>(
+    "SELECT id, user_id, password FROM logins WHERE username = ?",
+    [username],
+  );
+  if (loginRows.length === 0) return null;
 
-  const isPasswordValid = await bcrypt.compare(password, loginEntry.password);
-  if (!isPasswordValid) return null;
+  const loginEntry = loginRows[0]!;
+  const isValid = await bcrypt.compare(password, loginEntry.password as string);
+  if (!isValid) return null;
 
-  const user = userData.users.find((item) => item.id === loginEntry.idUser);
-  if (!user) return null;
+  const userRows = await dbQuery<RowDataPacket[]>(
+    `SELECT u.id, u.name, u.email, u.phone,
+            u.permission_group_id, u.sub_merchant_scope,
+            u.created_at, u.status,
+            pg.name AS permission_group_name
+     FROM users u
+     LEFT JOIN permission_groups pg ON pg.id = u.permission_group_id
+     WHERE u.id = ?`,
+    [loginEntry.user_id],
+  );
+  if (userRows.length === 0) return null;
 
-  const permissionName = resolvePermissionName(user.permissionGroupId);
-  const tokenPayload: ResponseToken = {
-    userId: user.id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    permissionGroupId: user.permissionGroupId,
-    permissionName,
-    subMerchantScope: user.subMerchantScope ?? "all",
-    assignedSubMerchantsIds: user.assignedSubMerchantsIds ?? [],
-    createdAt: user.createdAt,
-    status: user.status,
+  const user = userRows[0]!;
+  const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id as string);
+
+  const payload: TokenPayload = {
+    userId: user.id as string,
+    name: user.name as string,
+    email: user.email as string,
+    phone: (user.phone ?? "") as string,
+    permissionGroupId: (user.permission_group_id ?? "") as string,
+    permissionName: (user.permission_group_name ?? "") as string,
+    subMerchantScope: (user.sub_merchant_scope ?? "all") as string,
+    assignedSubMerchantsIds,
+    createdAt: String(user.created_at),
+    status: user.status as string,
   };
 
-  const accessToken = signAccessToken(tokenPayload);
-  const refreshToken = signRefreshToken(user.id);
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken(payload.userId);
 
   return {
     data: {
@@ -110,16 +125,16 @@ export async function authenticateUser(
       refreshExpiresIn: REFRESH_EXPIRES_IN,
     },
     user: {
-      idUser: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      permissionGroupId: user.permissionGroupId,
-      permissionName,
-      subMerchantScope: user.subMerchantScope ?? "all",
-      assignedSubMerchantsIds: user.assignedSubMerchantsIds ?? [],
-      createdAt: user.createdAt,
-      status: user.status,
+      idUser: payload.userId,
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      permissionGroupId: payload.permissionGroupId,
+      permissionName: payload.permissionName,
+      subMerchantScope: payload.subMerchantScope,
+      assignedSubMerchantsIds: payload.assignedSubMerchantsIds,
+      createdAt: payload.createdAt,
+      status: payload.status,
     },
     message: "Đăng nhập thành công",
     detail: "",
@@ -134,51 +149,56 @@ export async function refreshUserSession(): Promise<SessionUser | null> {
   if (!refreshToken) return null;
 
   try {
-    const payload = jwt.verify(refreshToken, JWT_SECRET) as {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as {
       sub: string;
       type: string;
     };
-    if (payload.type !== "refresh" || !payload.sub) return null;
+    if (decoded.type !== "refresh" || !decoded.sub) return null;
 
-    const user = userData.users.find((u) => u.id === payload.sub);
-    if (!user) return null;
+    const userRows = await dbQuery<RowDataPacket[]>(
+      `SELECT u.id, u.name, u.email, u.phone,
+              u.permission_group_id, u.sub_merchant_scope,
+              u.created_at, u.status,
+              pg.name AS permission_group_name
+       FROM users u
+       LEFT JOIN permission_groups pg ON pg.id = u.permission_group_id
+       WHERE u.id = ?`,
+      [decoded.sub],
+    );
+    if (userRows.length === 0) return null;
 
-    const permissionName = resolvePermissionName(user.permissionGroupId);
-    const tokenPayload: ResponseToken = {
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      permissionGroupId: user.permissionGroupId,
-      permissionName,
-      subMerchantScope: user.subMerchantScope ?? "all",
-      assignedSubMerchantsIds: user.assignedSubMerchantsIds ?? [],
-      createdAt: user.createdAt,
-      status: user.status,
+    const user = userRows[0]!;
+    const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id as string);
+
+    const payload: TokenPayload = {
+      userId: user.id as string,
+      name: user.name as string,
+      email: user.email as string,
+      phone: (user.phone ?? "") as string,
+      permissionGroupId: (user.permission_group_id ?? "") as string,
+      permissionName: (user.permission_group_name ?? "") as string,
+      subMerchantScope: (user.sub_merchant_scope ?? "all") as string,
+      assignedSubMerchantsIds,
+      createdAt: String(user.created_at),
+      status: user.status as string,
     };
 
-    const newAccessToken = signAccessToken(tokenPayload);
-    const newRefreshToken = signRefreshToken(user.id);
+    const newAccess = signAccessToken(payload);
+    const newRefresh = signRefreshToken(payload.userId);
 
-    await setAuthCookies(
-      newAccessToken,
-      newRefreshToken,
-      ACCESS_EXPIRES_IN,
-      REFRESH_EXPIRES_IN,
-    );
+    await setAuthCookies(newAccess, newRefresh, ACCESS_EXPIRES_IN, REFRESH_EXPIRES_IN);
 
     return {
-      userId: user.id,
-      username: user.name,
-      email: user.email,
-      phone: user.phone,
-      permissionGroupId: user.permissionGroupId,
-      permissionName,
-      subMerchantScope: user.subMerchantScope ?? "all",
-      assignedSubMerchantsIds: user.assignedSubMerchantsIds ?? [],
-      createdAt: user.createdAt,
-      status: user.status,
-
+      userId: payload.userId,
+      username: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      permissionGroupId: payload.permissionGroupId,
+      permissionName: payload.permissionName,
+      subMerchantScope: payload.subMerchantScope,
+      assignedSubMerchantsIds: payload.assignedSubMerchantsIds,
+      createdAt: payload.createdAt,
+      status: payload.status,
     };
   } catch {
     return null;

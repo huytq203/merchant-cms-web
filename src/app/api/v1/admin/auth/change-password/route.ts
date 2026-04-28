@@ -2,14 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { getServerSession } from "@/lib/auth/session";
-import { mockStore } from "@/lib/mock/mock-store";
-
-interface LoginEntry {
-  id: string;
-  idUser: string;
-  username: string;
-  password: string;
-}
+import { dbQuery } from "@/lib/db/db";
+import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 
 const changePasswordSchema = z
   .object({
@@ -22,67 +16,45 @@ const changePasswordSchema = z
     { message: "Mật khẩu xác nhận không khớp", path: ["confirmPassword"] },
   );
 
-const loginStore = mockStore<{ logins: LoginEntry[] }>("data-login.json");
-
 export async function POST(request: NextRequest) {
   const session = await getServerSession();
-
   if (!session) {
-    return NextResponse.json(
-      { message: "Unauthorized", success: false },
-      { status: 401 },
-    );
+    return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
   }
 
   const body = await request.json();
   const validation = changePasswordSchema.safeParse(body);
-
   if (!validation.success) {
     return NextResponse.json(
-      {
-        message: "Dữ liệu không hợp lệ",
-        success: false,
-        errors: validation.error.flatten().fieldErrors,
-      },
+      { message: "Dữ liệu không hợp lệ", success: false, errors: validation.error.flatten().fieldErrors },
       { status: 422 },
     );
   }
 
   const { currentPassword, newPassword } = validation.data;
 
-  const data = await loginStore.read();
-  const loginEntry = data.logins.find((item) => item.idUser === session.userId);
-
-  if (!loginEntry) {
+  const rows = await dbQuery<RowDataPacket[]>(
+    "SELECT id, password FROM logins WHERE user_id = ?",
+    [session.userId],
+  );
+  if (rows.length === 0) {
     return NextResponse.json(
       { message: `Không tìm thấy tài khoản ${session.userId}`, success: false },
       { status: 404 },
     );
   }
 
-  const isCurrentPasswordValid = await bcrypt.compare(
-    currentPassword,
-    loginEntry.password,
-  );
-
-  if (!isCurrentPasswordValid) {
+  const loginEntry = rows[0]!;
+  const isValid = await bcrypt.compare(currentPassword, loginEntry.password as string);
+  if (!isValid) {
     return NextResponse.json(
       { message: "Mật khẩu hiện tại không đúng", success: false },
       { status: 400 },
     );
   }
 
-  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  const hashed = await bcrypt.hash(newPassword, 10);
+  await dbQuery<ResultSetHeader>("UPDATE logins SET password = ? WHERE id = ?", [hashed, loginEntry.id]);
 
-  await loginStore.update((current) => ({
-    ...current,
-    logins: current.logins.map((l) =>
-      l.id === loginEntry.id ? { ...l, password: hashedNewPassword } : l,
-    ),
-  }));
-
-  return NextResponse.json(
-    { message: "Đổi mật khẩu thành công", success: true },
-    { status: 200 },
-  );
+  return NextResponse.json({ message: "Đổi mật khẩu thành công", success: true });
 }
