@@ -21,7 +21,6 @@ function getInitial(text: string): string {
 export function ProfileTab({ user }: ProfileTabProps) {
   const { mutate, isPending } = useUpdateProfileMutation();
   const displayEmail = user.email ?? user.username;
-console.log(user)
   const {
     register,
     handleSubmit,

@@ -6,6 +6,8 @@ import { getColumn } from '../columns/TransactionColumn';
 import { TransactionDetailSheet } from './TransactionDetailSheet';
 import type { Transaction } from '../types';
 import { toast } from 'sonner';
+import { DialogReconciliation } from './DialogReconciliation';
+import { DialogRefund } from './DialogRefund';
 
 interface TransactionTableProps {
   data: Transaction[];
@@ -25,13 +27,21 @@ export function TransactionTable({
   onPageChange,
 }: TransactionTableProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-
+  const [isReconciliationDialog, setIsReconciliationDialog] = useState(false);
+  const [isRefundDialog, setIsRefundDialog] = useState(false);
+  const [isDetailDialog, setIsDetailDialog] = useState(false);
   const handleRefund = (transaction: Transaction) => {
-    toast.info(`Đang xử lý hoàn tiền giao dịch ${transaction.code}...`);
+    setSelectedTransaction(transaction)
+    setIsRefundDialog(true)
   };
 
+  const handleViewDetail = (transaction: Transaction) => {
+    setSelectedTransaction(transaction)
+    setIsDetailDialog(true)
+  }
+
   const columns = useMemo<ColumnDef<Transaction>[]>(
-    () => getColumn(setSelectedTransaction, handleRefund),
+    () => getColumn(handleViewDetail, handleRefund ),
     [],
   );
 
@@ -57,9 +67,25 @@ export function TransactionTable({
 
       <TransactionDetailSheet
         transaction={selectedTransaction}
-        open={!!selectedTransaction}
+        open={isDetailDialog}
+        setIsRefundDialog={setIsRefundDialog}
+        setIsReconciliationDialog={setIsReconciliationDialog}
         onOpenChange={(open) => {
-          if (!open) setSelectedTransaction(null);
+          if (!open) setIsDetailDialog(false);
+        }}
+      />
+      <DialogReconciliation
+        transaction={selectedTransaction}
+        open={isReconciliationDialog}
+        onOpenChange={(open) => {
+          if (!open) setIsReconciliationDialog(false);
+        }}
+      />
+      <DialogRefund
+        transaction={selectedTransaction}
+        open={isRefundDialog}
+        onOpenChange={(open) => {
+          if (!open) setIsRefundDialog(false);
         }}
       />
     </>

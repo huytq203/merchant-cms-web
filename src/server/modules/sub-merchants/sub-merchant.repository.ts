@@ -1,7 +1,7 @@
 "server-only";
 
-import { dbQuery } from "@/lib/db/db";
-import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { prisma } from "@/lib/db/prisma";
+import type { Prisma, SubMerchantStatus } from "@prisma/client";
 import { toSubMerchantResponse, type SubMerchantResponse } from "./sub-merchant.entity";
 
 export interface FindAllSubMerchantParams {
@@ -16,32 +16,28 @@ export async function findAllSubMerchants(params: FindAllSubMerchantParams): Pro
   pagination: { page: number; pageSize: number; total: number };
 }> {
   const { keyword = "", status = "", page = 1, pageSize = 10 } = params;
-  const conditions: string[] = [];
-  const args: (string | number | null)[] = [];
 
-  if (keyword) { conditions.push("name LIKE ?"); args.push(`%${keyword}%`); }
-  if (status) { conditions.push("status = ?"); args.push(status); }
+  const where: Prisma.SubMerchantWhereInput = {
+    ...(keyword && { name: { contains: keyword } }),
+    ...(status && { status: status as SubMerchantStatus }),
+  };
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-  const countRows = await dbQuery<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total FROM sub_merchants ${where}`,
-    args,
-  );
-  const total = Number(countRows[0]!.total);
-  const offset = (page - 1) * pageSize;
-
-  const rows = await dbQuery<RowDataPacket[]>(
-    `SELECT * FROM sub_merchants ${where} ORDER BY created_at DESC LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`,
-    args,
-  );
+  const [total, rows] = await Promise.all([
+    prisma.subMerchant.count({ where }),
+    prisma.subMerchant.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
 
   return { data: rows.map(toSubMerchantResponse), pagination: { page, pageSize, total } };
 }
 
 export async function findSubMerchantById(id: string): Promise<SubMerchantResponse | null> {
-  const rows = await dbQuery<RowDataPacket[]>("SELECT * FROM sub_merchants WHERE id = ?", [id]);
-  return rows.length > 0 ? toSubMerchantResponse(rows[0]!) : null;
+  const sm = await prisma.subMerchant.findUnique({ where: { id } });
+  return sm ? toSubMerchantResponse(sm) : null;
 }
 
 type BoolField = boolean | undefined;
@@ -73,57 +69,71 @@ export async function insertSubMerchant(data: {
   eInvoiceEmails?: string | null;
   now: Date;
 }): Promise<void> {
-  const b = (v: BoolField) => (v ? 1 : 0);
-  await dbQuery<ResultSetHeader>(
-    `INSERT INTO sub_merchants
-      (id, name, business_type, contact, status, tax_code, representative, address,
-       merchant_id, access_key, secret_key, webhook_url, bank_name, bank_branch,
-       account_number, account_name, notify_enabled, notify_tx_success, notify_tx_failed,
-       notify_dispute, notify_freeze, notify_policy_change, notify_emails,
-       e_invoice_enabled, e_invoice_emails, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      data.id, data.name, data.businessType, data.contact,
-      data.taxCode ?? null, data.representative ?? null, data.address ?? null,
-      data.merchantId, data.accessKey ?? null, data.secretKey ?? null, data.webhookUrl ?? null,
-      data.bankName ?? null, data.bankBranch ?? null, data.accountNumber ?? null, data.accountName ?? null,
-      b(data.notifyEnabled), b(data.notifyTxSuccess), b(data.notifyTxFailed),
-      b(data.notifyDispute), b(data.notifyFreeze), b(data.notifyPolicyChange),
-      data.notifyEmails ?? null, b(data.eInvoiceEnabled), data.eInvoiceEmails ?? null,
-      data.now, data.now,
-    ],
-  );
+  await prisma.subMerchant.create({
+    data: {
+      id: data.id,
+      name: data.name,
+      businessType: data.businessType,
+      contact: data.contact,
+      status: "active",
+      taxCode: data.taxCode ?? null,
+      representative: data.representative ?? null,
+      address: data.address ?? null,
+      merchantId: data.merchantId,
+      accessKey: data.accessKey ?? null,
+      secretKey: data.secretKey ?? null,
+      webhookUrl: data.webhookUrl ?? null,
+      bankName: data.bankName ?? null,
+      bankBranch: data.bankBranch ?? null,
+      accountNumber: data.accountNumber ?? null,
+      accountName: data.accountName ?? null,
+      notifyEnabled: data.notifyEnabled ?? false,
+      notifyTxSuccess: data.notifyTxSuccess ?? false,
+      notifyTxFailed: data.notifyTxFailed ?? false,
+      notifyDispute: data.notifyDispute ?? false,
+      notifyFreeze: data.notifyFreeze ?? false,
+      notifyPolicyChange: data.notifyPolicyChange ?? false,
+      notifyEmails: data.notifyEmails ?? null,
+      eInvoiceEnabled: data.eInvoiceEnabled ?? false,
+      eInvoiceEmails: data.eInvoiceEmails ?? null,
+      createdAt: data.now,
+      updatedAt: data.now,
+    },
+  });
 }
 
 export type UpdateSubMerchantData = Partial<Omit<SubMerchantResponse, "id" | "createdAt">>;
 
 export async function updateSubMerchant(id: string, data: UpdateSubMerchantData): Promise<void> {
-  const fieldMap: Array<[keyof UpdateSubMerchantData, string]> = [
-    ["name", "name"], ["businessType", "business_type"], ["contact", "contact"],
-    ["taxCode", "tax_code"], ["representative", "representative"], ["address", "address"],
-    ["merchantId", "merchant_id"], ["accessKey", "access_key"], ["secretKey", "secret_key"],
-    ["webhookUrl", "webhook_url"], ["bankName", "bank_name"], ["bankBranch", "bank_branch"],
-    ["accountNumber", "account_number"], ["accountName", "account_name"],
-    ["notifyEnabled", "notify_enabled"], ["notifyTxSuccess", "notify_tx_success"],
-    ["notifyTxFailed", "notify_tx_failed"], ["notifyDispute", "notify_dispute"],
-    ["notifyFreeze", "notify_freeze"], ["notifyPolicyChange", "notify_policy_change"],
-    ["notifyEmails", "notify_emails"], ["eInvoiceEnabled", "e_invoice_enabled"],
-    ["eInvoiceEmails", "e_invoice_emails"],
-  ];
-
-  const sets: string[] = ["updated_at = ?"];
-  const values: (string | number | boolean | null | Date)[] = [new Date()];
-
-  for (const [jsKey, dbCol] of fieldMap) {
-    const val = data[jsKey];
-    if (val !== undefined) {
-      sets.push(`${dbCol} = ?`);
-      values.push(typeof val === "boolean" ? (val ? 1 : 0) : (val as string | number | null));
-    }
-  }
-
-  values.push(id);
-  await dbQuery<ResultSetHeader>(`UPDATE sub_merchants SET ${sets.join(", ")} WHERE id = ?`, values);
+  await prisma.subMerchant.update({
+    where: { id },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.businessType !== undefined && { businessType: data.businessType }),
+      ...(data.contact !== undefined && { contact: data.contact }),
+      ...(data.taxCode !== undefined && { taxCode: data.taxCode || null }),
+      ...(data.representative !== undefined && { representative: data.representative || null }),
+      ...(data.address !== undefined && { address: data.address || null }),
+      ...(data.merchantId !== undefined && { merchantId: data.merchantId || null }),
+      ...(data.accessKey !== undefined && { accessKey: data.accessKey || null }),
+      ...(data.secretKey !== undefined && { secretKey: data.secretKey || null }),
+      ...(data.webhookUrl !== undefined && { webhookUrl: data.webhookUrl || null }),
+      ...(data.bankName !== undefined && { bankName: data.bankName || null }),
+      ...(data.bankBranch !== undefined && { bankBranch: data.bankBranch || null }),
+      ...(data.accountNumber !== undefined && { accountNumber: data.accountNumber || null }),
+      ...(data.accountName !== undefined && { accountName: data.accountName || null }),
+      ...(data.notifyEnabled !== undefined && { notifyEnabled: data.notifyEnabled }),
+      ...(data.notifyTxSuccess !== undefined && { notifyTxSuccess: data.notifyTxSuccess }),
+      ...(data.notifyTxFailed !== undefined && { notifyTxFailed: data.notifyTxFailed }),
+      ...(data.notifyDispute !== undefined && { notifyDispute: data.notifyDispute }),
+      ...(data.notifyFreeze !== undefined && { notifyFreeze: data.notifyFreeze }),
+      ...(data.notifyPolicyChange !== undefined && { notifyPolicyChange: data.notifyPolicyChange }),
+      ...(data.notifyEmails !== undefined && { notifyEmails: data.notifyEmails || null }),
+      ...(data.eInvoiceEnabled !== undefined && { eInvoiceEnabled: data.eInvoiceEnabled }),
+      ...(data.eInvoiceEmails !== undefined && { eInvoiceEmails: data.eInvoiceEmails || null }),
+      updatedAt: new Date(),
+    },
+  });
 }
 
 export async function patchSubMerchantStatus(
@@ -132,20 +142,22 @@ export async function patchSubMerchantStatus(
   lockReason: string | null,
   lockedAt: string | null,
 ): Promise<void> {
-  await dbQuery<ResultSetHeader>(
-    "UPDATE sub_merchants SET status = ?, lock_reason = ?, locked_at = ?, updated_at = ? WHERE id = ?",
-    [status, lockReason, lockedAt, new Date(), id],
-  );
+  await prisma.subMerchant.update({
+    where: { id },
+    data: {
+      status: status as SubMerchantStatus,
+      lockReason,
+      lockedAt: lockedAt ? new Date(lockedAt) : null,
+      updatedAt: new Date(),
+    },
+  });
 }
 
 export async function deleteSubMerchant(id: string): Promise<void> {
-  await dbQuery<ResultSetHeader>("DELETE FROM sub_merchants WHERE id = ?", [id]);
+  await prisma.subMerchant.delete({ where: { id } });
 }
 
 export async function subMerchantExists(id: string): Promise<boolean> {
-  const rows = await dbQuery<RowDataPacket[]>(
-    "SELECT id FROM sub_merchants WHERE id = ? LIMIT 1",
-    [id],
-  );
-  return rows.length > 0;
+  const count = await prisma.subMerchant.count({ where: { id } });
+  return count > 0;
 }

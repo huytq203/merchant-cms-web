@@ -83,7 +83,7 @@ const drawerVariants = tv({
     { direction: 'bottom', size: 'full', class: { panel: 'h-full' } },
   ],
   defaultVariants: {
-    direction: 'right',
+    direction: 'top',
     size: 'md',
     backdropBlur: true,
   },

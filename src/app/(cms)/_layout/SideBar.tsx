@@ -37,7 +37,6 @@ export default function DocSidebar() {
   const { logout, isPending: isLoggingOut } = useLogoutMutation();
   const [accountOpen, setAccountOpen] = useState(false);
   const { data: session } = useSessionQuery();
-console.log(session)
   const displayName = session?.username ?? "";
   const displayEmail = session?.email ?? "";
 

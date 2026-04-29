@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Tài liệu định hướng cho Claude Code khi làm việc với repo này. Repo là **front-end thuần** (Next.js App Router), không chứa backend — mọi logic nghiệp vụ/DB nằm ở BE bên ngoài, FE chỉ gọi qua `NEXT_PUBLIC_API_LOGIN_URL`.
+Tài liệu định hướng cho Claude Code khi làm việc với repo này. Repo là **full-stack monorepo** — Frontend (Next.js 16 App Router) + Backend (Node.js + Prisma) cùng một codebase để demo CMS nhanh.
 
 @AGENTS.md
 
 ## Nguyên tắc tối quan trọng
 - **Next.js 16**: đây là phiên bản có breaking changes (xem mục "Next.js 16 notes"). Luôn đọc `node_modules/next/dist/docs` trước khi dùng API mới.
-<!-- - **Front-end only**: tuyệt đối không thêm DB, password hashing, NextAuth, Prisma hay runtime BE trong repo này. Nếu cần mock, dùng công cụ riêng (MSW) — không commit vào source. -->
+- **Full-stack**: FE (`src/app/`, `src/features/`) và BE (`src/server/`, `src/lib/db/`) trong cùng repo. Prisma là source of truth cho schema.
 - **Wrap lib**: tất cả thư viện ngoài được wrap trong `src/lib` hoặc `src/features/*/api` để cô lập phụ thuộc.
 - Tuân theo Rules và Workflow đã tài liệu hóa.
 
@@ -26,7 +26,11 @@ Tài liệu định hướng cho Claude Code khi làm việc với repo này. Re
 
 ```
 src/
-├── app/                     # App Router
+├── app/                     # Next.js App Router (FE)
+│   ├── api/v1/admin/        # API routes (BE endpoints)
+│   │   ├── auth/
+│   │   ├── merchants/
+│   │   └── ...
 │   ├── (auth)/login/        # route group — layout đăng nhập
 │   ├── (cms)/dashboard/     # route group — layout CMS (sidebar + header)
 │   ├── layout.tsx           # root layout (providers, fonts, metadata)
@@ -38,24 +42,44 @@ src/
 │   └── shared/
 │       ├── ui/              # primitives (Button, Input, Card, ...)
 │       └── layout/          # AppSidebar, AppHeader, CmsShell, ...
-├── features/
-│   └── auth/                # domain feature "auth"
-│       ├── api/             # auth-api (wrap apiClient)
-│       ├── components/      # LoginForm
-│       ├── hooks/           # useLoginMutation, useLogoutMutation, useSessionQuery
-│       └── schemas.ts       # Zod schema dùng chung client/server
+├── features/                # Domain features (FE)
+│   ├── auth/                
+│   │   ├── api/             # auth-api (wrap apiClient)
+│   │   ├── components/      # LoginForm
+│   │   ├── hooks/           # useLoginMutation, useLogoutMutation, useSessionQuery
+│   │   └── schemas.ts       # Zod schema dùng chung client/server
+│   └── [feature]/           # e.g., transactions, permissions, users
 ├── hooks/                   # hooks dùng chéo feature (nếu ≥2 feature dùng)
 ├── lib/
 │   ├── auth/session.ts      # getServerSession() — đọc cookie, gọi BE /auth/me
+│   ├── db/
+│   │   ├── db.ts            # Prisma client singleton
+│   │   └── prisma.ts        # Prisma instance export
 │   ├── env/public.ts        # Zod-validated NEXT_PUBLIC_* env
 │   ├── http/
 │   │   ├── api-client.ts    # fetch wrapper + ApiError
 │   │   └── result.ts        # Result<T,E> type cho return giá trị
 │   └── utils/cn.ts          # clsx + tailwind-merge
+├── server/                  # Backend code (Node.js)
+│   └── modules/
+│       ├── auth/
+│       ├── users/           # User entity, repository, service
+│       ├── permissions/     # Permission entity, repository, service
+│       ├── transactions/    # Transaction entity, repository, service
+│       ├── sub-merchants/   # SubMerchant entity, repository, service
+│       └── dashboard/       # Dashboard service
 ├── stores/ui-store.ts       # Zustand (sidebar collapse, persist)
 ├── config/site.ts           # siteConfig, primaryNav
 ├── types/auth.ts            # Contract BE (SessionUser, LoginResponse, UserRole)
 └── proxy.ts                 # Route guard (Next.js 16 — thay cho middleware.ts)
+```
+
+### Backend: Entity → Service → Repository pattern
+```
+src/server/modules/[module]/
+├── [module].entity.ts       # Prisma schema + TS type
+├── [module].repository.ts   # DB queries (CRUD + custom)
+└── [module].service.ts      # Business logic, validation
 ```
 
 ### Quy tắc cấu trúc
@@ -69,6 +93,7 @@ src/
 
 ## Stack
 
+### Frontend
 | Lớp | Công cụ | Wrapper |
 | --- | --- | --- |
 | Framework | Next.js 16 App Router (Turbopack) | — |
@@ -83,11 +108,64 @@ src/
 | HTTP | `fetch` | `src/lib/http/api-client.ts` (`apiClient`, `ApiError`) |
 | Session | HTTP-only cookie do BE set | `src/lib/auth/session.ts` |
 
-Không có NextAuth, Prisma, hay bất kỳ phụ thuộc BE nào.
+### Backend
+| Lớp | Công cụ | Wrapper |
+| --- | --- | --- |
+| Framework | Next.js 16 API Routes (Node.js) | — |
+| ORM | Prisma | `src/lib/db/db.ts` |
+| Validation | Zod | Shared `src/features/*/schemas.ts` |
+| Pattern | Entity → Service → Repository | `src/server/modules/[module]/*` |
 
 ---
 
-## Auth FE-only — contract với BE
+## Backend: Entity, Repository, Service
+
+**Entity**: TypeScript type + Prisma schema mapping. Định nghĩa cấu trúc data.
+```ts
+// src/server/modules/users/user.entity.ts
+import { User as PrismaUser } from "@prisma/client"
+
+export type User = PrismaUser
+export type CreateUserInput = { email: string; password: string; ... }
+```
+
+**Repository**: CRUD + DB queries. Wrapper tối ngoài cho Prisma.
+```ts
+// src/server/modules/users/user.repository.ts
+export class UserRepository {
+  async create(data: CreateUserInput) { return db.user.create({ data }) }
+  async findById(id: string) { return db.user.findUnique({ where: { id } }) }
+  async update(id: string, data: UpdateUserInput) { ... }
+  async delete(id: string) { ... }
+}
+```
+
+**Service**: Business logic + validation. Gọi repository, xử lý logic, return Result<T, E>.
+```ts
+// src/server/modules/users/user.service.ts
+export class UserService {
+  async createUser(input: CreateUserInput): Promise<Result<User, ApiError>> {
+    const validation = validateUserInput(input)
+    if (!validation.ok) return { success: false, error: validation.error }
+    
+    const user = await this.userRepo.create(input)
+    return { success: true, data: user }
+  }
+}
+```
+
+**API Route**: Gọi service, return HTTP response.
+```ts
+// src/app/api/v1/admin/users/route.ts
+const userService = new UserService()
+const result = await userService.createUser(req.body)
+if (result.success) return NextResponse.json(result.data)
+else return NextResponse.json({ error: result.error }, { status: 400 })
+```
+
+---
+
+## Auth — contract FE/BE
 
 Cookie phiên (mặc định `beam_session`) do BE set sau khi login thành công. FE chỉ đọc sự tồn tại cookie ở `proxy.ts` và gọi các endpoint:
 
@@ -132,7 +210,8 @@ Mọi request đi qua `apiClient`, luôn `credentials: "include"` để browser 
 
 ## Environment variables
 
-Tất cả env ở FE phải có prefix `NEXT_PUBLIC_` (vì đây là FE thuần). Được validate bằng Zod ở `src/lib/env/public.ts` — build sẽ fail nếu thiếu/sai định dạng.
+### Frontend (NEXT_PUBLIC_* — client-side)
+Được validate bằng Zod ở `src/lib/env/public.ts` — build sẽ fail nếu thiếu/sai định dạng.
 
 | Biến | Ý nghĩa |
 | --- | --- |
@@ -140,6 +219,12 @@ Tất cả env ở FE phải có prefix `NEXT_PUBLIC_` (vì đây là FE thuần
 | `NEXT_PUBLIC_APP_NAME` | Tên app hiển thị |
 | `NEXT_PUBLIC_APP_URL` | URL FE (cho metadataBase) |
 | `NEXT_PUBLIC_SESSION_COOKIE` | Tên cookie phiên do BE set (mặc định `beam_session`) |
+
+### Backend (server-side — không expose ra client)
+
+| Biến | Ý nghĩa |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string (Prisma) |
 
 Copy `.env.example` → `.env.local` trước khi chạy dev.
 
@@ -160,22 +245,46 @@ npm run check       # typecheck + lint
 
 ## Khi thêm feature mới
 
+### Backend (nếu cần model mới)
+1. Tạo Prisma schema trong `prisma/schema.prisma`
+2. Run `npx prisma migrate dev --name add_[model]`
+3. Tạo thư mục `src/server/modules/<tên-module>/` với:
+   - `<module>.entity.ts` — Prisma type + TypeScript interface
+   - `<module>.repository.ts` — CRUD + queries
+   - `<module>.service.ts` — Business logic
+4. Tạo API route ở `src/app/api/v1/admin/<module>/route.ts`
+5. Gọi service, validate input bằng Zod, return Result<T, E>
+
+### Frontend
 1. Tạo thư mục `src/features/<tên-feature>/` với cấu trúc: `api/`, `components/`, `hooks/`, `schemas.ts`, `types.ts`.
-2. Đặt gọi API qua `apiClient` trong `api/<tên>-api.ts`.
-3. State server (data) → TanStack Query (`useXxxQuery`, `useXxxMutation`).
-4. State global UI → `src/stores/*.ts` (Zustand + persist nếu cần cross-tab).
-5. Filter/pagination/sort → đồng bộ với `searchParams` (URL is truth).
-6. Định nghĩa Zod schema ở `schemas.ts`, share giữa form và API.
-7. Lazy load page heavy bằng `next/dynamic` (chart, editor, ...) — không lazy load layout.
-8. Viết unit test cho component (Vitest + Testing Library) trước khi coi là xong.
+2. Define Zod schema ở `schemas.ts` (dùng chung BE validation)
+3. Gọi API qua `apiClient` trong `api/<tên>-api.ts`
+4. State server (data) → TanStack Query (`useXxxQuery`, `useXxxMutation`)
+5. State global UI → `src/stores/*.ts` (Zustand + persist nếu cần cross-tab)
+6. Filter/pagination/sort → đồng bộ với `searchParams` (URL is truth)
+7. Lazy load page heavy bằng `next/dynamic` (chart, editor, ...) — không lazy load layout
+8. Viết unit test cho component (Vitest + Testing Library) trước khi coi là xong
 
 ---
 
-## Tiêu chí "xong" cho một UI task
+## Tiêu chí "xong" cho một task
+
+### Frontend + Backend
 - Type-check sạch (`npm run typecheck`).
 - Build qua (`npm run build`).
-- Component ≤ 200 dòng, không `any`, không `@ts-ignore`.
+- Code không `any`, không `@ts-ignore`.
+- Schema validation: Zod schema định nghĩa ở `schemas.ts`, dùng giống nhau FE + BE.
+
+### Frontend (UI)
+- Component ≤ 200 dòng, vượt thì tách nhỏ.
 - Đủ 4 state (Loading / Error / Empty / Data).
 - Đã kiểm tra tay trên Chrome desktop + viewport mobile (320px).
 - Keyboard accessible (tab, enter, esc) + `aria-*` đúng vai trò.
 - Không vi phạm design system: dùng token CSS của `globals.css`, không hard-code màu.
+
+### Backend (API)
+- Service return Result<T, E>, không throw exception lên client.
+- Validation bằng Zod trước khi xử lý logic.
+- Repository chỉ chứa DB queries, không business logic.
+- Entity mapping với Prisma schema, không duplicate.
+- Middleware handle error, return consistent error response.

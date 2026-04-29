@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum PermissionGroupStatus {
+  active
+  inactive
+}
+
+enum SubMerchantStatus {
+  active
+  locked
+  inactive
+}
+
+enum SubMerchantScope {
+  all
+  specific
+}
+
+enum UserStatus {
+  active
+  locked
+}
+
+enum TransactionStatus {
+  success
+  pending
+  failed
+  refunded
+}
+
+enum PeriodType {
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model PermissionCategory {
+  id          String       @id @db.VarChar(20)
+  name        String       @db.VarChar(100)
+  permissions Permission[]
+
+  @@map("permission_categories")
+}
+
+model Permission {
+  id         String                      @id @db.VarChar(50)
+  name       String                      @db.VarChar(100)
+  categoryId String                      @map("category_id") @db.VarChar(20)
+  category   PermissionCategory          @relation(fields: [categoryId], references: [id])
+  groups     PermissionGroupPermission[]
+
+  @@map("permissions")
+}
+
+model PermissionGroup {
+  id          String                      @id @db.VarChar(50)
+  name        String                      @db.VarChar(100)
+  status      PermissionGroupStatus       @default(active)
+  createdBy   String?                     @map("created_by") @db.VarChar(100)
+  updatedBy   String?                     @map("updated_by") @db.VarChar(100)
+  createdAt   DateTime                    @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime                    @map("updated_at") @db.DateTime(3)
+  permissions PermissionGroupPermission[]
+  users       User[]
+
+  @@map("permission_groups")
+}
+
+model PermissionGroupPermission {
+  groupId      String          @map("group_id") @db.VarChar(50)
+  permissionId String          @map("permission_id") @db.VarChar(50)
+  group        PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  permission   Permission      @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, permissionId])
+  @@map("permission_group_permissions")
+}
+
+model SubMerchant {
+  id                 String            @id @db.VarChar(20)
+  name               String            @db.VarChar(200)
+  businessType       String            @map("business_type") @db.VarChar(100)
+  contact            String            @db.VarChar(200)
+  status             SubMerchantStatus @default(active)
+  taxCode            String?           @map("tax_code") @db.VarChar(20)
+  representative     String?           @db.VarChar(150)
+  address            String?           @db.Text
+  merchantId         String?           @map("merchant_id") @db.VarChar(50)
+  accessKey          String?           @map("access_key") @db.VarChar(100)
+  secretKey          String?           @map("secret_key") @db.VarChar(200)
+  webhookUrl         String?           @map("webhook_url") @db.VarChar(500)
+  bankName           String?           @map("bank_name") @db.VarChar(100)
+  bankBranch         String?           @map("bank_branch") @db.VarChar(200)
+  accountNumber      String?           @map("account_number") @db.VarChar(50)
+  accountName        String?           @map("account_name") @db.VarChar(150)
+  notifyEnabled      Boolean           @map("notify_enabled") @default(false)
+  notifyTxSuccess    Boolean           @map("notify_tx_success") @default(false)
+  notifyTxFailed     Boolean           @map("notify_tx_failed") @default(false)
+  notifyDispute      Boolean           @map("notify_dispute") @default(false)
+  notifyFreeze       Boolean           @map("notify_freeze") @default(false)
+  notifyPolicyChange Boolean           @map("notify_policy_change") @default(false)
+  notifyEmails       String?           @map("notify_emails") @db.Text
+  eInvoiceEnabled    Boolean           @map("e_invoice_enabled") @default(false)
+  eInvoiceEmails     String?           @map("e_invoice_emails") @db.Text
+  lockReason         String?           @map("lock_reason") @db.Text
+  lockedAt           DateTime?         @map("locked_at") @db.DateTime(3)
+  createdAt          DateTime          @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime?         @map("updated_at") @db.DateTime(3)
+  assignedUsers      UserAssignedSubMerchant[]
+
+  @@map("sub_merchants")
+}
+
+model User {
+  id                       String           @id @db.VarChar(50)
+  name                     String           @db.VarChar(150)
+  email                    String           @unique @db.VarChar(200)
+  phone                    String?          @db.VarChar(20)
+  permissionGroupId        String?          @map("permission_group_id") @db.VarChar(50)
+  permissionGroupName      String?          @map("permission_group_name") @db.VarChar(100)
+  subMerchantScope         SubMerchantScope @map("sub_merchant_scope") @default(all)
+  assignedSubMerchantCount Int?             @map("assigned_sub_merchant_count")
+  status                   UserStatus       @default(active)
+  lockReason               String?          @map("lock_reason") @db.Text
+  lockedAt                 DateTime?        @map("locked_at") @db.DateTime(3)
+  createdAt                DateTime         @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime         @map("updated_at") @db.DateTime(3)
+  permissionGroup          PermissionGroup? @relation(fields: [permissionGroupId], references: [id], onDelete: SetNull)
+  assignedSubMerchants     UserAssignedSubMerchant[]
+  logins                   Login[]
+
+  @@map("users")
+}
+
+model UserAssignedSubMerchant {
+  userId        String      @map("user_id") @db.VarChar(50)
+  subMerchantId String      @map("sub_merchant_id") @db.VarChar(50)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subMerchant   SubMerchant @relation(fields: [subMerchantId], references: [id], onDelete: Cascade)
+
+  @@id([userId, subMerchantId])
+  @@map("user_assigned_sub_merchants")
+}
+
+model Login {
+  id       String @id @db.VarChar(50)
+  userId   String @map("user_id") @db.VarChar(50)
+  username String @unique @db.VarChar(200)
+  password String @db.VarChar(255)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("logins")
+}
+
+model Transaction {
+  id              String            @id @db.VarChar(20)
+  code            String            @unique @db.VarChar(50)
+  cardType        String            @map("card_type") @db.VarChar(20)
+  cardNumber      String            @map("card_number") @db.VarChar(30)
+  cardHolderName  String            @map("card_holder_name") @db.VarChar(150)
+  amount          BigInt
+  currency        String            @default("VND") @db.VarChar(10)
+  fee             Int               @default(0)
+  netAmount       BigInt            @map("net_amount")
+  subMerchantId   String            @map("sub_merchant_id") @db.VarChar(20)
+  subMerchantName String            @map("sub_merchant_name") @db.VarChar(200)
+  customerId      String            @map("customer_id") @db.VarChar(50)
+  customerName    String            @map("customer_name") @db.VarChar(150)
+  customerPhone   String            @map("customer_phone") @db.VarChar(20)
+  createdAt       DateTime          @map("created_at") @db.DateTime(3)
+  status          TransactionStatus
+  description     String?           @db.Text
+  referenceCode   String            @map("reference_code") @db.VarChar(100)
+  paymentMethod   String            @map("payment_method") @db.VarChar(30)
+  bankCode        String            @map("bank_code") @db.VarChar(20)
+  responseCode    String            @map("response_code") @db.VarChar(10)
+  responseMessage String            @map("response_message") @db.VarChar(200)
+
+  @@map("transactions")
+}
+
+model DashboardRecentTransaction {
+  id           String            @id @db.VarChar(20)
+  code         String            @db.VarChar(50)
+  customerName String            @map("customer_name") @db.VarChar(200)
+  amount       BigInt
+  createdAt    DateTime          @map("created_at") @db.DateTime(3)
+  status       TransactionStatus
+  cardType     String            @map("card_type") @db.VarChar(20)
+  cardNumber   String            @map("card_number") @db.VarChar(30)
+  bankCode     String            @map("bank_code") @db.VarChar(50)
+
+  @@map("dashboard_recent_transactions")
+}
+
+model DashboardStats {
+  id                Int      @id @default(autoincrement())
+  totalBalance      BigInt   @map("total_balance")
+  dailyRevenue      BigInt   @map("daily_revenue")
+  dailyTransactions Int      @map("daily_transactions")
+  conversionRate    Decimal  @map("conversion_rate") @db.Decimal(5, 2)
+  recordedAt        DateTime @map("recorded_at") @db.DateTime(3)
+
+  @@map("dashboard_stats")
+}
+
+model ChartData {
+  id                Int        @id @default(autoincrement())
+  periodType        PeriodType @map("period_type")
+  label             String     @db.VarChar(10)
+  revenue           BigInt
+  transactions      Int
+  totalRevenue      BigInt     @map("total_revenue")
+  totalTransactions Int        @map("total_transactions")
+  growthRate        Decimal    @map("growth_rate") @db.Decimal(5, 2)
+
+  @@map("chart_data")
+}

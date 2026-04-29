@@ -5,8 +5,7 @@ import { cookies } from "next/headers";
 import type { BeLoginResponse, SessionUser } from "@/types/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { RowDataPacket } from "mysql2/promise";
-import { dbQuery } from "@/lib/db/db";
+import { prisma } from "@/lib/db/prisma";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "default-jwt-secret-change-in-production";
@@ -65,53 +64,45 @@ function signRefreshToken(userId: string): string {
 }
 
 async function getAssignedSubMerchants(userId: string): Promise<string[]> {
-  const rows = await dbQuery<RowDataPacket[]>(
-    "SELECT sub_merchant_id FROM user_assigned_sub_merchants WHERE user_id = ?",
-    [userId],
-  );
-  return rows.map((r) => r.sub_merchant_id as string);
+  const rows = await prisma.userAssignedSubMerchant.findMany({
+    where: { userId },
+    select: { subMerchantId: true },
+  });
+  return rows.map((r) => r.subMerchantId);
 }
 
 export async function authenticateUser(
   username: string,
   password: string,
 ): Promise<AuthResponse | null> {
-  const loginRows = await dbQuery<RowDataPacket[]>(
-    "SELECT id, user_id, password FROM logins WHERE username = ?",
-    [username],
-  );
-  if (loginRows.length === 0) return null;
+  const loginEntry = await prisma.login.findUnique({
+    where: { username },
+    select: { id: true, userId: true, password: true },
+  });
+  if (!loginEntry) return null;
 
-  const loginEntry = loginRows[0]!;
-  const isValid = await bcrypt.compare(password, loginEntry.password as string);
+  const isValid = await bcrypt.compare(password, loginEntry.password);
   if (!isValid) return null;
 
-  const userRows = await dbQuery<RowDataPacket[]>(
-    `SELECT u.id, u.name, u.email, u.phone,
-            u.permission_group_id, u.sub_merchant_scope,
-            u.created_at, u.status,
-            pg.name AS permission_group_name
-     FROM users u
-     LEFT JOIN permission_groups pg ON pg.id = u.permission_group_id
-     WHERE u.id = ?`,
-    [loginEntry.user_id],
-  );
-  if (userRows.length === 0) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: loginEntry.userId },
+    include: { permissionGroup: { select: { name: true } } },
+  });
+  if (!user) return null;
 
-  const user = userRows[0]!;
-  const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id as string);
+  const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id);
 
   const payload: TokenPayload = {
-    userId: user.id as string,
-    name: user.name as string,
-    email: user.email as string,
-    phone: (user.phone ?? "") as string,
-    permissionGroupId: (user.permission_group_id ?? "") as string,
-    permissionName: (user.permission_group_name ?? "") as string,
-    subMerchantScope: (user.sub_merchant_scope ?? "all") as string,
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone ?? "",
+    permissionGroupId: user.permissionGroupId ?? "",
+    permissionName: user.permissionGroup?.name ?? user.permissionGroupName ?? "",
+    subMerchantScope: user.subMerchantScope,
     assignedSubMerchantsIds,
-    createdAt: String(user.created_at),
-    status: user.status as string,
+    createdAt: user.createdAt.toISOString(),
+    status: user.status,
   };
 
   const accessToken = signAccessToken(payload);
@@ -155,32 +146,25 @@ export async function refreshUserSession(): Promise<SessionUser | null> {
     };
     if (decoded.type !== "refresh" || !decoded.sub) return null;
 
-    const userRows = await dbQuery<RowDataPacket[]>(
-      `SELECT u.id, u.name, u.email, u.phone,
-              u.permission_group_id, u.sub_merchant_scope,
-              u.created_at, u.status,
-              pg.name AS permission_group_name
-       FROM users u
-       LEFT JOIN permission_groups pg ON pg.id = u.permission_group_id
-       WHERE u.id = ?`,
-      [decoded.sub],
-    );
-    if (userRows.length === 0) return null;
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.sub },
+      include: { permissionGroup: { select: { name: true } } },
+    });
+    if (!user) return null;
 
-    const user = userRows[0]!;
-    const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id as string);
+    const assignedSubMerchantsIds = await getAssignedSubMerchants(user.id);
 
     const payload: TokenPayload = {
-      userId: user.id as string,
-      name: user.name as string,
-      email: user.email as string,
-      phone: (user.phone ?? "") as string,
-      permissionGroupId: (user.permission_group_id ?? "") as string,
-      permissionName: (user.permission_group_name ?? "") as string,
-      subMerchantScope: (user.sub_merchant_scope ?? "all") as string,
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? "",
+      permissionGroupId: user.permissionGroupId ?? "",
+      permissionName: user.permissionGroup?.name ?? user.permissionGroupName ?? "",
+      subMerchantScope: user.subMerchantScope,
       assignedSubMerchantsIds,
-      createdAt: String(user.created_at),
-      status: user.status as string,
+      createdAt: user.createdAt.toISOString(),
+      status: user.status,
     };
 
     const newAccess = signAccessToken(payload);

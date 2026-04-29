@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { dbQuery } from "@/lib/db/db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
+import { prisma } from "@/lib/db/prisma";
 
 const DEFAULT_PASSWORD = "111111";
 
@@ -15,16 +14,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const rows = await dbQuery<RowDataPacket[]>(
-    `SELECT l.id
-     FROM logins l
-     JOIN users u ON u.id = l.user_id
-     WHERE l.username = ? OR u.email = ?
-     LIMIT 1`,
-    [body.username ?? "", body.email ?? ""],
-  );
+  const login = await prisma.login.findFirst({
+    where: {
+      OR: [
+        { username: body.username ?? "" },
+        { user: { email: body.email ?? "" } },
+      ],
+    },
+    select: { id: true },
+  });
 
-  if (rows.length === 0) {
+  if (!login) {
     return NextResponse.json(
       { success: false, message: "Không tìm thấy tài khoản", status: "NOT_FOUND" },
       { status: 404 },
@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
   }
 
   const hashed = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-  await dbQuery<ResultSetHeader>("UPDATE logins SET password = ? WHERE id = ?", [hashed, rows[0]!.id]);
+  await prisma.login.update({
+    where: { id: login.id },
+    data: { password: hashed },
+  });
 
   return NextResponse.json({
     success: true,

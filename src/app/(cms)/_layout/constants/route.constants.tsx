@@ -115,7 +115,12 @@ export const routesConfig: SidebarSection[] = [
     items: [
       {
         title: "Danh sách giao dịch",
-        href: "/merchants",
+        href: "/transaction",
+        // icon: <Type className="w-4 h-4" />,
+      },
+      {
+        title: "Hoàn tiền",
+        href: "/refund",
         // icon: <Type className="w-4 h-4" />,
       },
     ],

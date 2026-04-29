@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge/Badge";
 import { PERMISSION_LABEL, PermissionStatus } from "../constants/Permission.constant";
 import { formatDate } from "@/lib/utils/helper";
 
-export function buildPermissionColumns(
-  onEdit: (item: PermissionData) => void,
-): ColumnDef<PermissionData>[] {
+export function buildPermissionColumns<T = string>(
+  onEdit: (item: PermissionData<T>) => void,
+): ColumnDef<PermissionData<T>>[] {
   return [
     {
       header: "Tên nhóm quyền",

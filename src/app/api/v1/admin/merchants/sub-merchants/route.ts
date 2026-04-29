@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/schemas";
-import { getSubMerchantList, createSubMerchant } from "@/server/modules/sub-merchants/sub-merchant.service";
+import { createSubMerchantSchema } from "@/app/api/v1/admin/merchants/types/Schemas";
+import {
+  getSubMerchantList,
+  createSubMerchant,
+} from "@/server/modules/sub-merchants/sub-merchant.service";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

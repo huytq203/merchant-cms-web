@@ -11,4 +11,17 @@ export const transactionFilterSchema = z.object({
   createdTo: z.date().nullable().optional(),
 });
 
+// Form values (chứa Date objects)
 export type TransactionFilterValues = z.infer<typeof transactionFilterSchema>;
+
+// API params (chỉ string/number — không có Date)
+export interface TransactionApiParams {
+  keyword?: string;
+  customerContact?: string;
+  status?: string;
+  paymentMethod?: string;
+  subMerchantId?: string;
+  bankCode?: string;
+  createdFromDate?: string;
+  createdToDate?: string;
+}

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui';
 export const getColumn = (
   onViewDetail: (transaction: Transaction) => void,
   onRefund: (transaction: Transaction) => void,
+  
 ): ColumnDef<Transaction>[] => [
   {
     id: 'code',

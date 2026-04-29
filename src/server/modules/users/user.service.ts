@@ -1,8 +1,7 @@
 "server-only";
 
 import bcrypt from "bcryptjs";
-import { dbQuery } from "@/lib/db/db";
-import type { ResultSetHeader } from "mysql2/promise";
+import { prisma } from "@/lib/db/prisma";
 import type { UserResponse } from "./user.entity";
 import {
   findAllUsers,
@@ -51,12 +50,15 @@ export async function createUser(input: CreateUserInput): Promise<UserResponse> 
     await syncSubMerchants(userId, input.assignedSubMerchantsIds);
   }
 
-  // Tạo login entry với mật khẩu mặc định
   const hashedPassword = await bcrypt.hash("111111", 10);
-  await dbQuery<ResultSetHeader>(
-    "INSERT INTO logins (id, user_id, username, password) VALUES (?, ?, ?, ?)",
-    [(Date.now() + 1).toString(), userId, input.email, hashedPassword],
-  );
+  await prisma.login.create({
+    data: {
+      id: (Date.now() + 1).toString(),
+      userId,
+      username: input.email,
+      password: hashedPassword,
+    },
+  });
 
   const created = await findUserById(userId);
   return created!;

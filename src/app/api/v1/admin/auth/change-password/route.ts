@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { getServerSession } from "@/lib/auth/session";
-import { dbQuery } from "@/lib/db/db";
-import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
+import { prisma } from "@/lib/db/prisma";
 
 const changePasswordSchema = z
   .object({
@@ -33,19 +32,18 @@ export async function POST(request: NextRequest) {
 
   const { currentPassword, newPassword } = validation.data;
 
-  const rows = await dbQuery<RowDataPacket[]>(
-    "SELECT id, password FROM logins WHERE user_id = ?",
-    [session.userId],
-  );
-  if (rows.length === 0) {
+  const loginEntry = await prisma.login.findFirst({
+    where: { userId: session.userId },
+    select: { id: true, password: true },
+  });
+  if (!loginEntry) {
     return NextResponse.json(
       { message: `Không tìm thấy tài khoản ${session.userId}`, success: false },
       { status: 404 },
     );
   }
 
-  const loginEntry = rows[0]!;
-  const isValid = await bcrypt.compare(currentPassword, loginEntry.password as string);
+  const isValid = await bcrypt.compare(currentPassword, loginEntry.password);
   if (!isValid) {
     return NextResponse.json(
       { message: "Mật khẩu hiện tại không đúng", success: false },
@@ -54,7 +52,10 @@ export async function POST(request: NextRequest) {
   }
 
   const hashed = await bcrypt.hash(newPassword, 10);
-  await dbQuery<ResultSetHeader>("UPDATE logins SET password = ? WHERE id = ?", [hashed, loginEntry.id]);
+  await prisma.login.update({
+    where: { id: loginEntry.id },
+    data: { password: hashed },
+  });
 
   return NextResponse.json({ message: "Đổi mật khẩu thành công", success: true });
 }

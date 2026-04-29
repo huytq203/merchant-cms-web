@@ -1,26 +1,14 @@
 "server-only";
 
-import type { RowDataPacket } from "mysql2/promise";
+import type { Prisma } from "@prisma/client";
 
-/** Khớp với bảng `users` trong DB (snake_case). */
-export interface UserEntity {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  permission_group_id: string | null;
-  permission_group_name: string | null;
-  sub_merchant_scope: "all" | "specific";
-  status: "active" | "locked";
-  lock_reason: string | null;
-  locked_at: Date | null;
-  created_at: Date;
-  updated_at: Date;
-  /** Được JOIN từ bảng permission_groups */
-  permission_group_name_join?: string | null;
-}
+export type UserWithRelations = Prisma.UserGetPayload<{
+  include: {
+    permissionGroup: { select: { name: true } };
+    assignedSubMerchants: { select: { subMerchantId: true } };
+  };
+}>;
 
-/** Định dạng trả về cho client (camelCase). */
 export interface UserResponse {
   id: string;
   name: string;
@@ -38,24 +26,22 @@ export interface UserResponse {
   updatedAt: string;
 }
 
-export function toUserResponse(
-  row: RowDataPacket,
-  assignedSubMerchantsIds: string[],
-): UserResponse {
+export function toUserResponse(user: UserWithRelations): UserResponse {
+  const subMerchantIds = user.assignedSubMerchants.map((a) => a.subMerchantId);
   return {
-    id: row.id as string,
-    name: row.name as string,
-    email: row.email as string,
-    phone: (row.phone as string | null) ?? null,
-    permissionGroupId: (row.permission_group_id as string | null) ?? null,
-    permissionGroupName: (row.permission_group_name as string | null) ?? null,
-    subMerchantScope: row.sub_merchant_scope as "all" | "specific",
-    assignedSubMerchantsIds,
-    assignedSubMerchantCount: assignedSubMerchantsIds.length,
-    status: row.status as "active" | "locked",
-    lockReason: (row.lock_reason as string | null) ?? null,
-    lockedAt: row.locked_at ? String(row.locked_at) : null,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone ?? null,
+    permissionGroupId: user.permissionGroupId ?? null,
+    permissionGroupName: user.permissionGroup?.name ?? user.permissionGroupName ?? null,
+    subMerchantScope: user.subMerchantScope,
+    assignedSubMerchantsIds: subMerchantIds,
+    assignedSubMerchantCount: subMerchantIds.length,
+    status: user.status,
+    lockReason: user.lockReason ?? null,
+    lockedAt: user.lockedAt ? user.lockedAt.toISOString() : null,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
   };
 }

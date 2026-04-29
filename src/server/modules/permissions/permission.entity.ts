@@ -1,6 +1,13 @@
 "server-only";
 
-import type { RowDataPacket } from "mysql2/promise";
+import type { Prisma } from "@prisma/client";
+
+export type PermissionGroupWithRelations = Prisma.PermissionGroupGetPayload<{
+  include: {
+    _count: { select: { users: true } };
+    permissions: { select: { permissionId: true } };
+  };
+}>;
 
 export interface PermissionGroupResponse {
   id: string;
@@ -15,18 +22,17 @@ export interface PermissionGroupResponse {
 }
 
 export function toPermissionGroupResponse(
-  row: RowDataPacket,
-  permissions: string[],
+  group: PermissionGroupWithRelations,
 ): PermissionGroupResponse {
   return {
-    id: String(row.id),
-    name: row.name as string,
-    status: row.status as "active" | "inactive",
-    permissions,
-    userCount: Number(row.user_count ?? 0),
-    createdBy: (row.created_by as string | null) ?? null,
-    updatedBy: (row.updated_by as string | null) ?? null,
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    id: group.id,
+    name: group.name,
+    status: group.status,
+    permissions: group.permissions.map((p) => p.permissionId),
+    userCount: group._count.users,
+    createdBy: group.createdBy ?? null,
+    updatedBy: group.updatedBy ?? null,
+    createdAt: group.createdAt.toISOString(),
+    updatedAt: group.updatedAt.toISOString(),
   };
 }

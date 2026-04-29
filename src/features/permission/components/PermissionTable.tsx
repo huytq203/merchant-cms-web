@@ -25,7 +25,7 @@ const PermissionTable = () => {
 
   const columns = useMemo(
     () =>
-      buildPermissionColumns((item: PermissionData) => {
+      buildPermissionColumns<string>((item: PermissionData<string>) => {
         router.push(`/permissions/${item.id}`);
       }),
     [router],

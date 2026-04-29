@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   updateSubMerchantSchema,
   patchSubMerchantStatusSchema,
-} from "@/app/api/v1/admin/merchants/types/schemas";
+} from "@/app/api/v1/admin/merchants/types/Schemas";
 import {
   getSubMerchantById,
   updateSubMerchantById,
@@ -15,7 +15,11 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const item = await getSubMerchantById(id);
-  if (!item) return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+  if (!item)
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   return NextResponse.json(item);
 }
 
@@ -32,7 +36,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 
   const updated = await updateSubMerchantById(id, validation.data);
-  if (!updated) return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+  if (!updated)
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   return NextResponse.json(updated);
 }
 
@@ -49,15 +57,27 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const existing = await getSubMerchantById(id);
-  if (!existing) return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+  if (!existing)
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
 
-  const updated = await toggleSubMerchantStatus(id, validation.data.lockReason, existing.lockReason);
+  const updated = await toggleSubMerchantStatus(
+    id,
+    validation.data.lockReason,
+    existing.lockReason,
+  );
   return NextResponse.json(updated);
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const { id } = await params;
   const removed = await removeSubMerchant(id);
-  if (!removed) return NextResponse.json({ error: "Không tìm thấy sub-merchant" }, { status: 404 });
+  if (!removed)
+    return NextResponse.json(
+      { error: "Không tìm thấy sub-merchant" },
+      { status: 404 },
+    );
   return new NextResponse(null, { status: 204 });
 }
