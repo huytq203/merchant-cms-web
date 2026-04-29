@@ -96,3 +96,12 @@ export async function updatePermissionGroup(
     },
   });
 }
+
+export async function findAllPermissionCategories() {
+  return prisma.permissionCategory.findMany({
+    include: {
+      permissions: { select: { id: true, name: true }, orderBy: { id: "asc" } },
+    },
+    orderBy: { id: "asc" },
+  });
+}

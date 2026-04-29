@@ -5,6 +5,7 @@ import {
 } from "../../features/permission/types/type";
 
 const BASE = "/v1/admin/permissions";
+const BASE_CATEGORIES = "/v1/admin/permission-categories";
 
 export interface ParamsGetAll {
   page?: number;
@@ -27,6 +28,8 @@ export interface CreatePermissionPayload {
 export const permissionApi = {
   getAll: <T = string>(params: ParamsGetAll) =>
     apiClient.get<PermissionAPI<T>>(BASE, { query: params }),
+  getCatalog: <T = string>() =>
+    apiClient.get<PermissionAPI<T>>(BASE_CATEGORIES),
   getById: (id: string) => apiClient.get<PermissionData>(`${BASE}/${id}`),
   create: (payload: CreatePermissionPayload) =>
     apiClient.post<PermissionData>(BASE, payload),

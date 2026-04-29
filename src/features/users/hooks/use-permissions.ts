@@ -4,8 +4,8 @@ import { Permission } from "@/features/permission/types/type";
 
 export const usePermissions = () => {
   return useQuery({
-    queryKey: ["permissions"],
-    queryFn: () => permissionApi.getAll<Permission>({ pageSize: 100 }),
+    queryKey: ["permission-categories"],
+    queryFn: () => permissionApi.getCatalog<Permission>(),
     staleTime: 1000 * 60 * 5,
   });
 };

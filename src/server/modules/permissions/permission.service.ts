@@ -3,6 +3,7 @@
 import type { PermissionGroupResponse } from "./permission.entity";
 import {
   findAllPermissionGroups,
+  findAllPermissionCategories,
   findPermissionGroupById,
   insertPermissionGroup,
   syncPermissions,
@@ -33,17 +34,14 @@ export async function createPermissionGroup(input: {
   const id = Date.now().toString();
 
   await insertPermissionGroup({ id, name: input.name, permissions: input.permissions, now });
-  return {
-    id,
-    name: input.name,
-    status: "inactive",
-    permissions: input.permissions,
-    userCount: 0,
-    createdBy: "Admin_01",
-    updatedBy: "Admin_01",
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-  };
+
+  const created = await findPermissionGroupById(id);
+  if (!created) throw new Error("Failed to create permission group");
+  return created;
+}
+
+export async function getPermissionCatalog() {
+  return findAllPermissionCategories();
 }
 
 export async function updatePermissionGroupById(
