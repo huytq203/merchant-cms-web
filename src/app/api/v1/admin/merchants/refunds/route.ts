@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRefundList } from "@/server/modules/refunds/refund.service";
+import { getRefundList } from "@/server/modules/refund/refund.service";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
