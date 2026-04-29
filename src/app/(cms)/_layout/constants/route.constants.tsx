@@ -1,10 +1,5 @@
 "use client";
 import React from "react";
-import {
-  BookOpen,
-  Type,
-
-} from "lucide-react";
 
 export interface SubPage {
   title: string;
@@ -109,20 +104,29 @@ export const routesConfig: SidebarSection[] = [
     ],
   },
   {
-    title:"Quản lý giao dịch Merchant",
-    // icon: <BookOpen className="w-4 h-4" />,
+    title: "Quản lý giao dịch Merchant",
     collapsible: false,
     items: [
       {
         title: "Danh sách giao dịch",
         href: "/transaction",
-        // icon: <Type className="w-4 h-4" />,
+      },
+      {
+        title: "Quản lý Đơn hàng",
+        href: "/order",
       },
       {
         title: "Hoàn tiền",
         href: "/refund",
-        // icon: <Type className="w-4 h-4" />,
+      },
+      {
+        title: "Khiếu nại",
+        href: "/complaint",
+      },
+      {
+        title: "Lịch sử Rút Tiền",
+        href: "/withdrawal",
       },
     ],
-  }
+  },
 ];

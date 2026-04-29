@@ -102,7 +102,7 @@ export default function TransactionsPage() {
 
       {/* Filter Sheet */}
       <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <SheetContent direction="top" className="h-fit">
+        <SheetContent direction="top" className="h-fit" keepMounted>
           <SheetHeader>
             <SheetTitle>Tìm kiếm nâng cao</SheetTitle>
           </SheetHeader>

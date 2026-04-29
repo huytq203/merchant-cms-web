@@ -33,7 +33,9 @@
       "Bash(xargs kill *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(taskkill /F /IM node.exe)",
+      "PowerShell(Stop-Process -Name node -Force -ErrorAction SilentlyContinue)"
     ]
   }
 }

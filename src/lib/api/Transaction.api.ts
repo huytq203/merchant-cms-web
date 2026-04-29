@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/http/api-client";
-import type { TransactionApiParams } from "../schemas";
+import type { TransactionApiParams } from "../../features/transactions/schemas";
 
 interface GetTransactionListParams extends TransactionApiParams {
   page?: number;

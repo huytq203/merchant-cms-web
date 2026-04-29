@@ -16,6 +16,10 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `chart_data`;
 DROP TABLE IF EXISTS `dashboard_stats`;
 DROP TABLE IF EXISTS `dashboard_recent_transactions`;
+DROP TABLE IF EXISTS `refunds`;
+DROP TABLE IF EXISTS `complaints`;
+DROP TABLE IF EXISTS `orders`;
+DROP TABLE IF EXISTS `withdrawals`;
 DROP TABLE IF EXISTS `transactions`;
 DROP TABLE IF EXISTS `logins`;
 DROP TABLE IF EXISTS `user_assigned_sub_merchants`;
@@ -186,6 +190,105 @@ CREATE TABLE `transactions` (
   `response_message`  VARCHAR(200) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_txn_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------
+
+-- ── Bảng liên kết nghiệp vụ: ────────────────────────────────────────────────
+-- transactions  → refunds      (1 transaction → nhiều refund)
+-- transactions  → complaints   (1 transaction → nhiều khiếu nại)
+-- transactions  → orders       (1 order → 1 transaction khi thanh toán)
+-- sub_merchants → withdrawals  (1 sub_merchant → nhiều yêu cầu rút tiền)
+-- ────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE `orders` (
+  `id`                VARCHAR(50)  NOT NULL,
+  `code`              VARCHAR(50)  NOT NULL,
+  `source`            ENUM('api','payment_link') NOT NULL,
+  `sub_merchant_id`   VARCHAR(20)  NOT NULL,
+  `sub_merchant_name` VARCHAR(200) NOT NULL,
+  `created_by`        VARCHAR(100) NULL,
+  `amount`            BIGINT       NOT NULL,
+  `transaction_id`    VARCHAR(20)  NULL,
+  `transaction_code`  VARCHAR(50)  NULL,
+  `status`            ENUM('paid','pending','cancelled','expired') NOT NULL DEFAULT 'pending',
+  `created_at`        DATETIME(3)  NOT NULL,
+  `updated_at`        DATETIME(3)  NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_order_code` (`code`),
+  KEY `fk_order_txn_idx` (`transaction_id`),
+  CONSTRAINT `fk_order_txn` FOREIGN KEY (`transaction_id`)
+    REFERENCES `transactions` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------
+
+CREATE TABLE `refunds` (
+  `id`                VARCHAR(50)  NOT NULL,
+  `code`              VARCHAR(50)  NOT NULL,
+  `transaction_id`    VARCHAR(20)  NOT NULL,
+  `transaction_code`  VARCHAR(50)  NOT NULL,
+  `invoice_code`      VARCHAR(50)  NULL,
+  `sub_merchant_id`   VARCHAR(20)  NOT NULL,
+  `sub_merchant_name` VARCHAR(200) NOT NULL,
+  `request_amount`    BIGINT       NOT NULL,
+  `actual_amount`     BIGINT       NOT NULL DEFAULT 0,
+  `fee_mb`            INT          NOT NULL DEFAULT 0,
+  `fee_nm`            INT          NOT NULL DEFAULT 0,
+  `recipient_name`    VARCHAR(150) NOT NULL,
+  `recipient_card`    VARCHAR(30)  NULL,
+  `created_by`        VARCHAR(100) NULL,
+  `reason`            VARCHAR(200) NULL,
+  `status`            ENUM('pending','approved','rejected','success') NOT NULL DEFAULT 'pending',
+  `created_at`        DATETIME(3)  NOT NULL,
+  `updated_at`        DATETIME(3)  NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_refund_code` (`code`),
+  KEY `fk_refund_txn_idx` (`transaction_id`),
+  CONSTRAINT `fk_refund_txn` FOREIGN KEY (`transaction_id`)
+    REFERENCES `transactions` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------
+
+CREATE TABLE `complaints` (
+  `id`              VARCHAR(50)  NOT NULL,
+  `ticket_code`     VARCHAR(50)  NOT NULL,
+  `transaction_id`  VARCHAR(20)  NULL,
+  `transaction_code` VARCHAR(50) NULL,
+  `source`          ENUM('customer','gateway','merchant') NOT NULL,
+  `content`         TEXT         NOT NULL,
+  `status`          ENUM('pending','processing','resolved','rejected') NOT NULL DEFAULT 'pending',
+  `deadline`        DATETIME(3)  NULL,
+  `note`            VARCHAR(200) NULL,
+  `last_updated_at` DATETIME(3)  NULL,
+  `created_at`      DATETIME(3)  NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_complaint_ticket` (`ticket_code`),
+  KEY `fk_complaint_txn_idx` (`transaction_id`),
+  CONSTRAINT `fk_complaint_txn` FOREIGN KEY (`transaction_id`)
+    REFERENCES `transactions` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------
+
+CREATE TABLE `withdrawals` (
+  `id`                  VARCHAR(50)  NOT NULL,
+  `code`                VARCHAR(50)  NOT NULL,
+  `sub_merchant_id`     VARCHAR(20)  NOT NULL,
+  `sub_merchant_name`   VARCHAR(200) NOT NULL,
+  `sub_merchant_short`  VARCHAR(50)  NULL,
+  `amount`              BIGINT       NOT NULL,
+  `fee`                 INT          NOT NULL DEFAULT 0,
+  `bank_name`           VARCHAR(100) NOT NULL,
+  `bank_account`        VARCHAR(50)  NOT NULL,
+  `account_name`        VARCHAR(150) NOT NULL,
+  `status`              ENUM('pending','processing','success','failed') NOT NULL DEFAULT 'pending',
+  `requested_at`        DATETIME(3)  NOT NULL,
+  `created_at`          DATETIME(3)  NOT NULL,
+  `updated_at`          DATETIME(3)  NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_withdrawal_code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------
@@ -512,6 +615,32 @@ INSERT INTO `logins` (`id`,`user_id`,`username`,`password`) VALUES
   ('1777297123305','1777297122085', 'nga@gmail.com',
    '$2b$10$uFU/4IVBJuBuI9C3PmJ58.TF36pGG2dz1Qw3mkajJitDUENKHMpSK');
 
+-- ── 9a. orders ───────────────────────────────────────────────
+INSERT INTO `orders`
+  (`id`,`code`,`source`,`sub_merchant_id`,`sub_merchant_name`,`created_by`,
+   `amount`,`transaction_id`,`transaction_code`,`status`,`created_at`,`updated_at`)
+VALUES
+('ORD001','ORD-2026-001','api','SM001','Cà Phê Khang - Chi nhánh 1','Hệ thống',
+ 1500000,'TX001','TXN2025040001','paid','2026-01-13 10:30:00.000','2026-01-13 10:31:00.000'),
+('ORD002','PLK-2026-099','payment_link','SM002','Fashion Store ABC - Online','nguyen_van_a',
+ 450000,NULL,NULL,'pending','2026-01-13 09:15:00.000',NULL),
+('ORD003','ORD-2026-045','api','SM003','Tech Solutions VN - HCM','Hệ thống',
+ 3500000,'TX003','TXN2025040003','pending','2026-01-12 14:00:00.000',NULL),
+('ORD004','PLK-2026-072','payment_link','SM001','Cà Phê Khang - Chi nhánh 2','le_thi_b',
+ 75000,'TX006','TXN2025040006','paid','2026-01-12 07:00:00.000','2026-01-12 07:01:00.000'),
+('ORD005','ORD-2026-031','api','SM004','Siêu Thị Mini Minh Phát','Hệ thống',
+ 1650000,'TX010','TXN2025040010','paid','2026-01-11 11:00:00.000','2026-01-11 11:02:00.000'),
+('ORD006','PLK-2026-108','payment_link','SM005','Lotus Beauty Spa - Q1','tran_van_c',
+ 850000,'TX005','TXN2025040005','paid','2026-01-10 11:30:00.000','2026-01-10 11:32:00.000'),
+('ORD007','ORD-2026-019','api','SM002','Fashion Store ABC - Quận 3','Hệ thống',
+ 2100000,'TX007','TXN2025040007','paid','2026-01-09 09:30:00.000','2026-01-09 09:31:00.000'),
+('ORD008','PLK-2026-055','payment_link','SM003','Tech Solutions VN - HN','pham_thi_d',
+ 420000,NULL,NULL,'expired','2026-01-08 08:00:00.000','2026-01-08 09:00:00.000'),
+('ORD009','ORD-2026-062','api','SM004','Siêu Thị Mini Minh Phát - CN2','Hệ thống',
+ 250000,NULL,NULL,'cancelled','2026-01-07 10:45:00.000','2026-01-07 10:50:00.000'),
+('ORD010','PLK-2026-033','payment_link','SM005','Lotus Beauty Spa - Q3','nguyen_van_a',
+ 680000,NULL,NULL,'pending','2026-01-06 14:00:00.000',NULL);
+
 -- ── 9. transactions ──────────────────────────────────────────
 INSERT INTO `transactions`
   (`id`,`code`,`card_type`,`card_number`,`card_holder_name`,
@@ -560,6 +689,71 @@ VALUES
  1650000,'VND',16500,1633500,'SM004','Siêu Thị Mini Minh Phát - CN2','CUST010','Bùi Thị Linh','0923456789',
  '2025-04-03 11:00:00.000','success','Mua sắm hàng tiêu dùng','VCB20250403010',
  'credit_card','VCB','00','Giao dịch thành công');
+
+-- ── 10a. refunds ─────────────────────────────────────────────
+INSERT INTO `refunds`
+  (`id`,`code`,`transaction_id`,`transaction_code`,`invoice_code`,
+   `sub_merchant_id`,`sub_merchant_name`,`request_amount`,`actual_amount`,`fee_mb`,`fee_nm`,
+   `recipient_name`,`recipient_card`,`created_by`,`reason`,`status`,`created_at`,`updated_at`)
+VALUES
+('RF001','REF260111001','TX001','TXN2025040001','INV-2025-001',
+ 'SM001','Cà Phê Khang - Chi nhánh 1',500000,500000,0,0,
+ 'NGUYEN VAN AN','4532 **** **** 1234','Admin_CH01','Khách hàng yêu cầu hoàn','pending',
+ '2026-01-11 14:30:00.000','2026-01-11 14:30:00.000'),
+('RF002','REF260110055','TX002','TXN2025040002','INV-2025-089',
+ 'SM002','Fashion Store ABC - Online',200000,200000,2200,0,
+ 'LE THI HOA','5425 **** **** 5678','Hệ thống Vi MoMo','Khách hàng đổi ý','success',
+ '2026-01-10 09:15:00.000','2026-01-10 09:30:00.000'),
+('RF003','REF260109032','TX007','TXN2025040007','INV-2025-102',
+ 'SM002','Fashion Store ABC - Quận 3',2100000,2100000,0,0,
+ 'HOANG VAN BINH','4539 **** **** 2468','Admin_CH02','Sản phẩm bị lỗi','approved',
+ '2026-01-09 10:00:00.000','2026-01-09 10:30:00.000'),
+('RF004','REF260108077','TX006','TXN2025040006',NULL,
+ 'SM001','Cà Phê Khang - Chi nhánh 2',75000,0,0,0,
+ 'PHAM VAN DUC','9704 **** **** 1357','Hệ thống','Giao dịch trùng lặp','rejected',
+ '2026-01-08 08:00:00.000','2026-01-08 09:00:00.000'),
+('RF005','REF260107019','TX010','TXN2025040010','INV-2025-210',
+ 'SM004','Siêu Thị Mini Minh Phát - CN2',1650000,1650000,3300,0,
+ 'BUI THI LINH','4916 **** **** 6248','Admin_CH04','Sản phẩm không đúng mô tả','success',
+ '2026-01-07 12:00:00.000','2026-01-07 14:00:00.000');
+
+-- ── 10b. complaints ───────────────────────────────────────────
+INSERT INTO `complaints`
+  (`id`,`ticket_code`,`transaction_id`,`transaction_code`,`source`,`content`,
+   `status`,`deadline`,`note`,`last_updated_at`,`created_at`)
+VALUES
+('CP001','FLX-10295','TX001','TXN2025040001','customer','Chưa nhận hàng sau khi thanh toán',
+ 'pending','2026-04-15 23:59:00.000',NULL,'2026-04-12 09:15:00.000','2026-04-12 09:15:00.000'),
+('CP002','FLX-10280','TX002','TXN2025040002','gateway','Tra soát giao dịch nghi ngờ gian lận',
+ 'processing','2026-04-13 23:59:00.000','Chờ Merchant bổ sung','2026-04-12 08:30:00.000','2026-04-11 14:20:00.000'),
+('CP003','FLX-10275','TX007','TXN2025040007','merchant','Khiếu nại đối soát tiền nhầm',
+ 'processing','2026-04-15 23:59:00.000','Chờ Cổng phản hồi','2026-03-11 16:00:00.000','2026-03-10 08:00:00.000'),
+('CP004','FLX-10250','TX005','TXN2025040005','customer','Lỗi hoàn tiền không nhận được',
+ 'resolved',NULL,NULL,'2026-03-09 11:00:00.000','2026-03-08 10:00:00.000'),
+('CP005','FLX-10245','TX004','TXN2025040004','gateway','Chargeback - Bác bỏ giao dịch',
+ 'rejected',NULL,NULL,'2026-03-08 09:00:00.000','2026-03-07 16:30:00.000');
+
+-- ── 10c. withdrawals ──────────────────────────────────────────
+INSERT INTO `withdrawals`
+  (`id`,`code`,`sub_merchant_id`,`sub_merchant_name`,`sub_merchant_short`,
+   `amount`,`fee`,`bank_name`,`bank_account`,`account_name`,
+   `status`,`requested_at`,`created_at`,`updated_at`)
+VALUES
+('WD001','WDR26039901','SUB-00123','Cửa hàng Thời trang ABC','SMC-001',
+ 15000000,3300,'VIETCOMBANK','8071****8888','TRAN THI B',
+ 'pending','2026-03-31 10:30:15.000','2026-03-31 10:30:15.000',NULL),
+('WD002','WDR26039885','SUB-00125','Siêu thị Mini Mart','SMC-002',
+ 125450000,5500,'TECHCOMBANK','1903****1234','TRAN THI A',
+ 'processing','2026-03-31 01:00:05.000','2026-03-31 01:00:05.000','2026-03-31 02:00:00.000'),
+('WD003','WDR26039542','SUB-00123','Cửa hàng Thời trang ABC','SMC-001',
+ 5000000,3300,'MB BANK','8551****6789','NGUYEN VAN A',
+ 'success','2026-03-30 15:20:44.000','2026-03-30 15:20:44.000','2026-03-30 16:00:00.000'),
+('WD004','WDR26039210','SUB-00126','Nhà thuốc Bình An','SMC-003',
+ 2300000,3300,'BIDV','1241****4455','LE VAN C',
+ 'failed','2026-03-29 01:00:10.000','2026-03-29 01:00:10.000','2026-03-29 02:00:00.000'),
+('WD005','WDR26038971','SUB-00127','Tiệm Bánh Mì Sài Gòn','SMC-004',
+ 8750000,3300,'AGRIBANK','3302****9988','HOANG VAN E',
+ 'success','2026-03-28 09:15:00.000','2026-03-28 09:15:00.000','2026-03-28 10:00:00.000');
 
 -- ── 10. dashboard_recent_transactions ────────────────────────
 INSERT INTO `dashboard_recent_transactions`

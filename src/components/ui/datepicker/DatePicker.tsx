@@ -56,6 +56,7 @@ export interface DatePickerProps {
     /** Error message displayed below the picker (replaces description) */
     error?: string;
     required?: boolean;
+    captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years" | undefined;
 }
 
 // ---------- helpers ----------
@@ -213,7 +214,7 @@ const TimePicker: React.FC<TimePickerProps> = ({ parts, onChange, timeFormat, ti
 
 export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     mode = 'single',
-    date,
+    date: dateProp,
     onDateChange,
     onChange,
     timeValue,
@@ -229,9 +230,25 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
     description,
     error,
     required,
+    captionLayout = undefined,
 }, ref) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+    // Internal state — hoạt động cả controlled lẫn uncontrolled
+    const isControlled = dateProp !== undefined;
+    const [internalDate, setInternalDate] = React.useState<Date | DateRange | undefined>(undefined);
+    const date = isControlled ? dateProp : internalDate;
+
+    // Calendar luôn navigate đến tháng của ngày đã chọn khi mở
+    const [calendarMonth, setCalendarMonth] = React.useState<Date>(new Date());
+    const handleOpenChange = (newOpen: boolean) => {
+        if (newOpen) {
+            const selectedDate = date instanceof Date ? date : (date as DateRange)?.from;
+            setCalendarMonth(selectedDate ?? new Date());
+        }
+        setOpen(newOpen);
+    };
 
     const timeParts = React.useMemo<TimeParts>(() => {
         if (mode === 'time-only' && timeValue) return parseTimeParts(timeValue);
@@ -246,6 +263,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
         }
         if (date instanceof Date) {
             const newDate = applyTimeToDate(date, newParts);
+            if (!isControlled) setInternalDate(newDate);
             onDateChange?.(newDate);
             onChange?.(newDate);
         }
@@ -253,18 +271,22 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
 
     const handleDateSelect = (selectedDate: Date | DateRange | Date[] | undefined) => {
         if (!selectedDate) {
+            if (!isControlled) setInternalDate(undefined);
             onDateChange?.(undefined);
             onChange?.(undefined);
             return;
         }
         if (mode === 'single' && showTime && selectedDate instanceof Date) {
             const newDate = applyTimeToDate(selectedDate, timeParts);
+            if (!isControlled) setInternalDate(newDate);
             onDateChange?.(newDate);
             onChange?.(newDate);
         } else {
-            // Because of our mode checking, we can be confident here
+            if (!isControlled) setInternalDate(selectedDate as Date | DateRange);
             onDateChange?.(selectedDate as DateRange);
             onChange?.(selectedDate as DateRange);
+            // Auto-close sau khi chọn date (single mode không có time)
+            if (mode === 'single' && !showTime) setOpen(false);
         }
     };
 
@@ -310,7 +332,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                 </label>
             )}
 
-            <BasePopover.Root open={open} onOpenChange={disabled ? undefined : setOpen}>
+            <BasePopover.Root open={open} onOpenChange={disabled ? undefined : handleOpenChange}>
                 <BasePopover.Trigger
                     render={
                         <button
@@ -346,7 +368,12 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                         mode="single"
                                         locale={locales.vi}
                                         selected={date as Date | undefined}
+                                        month={calendarMonth}
+                                        onMonthChange={setCalendarMonth}
                                         onSelect={(d) => handleDateSelect(d)}
+                                        captionLayout={captionLayout}
+                                        startMonth={new Date(1900, 0)}
+                                        endMonth={new Date(2100, 11)}
                                         disabled={disablePastDates ? [{ before: new Date() }] : undefined}
                                         className="rdp-custom"
                                     />
@@ -358,7 +385,12 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                         mode="range"
                                         locale={locales.vi}
                                         selected={date as DateRange | undefined}
+                                        month={calendarMonth}
+                                        onMonthChange={setCalendarMonth}
                                         onSelect={(d) => handleDateSelect(d)}
+                                        captionLayout={captionLayout}
+                                        startMonth={new Date(1900, 0)}
+                                        endMonth={new Date(2100, 11)}
                                         disabled={disablePastDates ? [{ before: new Date() }] : undefined}
                                         className="rdp-custom"
                                     />
@@ -391,7 +423,9 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(({
                                         if (mode === 'time-only') {
                                             onTimeChange?.('');
                                         } else {
+                                            if (!isControlled) setInternalDate(undefined);
                                             onDateChange?.(undefined);
+                                            onChange?.(undefined);
                                         }
                                     }}
                                     className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"

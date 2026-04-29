@@ -103,13 +103,14 @@ interface DrawerContentProps
   extends Omit<React.ComponentPropsWithoutRef<typeof BaseDialog.Popup>, 'className'>,
   VariantProps<typeof drawerVariants> {
   className?: string;
+  keepMounted?: boolean;
 }
 
 const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps>(
-  ({ className, children, direction, size, backdropBlur, ...props }, ref) => {
+  ({ className, children, direction, size, backdropBlur, keepMounted, ...props }, ref) => {
     const slots = drawerVariants({ direction, size, backdropBlur });
     return (
-      <BaseDialog.Portal>
+      <BaseDialog.Portal keepMounted={keepMounted}>
         <BaseDialog.Backdrop className={slots.overlay()} />
         <BaseDialog.Popup ref={ref} className={slots.panel({ className })} {...props}>
           {children}

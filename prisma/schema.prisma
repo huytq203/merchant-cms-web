@@ -44,6 +44,45 @@ enum PeriodType {
   yearly
 }
 
+enum OrderStatus {
+  paid
+  pending
+  cancelled
+  expired
+}
+
+enum OrderSource {
+  api
+  payment_link
+}
+
+enum RefundStatus {
+  pending
+  approved
+  rejected
+  success
+}
+
+enum ComplaintStatus {
+  pending
+  processing
+  resolved
+  rejected
+}
+
+enum ComplaintSource {
+  customer
+  gateway
+  merchant
+}
+
+enum WithdrawalStatus {
+  pending
+  processing
+  success
+  failed
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model PermissionCategory {
@@ -187,8 +226,89 @@ model Transaction {
   bankCode        String            @map("bank_code") @db.VarChar(20)
   responseCode    String            @map("response_code") @db.VarChar(10)
   responseMessage String            @map("response_message") @db.VarChar(200)
+  refunds         Refund[]
+  complaints      Complaint[]
+  orders          Order[]
 
   @@map("transactions")
+}
+
+model Order {
+  id              String      @id @db.VarChar(50)
+  code            String      @unique @db.VarChar(50)
+  source          OrderSource
+  subMerchantId   String      @map("sub_merchant_id") @db.VarChar(20)
+  subMerchantName String      @map("sub_merchant_name") @db.VarChar(200)
+  createdBy       String?     @map("created_by") @db.VarChar(100)
+  amount          BigInt
+  transactionId   String?     @map("transaction_id") @db.VarChar(20)
+  transactionCode String?     @map("transaction_code") @db.VarChar(50)
+  status          OrderStatus @default(pending)
+  createdAt       DateTime    @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime?   @map("updated_at") @db.DateTime(3)
+  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+}
+
+model Refund {
+  id              String       @id @db.VarChar(50)
+  code            String       @unique @db.VarChar(50)
+  transactionId   String       @map("transaction_id") @db.VarChar(20)
+  transactionCode String       @map("transaction_code") @db.VarChar(50)
+  invoiceCode     String?      @map("invoice_code") @db.VarChar(50)
+  subMerchantId   String       @map("sub_merchant_id") @db.VarChar(20)
+  subMerchantName String       @map("sub_merchant_name") @db.VarChar(200)
+  requestAmount   BigInt       @map("request_amount")
+  actualAmount    BigInt       @map("actual_amount") @default(0)
+  feeMb           Int          @map("fee_mb") @default(0)
+  feeNm           Int          @map("fee_nm") @default(0)
+  recipientName   String       @map("recipient_name") @db.VarChar(150)
+  recipientCard   String?      @map("recipient_card") @db.VarChar(30)
+  createdBy       String?      @map("created_by") @db.VarChar(100)
+  reason          String?      @db.VarChar(200)
+  status          RefundStatus @default(pending)
+  createdAt       DateTime     @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime?    @map("updated_at") @db.DateTime(3)
+  transaction     Transaction  @relation(fields: [transactionId], references: [id])
+
+  @@map("refunds")
+}
+
+model Complaint {
+  id              String          @id @db.VarChar(50)
+  ticketCode      String          @unique @map("ticket_code") @db.VarChar(50)
+  transactionId   String?         @map("transaction_id") @db.VarChar(20)
+  transactionCode String?         @map("transaction_code") @db.VarChar(50)
+  source          ComplaintSource
+  content         String          @db.Text
+  status          ComplaintStatus @default(pending)
+  deadline        DateTime?       @db.DateTime(3)
+  note            String?         @db.VarChar(200)
+  lastUpdatedAt   DateTime?       @map("last_updated_at") @db.DateTime(3)
+  createdAt       DateTime        @map("created_at") @db.DateTime(3)
+  transaction     Transaction?    @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@map("complaints")
+}
+
+model Withdrawal {
+  id                String           @id @db.VarChar(50)
+  code              String           @unique @db.VarChar(50)
+  subMerchantId     String           @map("sub_merchant_id") @db.VarChar(20)
+  subMerchantName   String           @map("sub_merchant_name") @db.VarChar(200)
+  subMerchantShort  String?          @map("sub_merchant_short") @db.VarChar(50)
+  amount            BigInt
+  fee               Int              @default(0)
+  bankName          String           @map("bank_name") @db.VarChar(100)
+  bankAccount       String           @map("bank_account") @db.VarChar(50)
+  accountName       String           @map("account_name") @db.VarChar(150)
+  status            WithdrawalStatus @default(pending)
+  requestedAt       DateTime         @map("requested_at") @db.DateTime(3)
+  createdAt         DateTime         @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime?        @map("updated_at") @db.DateTime(3)
+
+  @@map("withdrawals")
 }
 
 model DashboardRecentTransaction {

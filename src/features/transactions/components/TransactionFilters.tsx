@@ -71,7 +71,7 @@ export function TransactionFilters({ onSearch, defaultValues }: TransactionFilte
 
   const handleReset = () => {
     form.reset(EMPTY_VALUES);
-    onSearch({});
+    onSearch(EMPTY_VALUES);
   };
 
   const createdFrom = useWatch({ control: form.control, name: 'createdFrom' });
@@ -84,7 +84,10 @@ export function TransactionFilters({ onSearch, defaultValues }: TransactionFilte
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSearch)} className="space-y-4">
+      <form onSubmit={form.handleSubmit((values)=>{
+        const strimed=Object.fromEntries(Object.entries(values).map(([key,val])=>[key,(typeof val === 'string') ? val.trim() : val]))
+        onSearch(strimed)
+      })} className="space-y-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <FormField
             name="keyword"

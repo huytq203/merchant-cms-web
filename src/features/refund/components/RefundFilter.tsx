@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import {
   Button,
   ComboBox,
@@ -9,80 +9,143 @@ import {
   Input,
   Text,
 } from "@/components/ui";
-import { Download, Filter } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { REFUND_STATUS_OPTIONS } from "../constants/Refund.constants";
+import { useSubMerchants } from "@/features/refunds/hooks/use-merchant-query";
+import { RefundFilterValue } from "../schemas/Refund.schema";
 
-const RefundFilter = () => {
-  const form = useForm({
-    // resolver: zodResolver(refundFilterFormSchema),
-    // defaultValues: {
-    //   status: "",
-    // },
+interface RefundFilterProps {
+  onSearch: (values: RefundFilterValue) => void;
+  defaultValues?: RefundFilterValue;
+}
+
+const EMPTY_VALUES: RefundFilterValue = {
+  keyword: "",
+  invoiceCode: "",
+  transactionCode: "",
+  status: "",
+  subMerchantId: "",
+  createdFromDate: null,
+  createdToDate: null,
+};
+
+const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
+  const form = useForm<RefundFilterValue>({
+    defaultValues: {
+      ...EMPTY_VALUES,
+      ...defaultValues,
+    },
   });
+
+  const handleReset = () => {
+    form.reset(EMPTY_VALUES);
+    onSearch(EMPTY_VALUES);
+  };
+
+  const { data: dataSubMerchants } =
+    useSubMerchants();
+  const listSubMerchant = dataSubMerchants?.data.map((item) => {
+    return {
+      value: item.id,
+      label: item.name,
+    };
+  });
+  const STATUS_SELECT = [...REFUND_STATUS_OPTIONS];
+
   return (
-      <Form {...form}>
-        <form className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="keywords"
-            render={({ field }) => <Input label="Mã hoàn tiền /GD gốc" {...field} placeholder="Search..." />}
-          />
-          <FormField
-            control={form.control}
-            name="transactionCode"
-            render={({ field }) => (
-              <Input {...field} label="Mã giao dịch" placeholder="Mã hóa đơn..." />
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="subMerchantId"
-            render={({ field }) => (
-              <ComboBox
-                value={field.value}
-                label="Submerchant"
-                onChange={field.onChange}
-                options={[
-                  { value: "1", label: "Option 1" },
-                  { value: "2", label: "Option 2" },
-                ]}
-                placeholder="Chọn Sub Merchant"
-              />
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fromDate"
-            render={({ field }) => <DatePicker label="Thời gian từ" onChange={field.onChange} />}
-          />
-          <FormField
-            control={form.control}
-            name="toDate"
-            render={({ field }) => <DatePicker label="Thời gian đến" onChange={field.onChange} />}
-          />
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <ComboBox
+    <Form {...form}>
+      <form
+        className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        onSubmit={form.handleSubmit((values) => {
+          const trimmed = Object.fromEntries(
+            Object.entries(values).map(([key, val]) => [key, typeof val === "string" ? val.trim() : val])
+          );
+          onSearch(trimmed as RefundFilterValue);
+        })}
+      >
+        <FormField
+          control={form.control}
+          name="keyword"
+          render={({ field }) => (
+            <Input
+              {...field}
+              label="Mã hoàn tiền /GD gốc"
+              placeholder="Search..."
+              value={(field.value ?? "")}
+            />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="invoiceCode"
+          render={({ field }) => (
+            <Input
+              {...field}
+              label="Mã hóa đơn"
+              placeholder="Mã hóa đơn..."
+              value={field.value ?? ""}
+            />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="subMerchantId"
+          render={({ field }) => (
+            <ComboBox
+              value={field.value ?? ""}
+              label="Submerchant"
+              onValueChange={(val) =>
+                field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
+              }
+              options={listSubMerchant || []}
+              placeholder="Chọn Sub Merchant"
+            />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="createdFromDate"
+          render={({ field }) => (
+            <DatePicker 
+            label="Thời gian từ" 
+            date={field.value ?? undefined} 
+            onDateChange={(d) => field.onChange(d instanceof Date ? d : null)} 
+            />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="createdToDate"
+          render={({ field }) => (
+            <DatePicker 
+            label="Thời gian đến" 
+            date={field.value ?? undefined}  
+            onDateChange={(d) => field.onChange(d instanceof Date ? d : null)}/>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <ComboBox
               label="Trạng thái phê duyệt"
-                value={field.value}
-                onChange={field.onChange}
-                options={[
-                  { value: "1", label: "Option 1" },
-                  { value: "2", label: "Option 2" },
-                ]}
-                placeholder="Trạng thái phê duyệt"
-              />
-            )}
-          />
-          <div className="flex items-center gap-2 justify-end col-span-full ">
-            <Button variant={"outline"}>Xóa lọc</Button>
-            <Button>Tìm kiếm</Button>
-          </div>
-        </form>
-      </Form>
+              value={field.value}
+              onValueChange={(val) =>
+                field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
+              }
+              options={STATUS_SELECT}
+              placeholder="Trạng thái phê duyệt"
+            />
+          )}
+        />
+        <div className="flex items-center gap-2 justify-end col-span-full ">
+          <Button type="reset" variant={"outline"} onClick={handleReset}>
+            Xóa lọc
+          </Button>
+          <Button type="submit">Tìm kiếm</Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

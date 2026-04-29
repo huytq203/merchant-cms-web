@@ -1,12 +1,56 @@
-"use client"
-import { Button, Card, CardContent, Drawer, DrawerContent, DrawerHeader, DrawerTitle, Sheet, SheetContent, SheetHeader, SheetTitle, Text } from "@/components/ui";
-import React from "react";
-import RefundTable from "./RefundTable";
+"use client";
+import {
+  Button,
+  Card,
+  CardContent,
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  Text,
+} from "@/components/ui";
+import React, { useState } from "react";
 import RefundFilter from "./RefundFilter";
 import { Download, Filter } from "lucide-react";
+import { RefundTable } from "./RefundTable";
+import { useRefundsQuery } from "../hooks/use-refunds-query";
+import usePagination from "@/hooks/usePagination";
+import { RefundFilterValue } from "../schemas/Refund.schema";
+
+interface RefundApiParams {
+  keywords?: string;
+  invoiceCode?: string;
+  transactionCode?: string;
+  status?: string;
+  subMerchantId?: string;
+  createdFromDate?: string;
+  createdToDate?: string;
+}
 
 const RefundForm = () => {
-    const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [filter, setFilter] = useState<RefundApiParams>({});
+
+  const { setPage, setPageSize, params, page, pageSize } = usePagination();
+
+  const { data, isLoading } = useRefundsQuery({ ...filter, ...params });
+
+  const handleSearch = (values: RefundFilterValue) => {
+    const { createdFromDate, createdToDate, ...rest } = values;
+    const apiParams = {
+      ...rest,
+      createdFromDate: createdFromDate instanceof Date ? createdFromDate.toISOString() : undefined,
+      createdToDate: createdToDate instanceof Date ? createdToDate.toISOString() : undefined,
+    };
+    setFilter(apiParams);
+    setPage(1);
+  };
+
+  const total = data?.pagination.total ?? 0;
   return (
     <div className="space-y-3">
       {/* <RefundFilter /> */}
@@ -27,30 +71,45 @@ const RefundForm = () => {
           >
             Xuất excel
           </Button>
-          <Button onClick={() => setOpen(true)} size="sm" leftIcon={<Filter className="h-4 w-4" />}>
+          <Button
+            onClick={() => setOpen(true)}
+            size="sm"
+            leftIcon={<Filter className="h-4 w-4" />}
+          >
             Tìm kiếm nâng cao
           </Button>
         </div>
       </div>
       <Card>
         <CardContent>
-          <RefundTable />
+          <RefundTable
+            data={data?.data ?? []}
+            isLoading={isLoading}
+            total={total}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={(p, ps) => {
+              setPage(p);
+              setPageSize(ps);
+            }}
+          />
         </CardContent>
       </Card>
 
-
-
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="h-fit">
-          <DrawerHeader>
-            <DrawerTitle>Tìm kiếm nâng cao</DrawerTitle>
-          </DrawerHeader>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="h-fit" direction="top" keepMounted>
+          <SheetHeader>
+            <SheetTitle>Tìm kiếm nâng cao</SheetTitle>
+          </SheetHeader>
 
           <div className="p-2">
-            <RefundFilter />
+            <RefundFilter
+              onSearch={handleSearch}
+              defaultValues={filter as RefundFilterValue}
+            />
           </div>
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

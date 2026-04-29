@@ -8,10 +8,10 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet/Sheet';
 import { cn } from '@/lib/utils/cn';
-import { format } from 'date-fns';
 import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
 import type { Transaction } from '../types';
 import { Button } from '@/components/ui';
+import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
 
 interface TransactionDetailSheetProps {
   transaction: Transaction | null;
@@ -19,23 +19,6 @@ interface TransactionDetailSheetProps {
   onOpenChange: (open: boolean) => void;
   setIsRefundDialog: (open: boolean) => void;
   setIsReconciliationDialog: (open: boolean) => void;
-}
-
-function formatAmount(amount: number) {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' vnđ';
-}
-
-function formatDate(dateStr: string) {
-  try {
-    return format(new Date(dateStr), 'dd/MM/yyyy HH:mm:ss');
-  } catch {
-    return dateStr;
-  }
-}
-
-function maskPhone(phone: string) {
-  if (phone.length <= 6) return phone;
-  return phone.slice(0, 3) + '****' + phone.slice(-3);
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
