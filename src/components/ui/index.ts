@@ -42,3 +42,5 @@ export * from "./chart/Chart";
 export * from "./tabs/Tabs";
 export * from "./combobox/ComboBox";
 export * from "./sheet/Sheet"
+export * from './timeline/Timeline';
+export * from './qrcode/QRCode';

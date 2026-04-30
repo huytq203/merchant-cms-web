@@ -211,6 +211,7 @@ CREATE TABLE `orders` (
   `amount`            BIGINT       NOT NULL,
   `transaction_id`    VARCHAR(20)  NULL,
   `transaction_code`  VARCHAR(50)  NULL,
+  `payment_url`       VARCHAR(500) NULL,
   `status`            ENUM('paid','pending','cancelled','expired') NOT NULL DEFAULT 'pending',
   `created_at`        DATETIME(3)  NOT NULL,
   `updated_at`        DATETIME(3)  NULL,
@@ -618,28 +619,28 @@ INSERT INTO `logins` (`id`,`user_id`,`username`,`password`) VALUES
 -- ── 9a. orders ───────────────────────────────────────────────
 INSERT INTO `orders`
   (`id`,`code`,`source`,`sub_merchant_id`,`sub_merchant_name`,`created_by`,
-   `amount`,`transaction_id`,`transaction_code`,`status`,`created_at`,`updated_at`)
+   `amount`,`transaction_id`,`transaction_code`,`payment_url`,`status`,`created_at`,`updated_at`)
 VALUES
 ('ORD001','ORD-2026-001','api','SM001','Cà Phê Khang - Chi nhánh 1','Hệ thống',
- 1500000,'TX001','TXN2025040001','paid','2026-01-13 10:30:00.000','2026-01-13 10:31:00.000'),
+ 1500000,'TX001','TXN2025040001',NULL,'paid','2026-01-13 10:30:00.000','2026-01-13 10:31:00.000'),
 ('ORD002','PLK-2026-099','payment_link','SM002','Fashion Store ABC - Online','nguyen_van_a',
- 450000,NULL,NULL,'pending','2026-01-13 09:15:00.000',NULL),
+ 450000,NULL,NULL,'https://pay.beamgateway.vn/checkout/plk-2026-099','pending','2026-01-13 09:15:00.000',NULL),
 ('ORD003','ORD-2026-045','api','SM003','Tech Solutions VN - HCM','Hệ thống',
- 3500000,'TX003','TXN2025040003','pending','2026-01-12 14:00:00.000',NULL),
+ 3500000,'TX003','TXN2025040003',NULL,'pending','2026-01-12 14:00:00.000',NULL),
 ('ORD004','PLK-2026-072','payment_link','SM001','Cà Phê Khang - Chi nhánh 2','le_thi_b',
- 75000,'TX006','TXN2025040006','paid','2026-01-12 07:00:00.000','2026-01-12 07:01:00.000'),
+ 75000,'TX006','TXN2025040006','https://pay.beamgateway.vn/checkout/plk-2026-072','paid','2026-01-12 07:00:00.000','2026-01-12 07:01:00.000'),
 ('ORD005','ORD-2026-031','api','SM004','Siêu Thị Mini Minh Phát','Hệ thống',
- 1650000,'TX010','TXN2025040010','paid','2026-01-11 11:00:00.000','2026-01-11 11:02:00.000'),
+ 1650000,'TX010','TXN2025040010',NULL,'paid','2026-01-11 11:00:00.000','2026-01-11 11:02:00.000'),
 ('ORD006','PLK-2026-108','payment_link','SM005','Lotus Beauty Spa - Q1','tran_van_c',
- 850000,'TX005','TXN2025040005','paid','2026-01-10 11:30:00.000','2026-01-10 11:32:00.000'),
+ 850000,'TX005','TXN2025040005','https://pay.beamgateway.vn/checkout/plk-2026-108','paid','2026-01-10 11:30:00.000','2026-01-10 11:32:00.000'),
 ('ORD007','ORD-2026-019','api','SM002','Fashion Store ABC - Quận 3','Hệ thống',
- 2100000,'TX007','TXN2025040007','paid','2026-01-09 09:30:00.000','2026-01-09 09:31:00.000'),
+ 2100000,'TX007','TXN2025040007',NULL,'paid','2026-01-09 09:30:00.000','2026-01-09 09:31:00.000'),
 ('ORD008','PLK-2026-055','payment_link','SM003','Tech Solutions VN - HN','pham_thi_d',
- 420000,NULL,NULL,'expired','2026-01-08 08:00:00.000','2026-01-08 09:00:00.000'),
+ 420000,NULL,NULL,'https://pay.beamgateway.vn/checkout/plk-2026-055','expired','2026-01-08 08:00:00.000','2026-01-08 09:00:00.000'),
 ('ORD009','ORD-2026-062','api','SM004','Siêu Thị Mini Minh Phát - CN2','Hệ thống',
- 250000,NULL,NULL,'cancelled','2026-01-07 10:45:00.000','2026-01-07 10:50:00.000'),
+ 250000,NULL,NULL,NULL,'cancelled','2026-01-07 10:45:00.000','2026-01-07 10:50:00.000'),
 ('ORD010','PLK-2026-033','payment_link','SM005','Lotus Beauty Spa - Q3','nguyen_van_a',
- 680000,NULL,NULL,'pending','2026-01-06 14:00:00.000',NULL);
+ 680000,NULL,NULL,'https://pay.beamgateway.vn/checkout/plk-2026-033','pending','2026-01-06 14:00:00.000',NULL);
 
 -- ── 9. transactions ──────────────────────────────────────────
 INSERT INTO `transactions`

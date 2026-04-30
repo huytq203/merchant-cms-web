@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/http/api-client';
-import type { WithdrawalListResponse } from '../types';
+import { apiClient } from "@/lib/http/api-client";
+import type { WithdrawalListResponse } from "../../features/withdrawals/types/types";
 
 export interface GetWithdrawalListParams {
   [key: string]: string | number | undefined;
@@ -14,5 +14,7 @@ export interface GetWithdrawalListParams {
 
 export const withdrawalApi = {
   getList: (params: GetWithdrawalListParams) =>
-    apiClient.get<WithdrawalListResponse>('/v1/admin/merchants/withdrawals', { query: params }),
+    apiClient.get<WithdrawalListResponse>("/v1/admin/merchants/withdrawals", {
+      query: params,
+    }),
 };

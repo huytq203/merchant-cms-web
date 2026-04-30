@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Table } from '@/components/ui';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getWithdrawalColumns } from '../columns/Withdrawal.column';
-import type { Withdrawal } from '../types';
+import type { Withdrawal } from '../types/types';
 
 interface WithdrawalTableProps {
   data: Withdrawal[];

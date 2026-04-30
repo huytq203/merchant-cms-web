@@ -35,7 +35,11 @@
       "Bash(git commit -m ' *)",
       "Bash(npx prisma *)",
       "Bash(taskkill /F /IM node.exe)",
-      "PowerShell(Stop-Process -Name node -Force -ErrorAction SilentlyContinue)"
+      "PowerShell(Stop-Process -Name node -Force -ErrorAction SilentlyContinue)",
+      "Bash(sed -i 's/options={SUB_MERCHANTS}/options={subMerchantOptions}/' src/features/orders/components/OrderAddNew.tsx)",
+      "Bash(sed -i 's/placeholder=\"-- Chọn chi nhánh --\"/placeholder={isSubMerchantsLoading ? '\"'\"'Đang tải...'\"'\"' : '\"'\"'-- Chọn chi nhánh --'\"'\"'}/' src/features/orders/components/OrderAddNew.tsx)",
+      "Bash(xargs cat *)",
+      "Bash(Stop-Process -Name \"node\" -Force -ErrorAction SilentlyContinue)"
     ]
   }
 }

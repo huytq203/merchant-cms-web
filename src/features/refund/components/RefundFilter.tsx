@@ -11,8 +11,8 @@ import {
 } from "@/components/ui";
 import { useForm } from "react-hook-form";
 import { REFUND_STATUS_OPTIONS } from "../constants/Refund.constants";
-import { useSubMerchants } from "@/features/refunds/hooks/use-merchant-query";
 import { RefundFilterValue } from "../schemas/Refund.schema";
+import { useSubMerchants } from "@/features/refund/hooks/use-sub-merchants";
 
 interface RefundFilterProps {
   onSearch: (values: RefundFilterValue) => void;
@@ -42,8 +42,7 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
     onSearch(EMPTY_VALUES);
   };
 
-  const { data: dataSubMerchants } =
-    useSubMerchants();
+  const { data: dataSubMerchants } = useSubMerchants();
   const listSubMerchant = dataSubMerchants?.data.map((item) => {
     return {
       value: item.id,
@@ -58,7 +57,10 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
         className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         onSubmit={form.handleSubmit((values) => {
           const trimmed = Object.fromEntries(
-            Object.entries(values).map(([key, val]) => [key, typeof val === "string" ? val.trim() : val])
+            Object.entries(values).map(([key, val]) => [
+              key,
+              typeof val === "string" ? val.trim() : val,
+            ]),
           );
           onSearch(trimmed as RefundFilterValue);
         })}
@@ -71,7 +73,7 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
               {...field}
               label="Mã hoàn tiền /GD gốc"
               placeholder="Search..."
-              value={(field.value ?? "")}
+              value={field.value ?? ""}
             />
           )}
         />
@@ -106,10 +108,10 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
           control={form.control}
           name="createdFromDate"
           render={({ field }) => (
-            <DatePicker 
-            label="Thời gian từ" 
-            date={field.value ?? undefined} 
-            onDateChange={(d) => field.onChange(d instanceof Date ? d : null)} 
+            <DatePicker
+              label="Thời gian từ"
+              value={field.value ?? undefined}
+              onChange={(d) => field.onChange(d instanceof Date ? d : null)}
             />
           )}
         />
@@ -117,10 +119,11 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
           control={form.control}
           name="createdToDate"
           render={({ field }) => (
-            <DatePicker 
-            label="Thời gian đến" 
-            date={field.value ?? undefined}  
-            onDateChange={(d) => field.onChange(d instanceof Date ? d : null)}/>
+            <DatePicker
+              label="Thời gian đến"
+              value={field.value ?? undefined}
+              onChange={(d) => field.onChange(d instanceof Date ? d : null)}
+            />
           )}
         />
         <FormField

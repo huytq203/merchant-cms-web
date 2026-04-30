@@ -155,8 +155,8 @@ export function TransactionFilters({ onSearch, defaultValues }: TransactionFilte
               <DatePicker
                 label="Từ ngày (Tạo)"
                 placeholder="Chọn ngày"
-                date={field.value ?? undefined}
-                onDateChange={(d) => field.onChange(d instanceof Date ? d : null)}
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
                 description={dateRangeError}
               />
             )}
@@ -168,8 +168,8 @@ export function TransactionFilters({ onSearch, defaultValues }: TransactionFilte
               <DatePicker
                 label="Đến ngày (Tạo)"
                 placeholder="Chọn ngày"
-                date={field.value ?? undefined}
-                onDateChange={(d) => field.onChange(d instanceof Date ? d : null)}
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
               />
             )}
           />

@@ -1,5 +1,5 @@
 import type { BadgeProps } from '@/components/ui/badge/Badge';
-import type { ComplaintStatus, ComplaintSource } from '../types';
+import type { ComplaintStatus, ComplaintSource } from '../types/types';
 
 export const COMPLAINT_STATUS_OPTIONS: { value: ComplaintStatus; label: string; variant: BadgeProps['variant'] }[] = [
   { value: 'pending',    label: 'Chờ tiếp nhận', variant: 'soft-warning' },

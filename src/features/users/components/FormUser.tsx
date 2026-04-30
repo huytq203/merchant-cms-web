@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button/Button";
 import { Form } from "@/components/ui/form/Form";
 import { Card } from "@/components/ui/card/Card";
 import { usePermissions } from "../hooks/use-permissions";
-import { useSubMerchants } from "../hooks/use-sub-merchants";
+import { useSubMerchants } from "../../refund/hooks/use-sub-merchants";
 import {
   formUserSchema,
   type FormUserValues,
@@ -25,10 +25,7 @@ interface FormUserProps {
   isLoading?: boolean;
 }
 
-const FormUser: React.FC<FormUserProps> = ({
-  mode,
-  initialData,
-}) => {
+const FormUser: React.FC<FormUserProps> = ({ mode, initialData }) => {
   const router = useRouter();
   const [searchKeyword, setSearchKeyword] = useState("");
   const isUpdateMode = mode === "update";
@@ -88,7 +85,6 @@ const FormUser: React.FC<FormUserProps> = ({
     }
   };
 
-
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -101,7 +97,6 @@ const FormUser: React.FC<FormUserProps> = ({
       });
     }
   }, [initialData, form]);
-
 
   return (
     <Card className="w-full p-6">
@@ -147,7 +142,6 @@ const FormUser: React.FC<FormUserProps> = ({
               variant="solid"
               isLoading={isSubmitting}
               disabled={isSubmitting}
-              
             >
               {isUpdateMode ? "Cập nhật" : "Tạo"} nhân viên
             </Button>

@@ -38,7 +38,7 @@ export interface InputProps extends Omit<React.ComponentPropsWithoutRef<typeof B
 }
 
 const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
-  ({ className, variant, label, error, description, icon, endIcon, id, type, required, ...props }, ref) => {
+  ({ className, variant, label, error, description, icon, endIcon, id, type, required, inputMode, ...props }, ref) => {
     const defaultId = React.useId();
     const inputId = id || defaultId;
     const [showPassword, setShowPassword] = React.useState(false);

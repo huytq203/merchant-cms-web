@@ -4,7 +4,8 @@ export function formatAmount(amount: number) {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' vnđ';
 }
 
-export function formatDate(dateStr: string) {
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
   try {
     return format(new Date(dateStr), 'dd/MM/yyyy HH:mm:ss');
   } catch {

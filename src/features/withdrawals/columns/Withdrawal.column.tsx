@@ -3,9 +3,9 @@ import { Badge } from '@/components/ui/badge/Badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Eye, Link } from 'lucide-react';
 import { Button } from '@/components/ui';
-import { formatDate } from '@/lib/utils/helper';
+import { formatAmount, formatDate } from '@/lib/utils/helper';
 import { WITHDRAWAL_STATUS_OPTIONS } from '../constants/Withdrawal.constants';
-import type { Withdrawal } from '../types';
+import type { Withdrawal } from '../types/types';
 
 export function getWithdrawalColumns(): ColumnDef<Withdrawal>[] {
   return [
@@ -44,7 +44,7 @@ export function getWithdrawalColumns(): ColumnDef<Withdrawal>[] {
       meta: { align: 'right' },
       cell: ({ row }) => (
         <span className="font-mono font-bold text-foreground text-sm">
-          {row.original.amount.toLocaleString('vi-VN')}
+          {formatAmount(row.original.amount)}
         </span>
       ),
       size: 140,
@@ -54,7 +54,7 @@ export function getWithdrawalColumns(): ColumnDef<Withdrawal>[] {
       header: 'Phí GD',
       meta: { align: 'right' },
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-danger">- {row.original.fee.toLocaleString('vi-VN')}</span>
+        <span className="font-mono text-sm text-danger">- {formatAmount(row.original.fee)}</span>
       ),
       size: 100,
     },

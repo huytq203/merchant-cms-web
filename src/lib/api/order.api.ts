@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/http/api-client';
-import type { OrderListResponse } from '../types';
+import { apiClient } from "@/lib/http/api-client";
+import type { OrderListResponse } from "../../features/orders/types/types";
 
 export interface GetOrderListParams {
   [key: string]: string | number | undefined;
@@ -16,5 +16,7 @@ export interface GetOrderListParams {
 
 export const orderApi = {
   getList: (params: GetOrderListParams) =>
-    apiClient.get<OrderListResponse>('/v1/admin/merchants/orders', { query: params }),
+    apiClient.get<OrderListResponse>("/v1/admin/merchants/orders", {
+      query: params,
+    }),
 };

@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/http/api-client';
-import type { ComplaintListResponse } from '../types';
+import { apiClient } from "@/lib/http/api-client";
+import type { ComplaintListResponse } from "../../features/complaints/types/types";
 
 export interface GetComplaintListParams {
   [key: string]: string | number | undefined;
@@ -14,5 +14,7 @@ export interface GetComplaintListParams {
 
 export const complaintApi = {
   getList: (params: GetComplaintListParams) =>
-    apiClient.get<ComplaintListResponse>('/v1/admin/merchants/complaints', { query: params }),
+    apiClient.get<ComplaintListResponse>("/v1/admin/merchants/complaints", {
+      query: params,
+    }),
 };

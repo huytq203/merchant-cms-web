@@ -2,16 +2,12 @@
 import { Badge } from '@/components/ui/badge/Badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import { AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
 import { COMPLAINT_SOURCE_OPTIONS, COMPLAINT_STATUS_OPTIONS } from '../constants/Complaint.constants';
-import type { Complaint } from '../types';
+import type { Complaint } from '../types/types';
 import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/helper';
 
-function formatShortDate(dateStr: string) {
-  try { return format(new Date(dateStr), 'dd/MM/yyyy HH:mm'); } catch { return dateStr; }
-}
-
-export function getComplaintColumns(): ColumnDef<Complaint>[] {
+export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void): ColumnDef<Complaint>[] {
   return [
     {
       id: 'ticket',
@@ -19,7 +15,7 @@ export function getComplaintColumns(): ColumnDef<Complaint>[] {
       cell: ({ row }) => (
         <div>
           <p className="font-mono font-bold text-foreground text-sm">#{row.original.ticketCode}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{formatShortDate(row.original.createdAt)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{formatDate(row.original.createdAt)}</p>
         </div>
       ),
       size: 180,
@@ -75,7 +71,7 @@ export function getComplaintColumns(): ColumnDef<Complaint>[] {
         return (
           <span className={cn('text-sm font-medium flex items-center gap-1', isOverdue ? 'text-danger' : 'text-foreground')}>
             {isOverdue && <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
-            {formatShortDate(row.original.deadline)}
+            {formatDate(row.original.deadline)}
           </span>
         );
       },
@@ -86,7 +82,7 @@ export function getComplaintColumns(): ColumnDef<Complaint>[] {
       header: 'Cập nhật lần cuối',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.lastUpdatedAt ? formatShortDate(row.original.lastUpdatedAt) : '—'}
+          {row.original.lastUpdatedAt ? formatDate(row.original.lastUpdatedAt) : '—'}
         </span>
       ),
       size: 150,
@@ -96,8 +92,16 @@ export function getComplaintColumns(): ColumnDef<Complaint>[] {
       header: 'Hành động',
       meta: { align: 'center' },
       enableSorting: false,
-      cell: () => (
-        <span className="text-sm font-medium text-primary cursor-pointer hover:underline">Chi tiết</span>
+      cell: ({ row }) => (
+        <span
+          role="button"
+          tabIndex={0}
+          className="text-sm font-medium text-primary cursor-pointer hover:underline"
+          onClick={() => onViewDetail(row.original)}
+          onKeyDown={(e) => e.key === 'Enter' && onViewDetail(row.original)}
+        >
+          Chi tiết
+        </span>
       ),
       size: 90,
     },

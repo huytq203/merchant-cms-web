@@ -7,7 +7,10 @@ import { formatAmount, formatDate } from '@/lib/utils/helper';
 import { REFUND_STATUS_OPTIONS } from '../constants/Refund.constants';
 import type { Refund } from '../types/type';
 
-export function getRefundColumns(): ColumnDef<Refund>[] {
+export function getRefundColumns(
+  onViewDetail: (refund: Refund) => void,
+  onCancelRefund: (refund: Refund) => void,
+): ColumnDef<Refund>[] {
   return [
     {
       id: 'index',
@@ -131,10 +134,10 @@ export function getRefundColumns(): ColumnDef<Refund>[] {
       header: 'Thao tác',
       meta: { align: 'center' },
       enableSorting: false,
-      cell: () => (
+      cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon-sm" title="Xoá" className="text-danger hover:text-danger hover:bg-danger/10"><Trash2 className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" title="Xem chi tiết" onClick={() => onViewDetail(row.original)}><Eye className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" title="Xoá" className="text-danger hover:text-danger hover:bg-danger/10" onClick={() => onCancelRefund(row.original)}><Trash2 className="h-4 w-4" /></Button>
         </div>
       ),
       size: 80,

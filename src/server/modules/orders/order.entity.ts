@@ -11,6 +11,7 @@ export interface OrderResponse {
   amount: number;
   transactionId: string | null;
   transactionCode: string | null;
+  paymentUrl: string | null;
   status: string;
   createdAt: string;
   updatedAt: string | null;
@@ -27,6 +28,7 @@ export function toOrderResponse(order: Order): OrderResponse {
     amount: Number(order.amount),
     transactionId: order.transactionId,
     transactionCode: order.transactionCode,
+    paymentUrl: order.paymentUrl,
     status: order.status,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt?.toISOString() ?? null,
