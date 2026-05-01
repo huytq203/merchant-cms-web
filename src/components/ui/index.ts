@@ -44,3 +44,4 @@ export * from "./combobox/ComboBox";
 export * from "./sheet/Sheet"
 export * from './timeline/Timeline';
 export * from './qrcode/QRCode';
+export * from './input-otp/InputOtp';

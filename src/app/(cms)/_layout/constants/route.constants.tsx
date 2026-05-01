@@ -1,5 +1,16 @@
 "use client";
 import React from "react";
+import {
+  LayoutDashboard,
+  ShieldCheck,
+  Users,
+  Store,
+  ArrowLeftRight,
+  ShoppingBag,
+  RotateCcw,
+  MessageSquareWarning,
+  Wallet,
+} from "lucide-react";
 
 export interface SubPage {
   title: string;
@@ -67,35 +78,33 @@ export function getBreadcrumbs(pathname: string): BreadcrumbSegment[] {
 export const routesConfig: SidebarSection[] = [
   {
     title: "Dashboard",
-    // icon: <BookOpen className="w-4 h-4" />,
     collapsible: false,
     items: [
       {
         title: "Tổng quan",
         href: "/dashboard",
-        // icon: <Type className="w-4 h-4" />,
+        icon: <LayoutDashboard className="w-4 h-4" />,
       },
     ],
   },
   {
     title: "Quản lý Merchant",
-    // icon: <BookOpen className="w-4 h-4" />,
     collapsible: false,
     items: [
       {
         title: "Quản lý quyền hạn",
         href: "/permissions",
-        // icon: <Type className="w-4 h-4" />,
+        icon: <ShieldCheck className="w-4 h-4" />,
       },
       {
         title: "Quản lý nhân sự",
         href: "/users",
-        // icon: <Type className="w-4 h-4" />,
+        icon: <Users className="w-4 h-4" />,
       },
       {
         title: "Danh sách Sub Merchant",
         href: "/sub-merchants",
-        // icon: <Type className="w-4 h-4" />,
+        icon: <Store className="w-4 h-4" />,
         subPages: [
           { title: "Tạo mới Sub Merchant", pattern: "/sub-merchants/new" },
           { title: "Chỉnh sửa Sub Merchant", pattern: "/sub-merchants/[id]/edit" },
@@ -110,22 +119,27 @@ export const routesConfig: SidebarSection[] = [
       {
         title: "Danh sách giao dịch",
         href: "/transaction",
+        icon: <ArrowLeftRight className="w-4 h-4" />,
       },
       {
         title: "Quản lý Đơn hàng",
         href: "/order",
+        icon: <ShoppingBag className="w-4 h-4" />,
       },
       {
         title: "Hoàn tiền",
         href: "/refund",
+        icon: <RotateCcw className="w-4 h-4" />,
       },
       {
         title: "Khiếu nại",
         href: "/complaint",
+        icon: <MessageSquareWarning className="w-4 h-4" />,
       },
       {
         title: "Lịch sử Rút Tiền",
         href: "/withdrawal",
+        icon: <Wallet className="w-4 h-4" />,
       },
     ],
   },

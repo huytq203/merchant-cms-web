@@ -7,7 +7,9 @@ import { formatAmount, formatDate } from '@/lib/utils/helper';
 import { WITHDRAWAL_STATUS_OPTIONS } from '../constants/Withdrawal.constants';
 import type { Withdrawal } from '../types/types';
 
-export function getWithdrawalColumns(): ColumnDef<Withdrawal>[] {
+export function getWithdrawalColumns(
+  onViewDetail: (withdrawal: Withdrawal) => void,
+): ColumnDef<Withdrawal>[] {
   return [
     {
       id: 'index',
@@ -95,9 +97,16 @@ export function getWithdrawalColumns(): ColumnDef<Withdrawal>[] {
       header: 'Thao tác',
       meta: { align: 'center' },
       enableSorting: false,
-      cell: () => (
+      cell: ({ row }) => (
         <div className="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Xem chi tiết"
+            onClick={() => onViewDetail(row.original)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon-sm" title="Copy link"><Link className="h-4 w-4" /></Button>
         </div>
       ),

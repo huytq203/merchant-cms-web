@@ -1,4 +1,5 @@
 import { ArrowUpFromLine, Download } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui";
 import WithdrawalForm from "@/features/withdrawals/components/WithdrawalForm";
 
@@ -16,9 +17,11 @@ export default function WithdrawalPage() {
           <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" />}>
             Xuất Excel
           </Button>
-          <Button size="sm" leftIcon={<ArrowUpFromLine className="h-4 w-4" />}>
-            Tạo yêu cầu rút tiền
-          </Button>
+          <Link href="/withdrawal/new">
+            <Button size="sm" leftIcon={<ArrowUpFromLine className="h-4 w-4" />}>
+              Tạo yêu cầu rút tiền
+            </Button>
+          </Link>
         </div>
       </div>
       <WithdrawalForm />

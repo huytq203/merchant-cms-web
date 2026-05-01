@@ -38,3 +38,8 @@ export async function findAllWithdrawals(params: FindWithdrawalParams): Promise<
 
   return { data: rows.map(toWithdrawalResponse), pagination: { page, pageSize, total } };
 }
+
+export async function findWithdrawalById(id: string): Promise<WithdrawalResponse | null> {
+  const row = await prisma.withdrawal.findUnique({ where: { id } });
+  return row ? toWithdrawalResponse(row) : null;
+}
