@@ -1,7 +1,6 @@
 import { Badge } from '@/components/ui/badge/Badge';
 import { cn } from '@/lib/utils/cn';
 import { type ColumnDef } from '@tanstack/react-table';
-import { format } from 'date-fns';
 import { Eye, RotateCcw } from 'lucide-react';
 import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
 import type { Transaction } from '../types';

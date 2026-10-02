@@ -13,6 +13,7 @@ const fileUploadVariants = tv({
       'relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed',
       'cursor-pointer transition-all duration-200',
       'hover:border-primary/50 hover:bg-primary/5',
+      'has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-primary has-[input:focus-visible]:ring-offset-2',
     ].join(' '),
     fillPreview: [
       'relative overflow-hidden rounded-xl border border-border group',
@@ -200,8 +201,9 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
     const addFiles = React.useCallback(
       (newFiles: File[]) => {
         const validated = validateFiles(newFiles);
-        if (validated.length === 0) return;
-        onChange?.(multiple ? [...value, ...validated] : validated.slice(0, 1));
+        const [firstFile] = validated;
+        if (!firstFile) return;
+        onChange?.(multiple ? [...value, ...validated] : [firstFile]);
       },
       [validateFiles, onChange, multiple, value],
     );
@@ -277,7 +279,8 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
               disabled={disabled}
               className="sr-only"
             />
-            <img src={fillUrl} alt={fillFile?.name} className={styles.fillImage()} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- blob URL xem trước, next/image không tối ưu được */}
+<img src={fillUrl} alt={fillFile?.name} className={styles.fillImage()} />
             <div className={styles.fillOverlay()}>
               <ImageIcon className="h-6 w-6" />
               <p className="text-sm font-medium">Nhấn để xem ảnh</p>
@@ -367,6 +370,7 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
             >
               <X className="h-5 w-5" />
             </button>
+            {/* eslint-disable-next-line @next/next/no-img-element -- blob URL xem trước, next/image không tối ưu được */}
             <img
               src={fillUrl}
               alt={fillFile?.name}
@@ -384,6 +388,7 @@ const FileUpload = React.forwardRef<HTMLDivElement, FileUploadProps>(
               return (
                 <div key={`${file.name}-${i}`} className={styles.fileItem()}>
                   {previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- blob URL xem trước, next/image không tối ưu được
                     <img
                       src={previewUrl}
                       alt={file.name}

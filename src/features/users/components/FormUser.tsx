@@ -43,6 +43,7 @@ const FormUser: React.FC<FormUserProps> = ({ mode, initialData }) => {
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- dự án chưa bật React Compiler, không ảnh hưởng
   const selectedScope = form.watch("subMerchantScope");
   const { data: permissionsData, isLoading: isPermissionsLoading } =
     usePermissions();

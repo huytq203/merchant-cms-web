@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { type Table as TanstackTable, type RowData } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import type { PaginationConfig, TableLabels } from './Table';
@@ -17,7 +17,6 @@ export function TablePagination<TData extends RowData>({
     table,
     totalRows,
     totalPageCount,
-    isServerMode,
     cfg,
     labels,
 }: TablePaginationProps<TData>) {
@@ -29,9 +28,12 @@ export function TablePagination<TData extends RowData>({
 
     const [inputValue, setInputValue] = useState<string | number>(currentPageIndex + 1);
 
-    useEffect(() => {
+    // Đồng bộ ô nhập khi trang đổi (điều chỉnh state ngay trong render, không dùng effect)
+    const [syncedPageIndex, setSyncedPageIndex] = useState(currentPageIndex);
+    if (syncedPageIndex !== currentPageIndex) {
+        setSyncedPageIndex(currentPageIndex);
         setInputValue(currentPageIndex + 1);
-    }, [currentPageIndex]);
+    }
 
     if (totalPageCount <= 0) return null;
 

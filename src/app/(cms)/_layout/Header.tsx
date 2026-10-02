@@ -1,7 +1,7 @@
 'use client';
-import { Button, Separator, SidebarTrigger } from '@/components/ui'
+import { Separator, SidebarTrigger } from '@/components/ui'
 import { Autocomplete } from '@/components/ui/autocomplete/Autocomplete'
-import { Bell, Home, Search, Settings } from 'lucide-react'
+import { Home, Search } from 'lucide-react'
 import React from 'react'
 import Link from 'next/link'
 import { getBreadcrumbs } from './constants/route.constants';

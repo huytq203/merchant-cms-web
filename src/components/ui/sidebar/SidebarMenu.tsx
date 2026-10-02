@@ -1,6 +1,8 @@
 'use client';
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import type { Route } from 'next';
 import { ChevronRight } from 'lucide-react';
 import { tv } from 'tailwind-variants';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../tooltip/Tooltip';
@@ -131,6 +133,7 @@ export const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenu
         data-sidebar="menu-button"
         data-active={isActive}
         data-size={size}
+        aria-label={isCollapsed ? tooltip : undefined}
         className={menuButtonVariants({ size, collapsed: isCollapsed, className })}
         {...props}
       >
@@ -154,9 +157,9 @@ export const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenu
 );
 SidebarMenuButton.displayName = 'SidebarMenuButton';
 
-// ─── SidebarNavLink — wraps React Router NavLink ─────────────────────────────
+// ─── SidebarNavLink — wraps Next.js Link ─────────────────────────────
 
-/** Props for a sidebar navigation link (wraps React Router NavLink) */
+/** Props for a sidebar navigation link (wraps Next.js Link) */
 export interface SidebarNavLinkProps {
   /** Route path for the link */
   to: string;
@@ -164,7 +167,7 @@ export interface SidebarNavLinkProps {
   icon?: React.ReactNode;
   /** Display text for the link; also used as tooltip when collapsed */
   label: string;
-  /** Match route exactly (React Router `end` prop) */
+  /** Match route exactly (no nested-path matching) */
   end?: boolean;
   /** Badge element rendered after the label */
   badge?: React.ReactNode;
@@ -184,12 +187,14 @@ export const SidebarNavLink: React.FC<SidebarNavLinkProps> = ({
 }) => {
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const pathname = usePathname();
+  const isActive = end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
 
   const link = (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) => cn(
+    <Link
+      href={to as Route}
+      aria-current={isActive ? 'page' : undefined}
+      className={cn(
         menuButtonVariants({ size, collapsed: isCollapsed, className }),
         isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : 'text-sidebar-foreground/70'
       )}
@@ -205,7 +210,7 @@ export const SidebarNavLink: React.FC<SidebarNavLinkProps> = ({
           {badge && <span className="ml-auto shrink-0">{badge}</span>}
         </>
       )}
-    </NavLink>
+    </Link>
   );
 
   if (isCollapsed && label) {
@@ -248,28 +253,17 @@ export const SidebarMenuCollapsible: React.FC<SidebarMenuCollapsibleProps> = ({
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
 
-  const [isOpen, setIsOpen] = React.useState(defaultOpen || isChildActive);
-  const prevOpenRef = React.useRef(isOpen);
+  // `isUserOpen` ghi nhớ lựa chọn của người dùng; khi sidebar collapse chỉ ẩn đi,
+  // khi expand lại thì khôi phục đúng state cũ.
+  const [isUserOpen, setIsUserOpen] = React.useState(defaultOpen || isChildActive);
+  const [wasChildActive, setWasChildActive] = React.useState(isChildActive);
+  const isOpen = !isCollapsed && isUserOpen;
 
-  // Khi sidebar collapse → đóng tất cả sub-menu, ghi nhớ state
-  // Khi sidebar expand → khôi phục state cũ
-  React.useEffect(() => {
-    if (isCollapsed) {
-      prevOpenRef.current = isOpen;
-      setIsOpen(false);
-    } else {
-      setIsOpen(prevOpenRef.current);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCollapsed]);
-
-  // Khi có child active, mở group
-  React.useEffect(() => {
-    if (isChildActive && !isCollapsed) {
-      setIsOpen(true);
-      prevOpenRef.current = true;
-    }
-  }, [isChildActive, isCollapsed]);
+  // Khi có child active, mở group (điều chỉnh state ngay trong render, không dùng effect)
+  if (isChildActive !== wasChildActive) {
+    setWasChildActive(isChildActive);
+    if (isChildActive) setIsUserOpen(true);
+  }
 
   const trigger = (
     <button
@@ -278,9 +272,7 @@ export const SidebarMenuCollapsible: React.FC<SidebarMenuCollapsibleProps> = ({
       data-active={isChildActive && isCollapsed}
       onClick={() => {
         if (!isCollapsed) {
-          const next = !isOpen;
-          setIsOpen(next);
-          prevOpenRef.current = next;
+          setIsUserOpen(!isOpen);
         }
       }}
       className={menuButtonVariants({

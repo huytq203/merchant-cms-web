@@ -97,9 +97,8 @@ function UserActionsCell({ user }: { user: User }) {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const { mutate: lockMutate, isPending: isLocking } = useLockUser();
   const { mutate: unlockMutate, isPending: isUnlocking } = useUnlockUser();
-  const { mutate: resetMutate, isPending: isResetting } =
-    useForgotPasswordMutation();
-  function handleResetConfirm(userId: string) {
+  const { mutate: resetMutate } = useForgotPasswordMutation();
+  function handleResetConfirm() {
     resetMutate(
       { username: user.email },
       {

@@ -1,13 +1,6 @@
 "use client";
 import { useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog/Dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog/Dialog";
 import { Button } from "@/components/ui/button/Button";
 import { QRCode } from "@/components/ui/qrcode/QRCode";
 import { CheckCircle2, Copy, Download, Mail } from "lucide-react";

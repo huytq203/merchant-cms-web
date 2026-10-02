@@ -89,6 +89,21 @@
     --color-danger: var(--danger);
     --color-danger-foreground: var(--danger-foreground);
 
+    --color-action: var(--action);
+    --color-action-hover: var(--action-hover);
+    --color-action-foreground: var(--action-foreground);
+
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+
+    --color-success-soft: var(--success-soft);
+    --color-warning-soft: var(--warning-soft);
+    --color-danger-soft: var(--danger-soft);
+    --color-info-soft: var(--info-soft);
+
+    --color-page: var(--page);
+    --color-brand: var(--brand);
+    --color-brand-ink: var(--brand-ink);
     --color-ring: var(--ring);
     --color-input: var(--input);
 
@@ -108,25 +123,13 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-ring: var(--sidebar-ring);
 
-    /* ─── Dark Blue palette ───────────────────────────────────────────────────── */
-    --color-dark-blue-50:  #f3f0ff;
-    --color-dark-blue-100: #e9e4ff;
-    --color-dark-blue-200: #d5ccff;
-    --color-dark-blue-300: #b8a4ff;
-    --color-dark-blue-400: #9570ff;
-    --color-dark-blue-500: #7637ff;
-    --color-dark-blue-600: #690fff;
-    --color-dark-blue-700: #6600ff;
-    --color-dark-blue-800: #5700da;
-    --color-dark-blue-900: #4600af;
-    --color-dark-blue-950: #2c007a;
-
-    /* ─── Neutrals palette ────────────────────────────────────────────────────── */
-    --color-neutral-bg:      #fbfbfb;
-    --color-neutral-border:  #eff1f1;
-    --color-neutral-border2: #dde2e1;
-    --color-neutral-dark:    #232929;
-    --color-neutral-mid:     #5e6e6c;
+    /* ─── Flexpay brand palette ───────────────────────────────────────────────── */
+    --color-brand-pressed: #00b8a9;
+    --color-brand-deep:    #008175;
+    --color-brand-tint:    #eaf6f4;
+    --color-brand-field:   #d9f0ee;
+    --color-divider:       #ddebea;
+    --color-placeholder:   #8fa9aa;
 
     /* ─── Radius scale ────────────────────────────────────────────────────────── */
     --radius-sm: 0.375rem;   /* 6px  — badges, tags */
@@ -135,8 +138,8 @@
     --radius-xl: 1rem;       /* 16px — modals, large containers */
 
     /* ─── Shadow tokens ───────────────────────────────────────────────────────── */
-    --shadow-subtle: rgba(0,0,0,0.03) 0px 4px 24px;
-    --shadow-micro:  rgba(16,24,40,0.04) 0px 1px 4px;
+    --shadow-subtle: rgba(0,61,52,0.06) 0px 8px 24px;
+    --shadow-micro:  rgba(0,61,52,0.05) 0px 1px 4px;
 
     /* ─── Font families ───────────────────────────────────────────────────────── */
     --font-display: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
@@ -167,123 +170,137 @@
 
 @layer base {
     :root {
-        /* ── Neutrals ── */
-        --background: #fbfbfb;
-        --foreground: #232929;
+        /* Flexpay Design System v2 — light */
+        --page: #f4f7f6;
+        --background: #ffffff;              /* surface: card, input */
+        --foreground: #1c2120;              /* ink */
 
-        /* ── Primary: Keppel ── */
-        --primary: #058075;                 /* keppel-700 */
+        --brand: #02ccbb;
+        --brand-ink: #005045;
+
+        --primary: #008175;                 /* brand-deep */
         --primary-foreground: #ffffff;
 
-        /* ── Secondary: Dark Blue ── */
-        --secondary: #e9e4ff;               /* dark-blue-100 */
-        --secondary-foreground: #6600ff;    /* dark-blue-700 */
+        --secondary: #d9f0ee;               /* brand-field */
+        --secondary-foreground: #005045;    /* brand-ink */
 
-        /* ── Muted / Accent ── */
-        --muted: #effefa;                   /* keppel-50 */
-        --muted-foreground: #5e6e6c;        /* neutral-mid */
+        --muted: #eaf6f4;                   /* brand-tint */
+        --muted-foreground: #5f5f5f;
 
-        --accent: #f3f0ff;                  /* dark-blue-50 */
-        --accent-foreground: #232929;
+        --accent: #eaf6f4;
+        --accent-foreground: #005045;
 
-        /* ── Semantic ── */
-        --success: #149e61;
+        /* CTA chính */
+        --action: #ffcd03;
+        --action-hover: #f0bf00;
+        --action-foreground: #005045;
+
+        --success: #1f9a5b;
         --success-foreground: #ffffff;
+        --success-soft: #dcf3e5;
 
-        --warning: #f59e0b;
+        --warning: #8a6a00;
         --warning-foreground: #ffffff;
+        --warning-soft: #ffe07d;
 
-        --danger: #ef4444;
+        --danger: #dd1327;
         --danger-foreground: #ffffff;
+        --danger-soft: #fce0e6;
 
-        --destructive: #ef4444;
+        --destructive: #dd1327;
         --destructive-foreground: #ffffff;
 
-        /* ── Form / Input ── */
-        --border: #e4e4e4;                  /* neutral-border */
-        --input: #dde2e1;                   /* neutral-border2 */
-        --ring: #058075;
+        --info: #1e6fd9;
+        --info-foreground: #ffffff;
+        --info-soft: #dcebfb;
 
-        /* ── Overlays ── */
-        --popover: #fbfbfb;
-        --popover-foreground: #232929;
+        --border: #cee0e1;
+        --input: #cee0e1;
+        --ring: #02ccbb;
 
-        --switch-background: #9b9b9b;       /* keppel-200 */
+        --popover: #ffffff;
+        --popover-foreground: #1c2120;
 
-        /* ── Charts ── */
-        --chart-1: #e11d48;
-        --chart-2: #058075;                 /* keppel-700 */
-        --chart-3: #149e61;
-        --chart-4: #6600ff;                 /* dark-blue-700 */
-        --chart-5: #f59e0b;
+        --switch-background: #cee0e1;
 
-        /* ── Sidebar ── */
-        --sidebar: #f5f6f7;
-        --sidebar-foreground: #232929;
-        --sidebar-border: #b6b6b6;          /* neutral-border */
-        --sidebar-accent: #e9e4ff;          /* dark-blue-100 */
-        --sidebar-accent-foreground: #6600ff; /* dark-blue-700 */
-        --sidebar-ring: #058075;
+        --chart-1: #008175;
+        --chart-2: #ffcd03;
+        --chart-3: #1e6fd9;
+        --chart-4: #1f9a5b;
+        --chart-5: #dd1327;
+
+        --sidebar: #ffffff;
+        --sidebar-foreground: #1c2120;
+        --sidebar-border: #ddebea;
+        --sidebar-accent: #eaf6f4;
+        --sidebar-accent-foreground: #005045;
+        --sidebar-ring: #02ccbb;
     }
 
     .dark {
-        /* ── Neutrals dark ── */
-        --background: #151b1b;
-        --foreground: #effefa;              /* keppel-50 */
+        --page: #0b1413;
+        --background: #12201e;
+        --foreground: #eaf6f4;
 
-        /* ── Primary: Keppel ── */
-        --primary: #04c8b1;                 /* keppel-500 */
-        --primary-foreground: #003331;      /* keppel-950 */
+        --brand: #02ccbb;
+        --brand-ink: #d9f0ee;
 
-        /* ── Secondary: Dark Blue ── */
-        --secondary: #1e1540;
-        --secondary-foreground: #b8a4ff;    /* dark-blue-300 */
+        --primary: #02ccbb;
+        --primary-foreground: #003d35;
 
-        /* ── Muted / Accent ── */
-        --muted: #1a2020;
-        --muted-foreground: #7a9490;
+        --secondary: #0f332f;
+        --secondary-foreground: #d9f0ee;
 
-        --accent: #1e1540;
-        --accent-foreground: #effefa;
+        --muted: #172a28;
+        --muted-foreground: #8fa9aa;
 
-        /* ── Semantic ── */
-        --success: #1acc72;
-        --success-foreground: #ffffff;
+        --accent: #172a28;
+        --accent-foreground: #eaf6f4;
 
-        --warning: #f59e0b;
-        --warning-foreground: #ffffff;
+        --action: #ffcd03;
+        --action-hover: #f0bf00;
+        --action-foreground: #005045;
 
-        --danger: #f05555;
-        --danger-foreground: #ffffff;
+        --success: #3ccf86;
+        --success-foreground: #00301a;
+        --success-soft: #0f3324;
 
-        --destructive: #f05555;
-        --destructive-foreground: #ffffff;
+        --warning: #ffe07d;
+        --warning-foreground: #3d2e00;
+        --warning-soft: #3a2f08;
 
-        /* ── Form / Input ── */
-        --border: #232e2e;
-        --input: #2a3535;
-        --ring: #04c8b1;
+        --danger: #f05566;
+        --danger-foreground: #3d0008;
+        --danger-soft: #3d1219;
 
-        --switch-background: #0d544f;       /* keppel-900 */
+        --destructive: #f05566;
+        --destructive-foreground: #3d0008;
 
-        /* ── Overlays ── */
-        --popover: #1a2020;
-        --popover-foreground: #effefa;
+        --info: #5ea2f5;
+        --info-foreground: #00224d;
+        --info-soft: #11294a;
 
-        /* ── Charts ── */
-        --chart-1: #fb7185;
-        --chart-2: #04c8b1;                 /* keppel-500 */
-        --chart-3: #1acc72;
-        --chart-4: #b8a4ff;                 /* dark-blue-300 */
-        --chart-5: #fbbf24;
+        --border: #24403d;
+        --input: #2a4744;
+        --ring: #02ccbb;
 
-        /* ── Sidebar ── */
-        --sidebar: #111818;
-        --sidebar-foreground: #effefa;
-        --sidebar-border: #232e2e;
-        --sidebar-accent: #1e1540;
-        --sidebar-accent-foreground: #b8a4ff; /* dark-blue-300 */
-        --sidebar-ring: #04c8b1;
+        --popover: #12201e;
+        --popover-foreground: #eaf6f4;
+
+        --switch-background: #24403d;
+
+        --chart-1: #02ccbb;
+        --chart-2: #ffcd03;
+        --chart-3: #5ea2f5;
+        --chart-4: #3ccf86;
+        --chart-5: #f05566;
+
+        --sidebar: #0d1918;
+        --sidebar-foreground: #eaf6f4;
+        --sidebar-border: #1d3431;
+        --sidebar-accent: #0f332f;
+        --sidebar-accent-foreground: #d9f0ee;
+        --sidebar-ring: #02ccbb;
     }
 }
 
@@ -296,7 +313,7 @@
     html, body {
         margin: 0;
         padding: 0;
-        background-color: var(--background);
+        background-color: var(--page);
         color: var(--foreground);
         font-family: var(--font-ui);
         overflow: hidden; /* Khóa scroll tổng để dùng nội bộ */
@@ -339,33 +356,33 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background: #c0c2d1; /* Kraken cool gray */
+        background: #cee0e1;
         border-radius: 10px;
         border: 2px solid transparent;
         background-clip: content-box;
     }
 
     .dark ::-webkit-scrollbar-thumb {
-        background: #2a2740;
+        background: #24403d;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: #9497a9; /* Kraken Silver Blue */
+        background: #8fa9aa;
         background-clip: content-box;
     }
 
     .dark ::-webkit-scrollbar-thumb:hover {
-        background: #3d3860;
+        background: #3a5c58;
     }
 
     /* Firefox */
     * {
         scrollbar-width: thin;
-        scrollbar-color: #c0c2d1 transparent;
+        scrollbar-color: #cee0e1 transparent;
     }
 
     .dark * {
-        scrollbar-color: #2a2740 transparent;
+        scrollbar-color: #24403d transparent;
     }
 }
 

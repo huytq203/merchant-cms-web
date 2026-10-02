@@ -1,12 +1,7 @@
 'use client';
 import React from 'react';
-import {
-    flexRender,
-    type Row,
-    type ColumnDef,
-    type RowData,
-} from '@tanstack/react-table';
-import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
+import { flexRender, type Row, type RowData } from '@tanstack/react-table';
+import { type Virtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils/cn';
 
 // ─── Empty State ────────────────────────────────────────────────────────────

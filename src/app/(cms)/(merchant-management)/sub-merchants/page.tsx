@@ -56,7 +56,7 @@ export default function SubMerchantsPage() {
     );
   };
 
-  const handleUnlockConfirm = (_reason: string) => {
+  const handleUnlockConfirm = () => {
     if (!lockTarget) return;
     toggleStatus(
       { id: lockTarget.id, lockReason: null, lockedAt: null },

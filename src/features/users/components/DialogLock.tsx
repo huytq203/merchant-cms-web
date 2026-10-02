@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Textarea, Text } from '@/components/ui';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, Button, Textarea } from '@/components/ui';
 import { User } from '../types/type';
 import { lockUserSchema } from '@/app/api/v1/admin/merchants/users/types/schemas';
 
@@ -58,13 +58,13 @@ export function DialogLock({
 
         <div className="space-y-4">
           {/* Warning Section */}
-          <div className="flex gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex gap-3 p-3 bg-danger-soft rounded-lg border border-danger/30">
+            <AlertCircle className="h-5 w-5 text-danger flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-900">
+              <p className="text-sm font-medium text-danger">
                 Khóa tài khoản của <span className="font-semibold">{user?.name}</span>
               </p>
-              <p className="text-xs text-red-700 mt-1">
+              <p className="text-xs text-danger mt-1">
                 Người dùng sẽ không thể đăng nhập sau khi bị khóa. Hành động này có thể khôi phục được.
               </p>
             </div>
@@ -72,8 +72,8 @@ export function DialogLock({
 
           {/* Reason Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Lý do khóa <span className="text-red-500">*</span>
+            <label className="text-sm font-medium text-muted-foreground">
+              Lý do khóa <span className="text-danger">*</span>
             </label>
             <Textarea
               showCount={true}
@@ -88,17 +88,17 @@ export function DialogLock({
               className="min-h-24"
             />
             {error && (
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
             )}
           </div>
 
           {/* User Info */}
           {user && (
-            <div className="bg-gray-50 p-3 rounded-lg space-y-1">
-              <p className="text-xs text-gray-600">
+            <div className="bg-muted p-3 rounded-lg space-y-1">
+              <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Email:</span> {user.email}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Số điện thoại:</span> {user.phone}
               </p>
             </div>
@@ -117,7 +117,7 @@ export function DialogLock({
             variant="solid"
             isLoading={isLoading}
             onClick={handleSubmit}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-danger hover:bg-danger/80"
           >
             Khóa tài khoản
           </Button>

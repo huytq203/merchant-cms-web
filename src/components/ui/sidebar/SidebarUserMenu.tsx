@@ -32,7 +32,8 @@ export const UserMenuPopover: React.FC<UserMenuPopoverProps> = ({ name, email, a
             'data-[active=true]:bg-sidebar-accent'
           )}
         >
-          <img
+          {/* eslint-disable-next-line @next/next/no-img-element -- avatar URL động từ nhiều domain, chưa khai báo remotePatterns */}
+<img
             src={avatar || 'https://i.pravatar.cc/100'}
             alt={name}
             className="w-8 h-8 rounded-lg shrink-0 object-cover border border-sidebar-border"
@@ -72,7 +73,8 @@ export const UserMenuPopover: React.FC<UserMenuPopoverProps> = ({ name, email, a
           >
             {/* User info header */}
             <div className="flex items-center gap-3 p-3 pb-2 border-b border-border/50">
-              <img
+              {/* eslint-disable-next-line @next/next/no-img-element -- avatar URL động từ nhiều domain, chưa khai báo remotePatterns */}
+<img
                 src={avatar || 'https://i.pravatar.cc/100'}
                 alt={name}
                 className="w-10 h-10 rounded-lg object-cover border border-border"

@@ -1,4 +1,4 @@
-"use client"
+'use client';
 import * as React from 'react';
 import { Select as BaseSelect } from '@base-ui/react';
 import { tv } from 'tailwind-variants';

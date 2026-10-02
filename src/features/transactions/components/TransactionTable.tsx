@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react';
 import { getColumn } from '../columns/TransactionColumn';
 import { TransactionDetailSheet } from './TransactionDetailSheet';
 import type { Transaction } from '../types';
-import { toast } from 'sonner';
 import { DialogReconciliation } from './DialogReconciliation';
 import { DialogRefund } from './DialogRefund';
 

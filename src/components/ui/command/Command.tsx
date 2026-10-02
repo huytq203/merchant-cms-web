@@ -84,13 +84,16 @@ const Command: React.FC<CommandProps> = ({ open, onOpenChange, children, classNa
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
   const [visibleItemCount, setVisibleItemCount] = React.useState(0);
 
-  React.useEffect(() => {
+  // Reset trạng thái mỗi lần mở (điều chỉnh state ngay trong render, không dùng effect)
+  const [wasOpen, setWasOpen] = React.useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) {
       setSearch('');
       setHighlightedIndex(0);
       setVisibleItemCount(0);
     }
-  }, [open]);
+  }
 
   return (
     <CommandContext.Provider value={{ search, setSearch, highlightedIndex, setHighlightedIndex, visibleItemCount, setVisibleItemCount }}>
@@ -183,8 +186,7 @@ export interface CommandItemProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const CommandItem = React.forwardRef<HTMLDivElement, CommandItemProps>(
   ({ className, disabled, keywords = [], onSelect, value, children, ...props }, ref) => {
-    const { search, highlightedIndex, setHighlightedIndex, setVisibleItemCount } = useCommand();
-    const [itemIndex] = React.useState(() => Math.random());
+    const { search, setVisibleItemCount } = useCommand();
 
     // Filter: check value, text content, and keywords
     const searchable = [value ?? '', ...(typeof children === 'string' ? [children] : []), ...keywords]
@@ -209,6 +211,7 @@ const CommandItem = React.forwardRef<HTMLDivElement, CommandItemProps>(
       <div
         ref={ref}
         role="option"
+        aria-selected={false}
         aria-disabled={disabled || undefined}
         className={cn(
           styles.item(),

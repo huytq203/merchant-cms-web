@@ -115,7 +115,7 @@ Sidebar.displayName = 'Sidebar';
 // ─── SidebarRail — kept for API compatibility, resize is handled by ResizableHandle ──
 
 export const SidebarRail = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  (_props, _ref) => null,
+  () => null,
 );
 SidebarRail.displayName = 'SidebarRail';
 

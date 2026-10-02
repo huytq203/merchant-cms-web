@@ -101,5 +101,5 @@ const TabsContent = React.forwardRef<React.ElementRef<typeof BaseTabs.Panel>, Ta
 );
 TabsContent.displayName = 'TabsContent';
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, tabsVariants };
+export { Tabs, TabsList, TabsTrigger, TabsContent };
 export type { TabsSize };

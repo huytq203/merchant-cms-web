@@ -7,7 +7,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar/Sidebar'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable/Resizable'
-import { ThemeProvider } from '@/lib/theme/ThemeProvider'
 import SideBar from './_layout/SideBar'
 import Header from './_layout/Header'
 import { useUIStore } from '@/stores/ui-store'

@@ -207,7 +207,7 @@ const InputOTP = React.forwardRef<HTMLDivElement, InputOTPProps>(
         >
           {Array.from({ length }).map((_, i) => {
             const isFocused = focusedIndex === i;
-            const isFilled = (chars[i] ?? '') !== '';
+            const isFilled = chars[i] !== '';
             const showSuccess = successOnComplete && isComplete;
             const showError = error && !showSuccess;
 

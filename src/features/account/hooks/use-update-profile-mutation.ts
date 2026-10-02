@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { accountApi } from "../api/account-api";
+import { accountApi } from "../../../lib/api/account-api";
 import type { UpdateProfileInput } from "../schemas";
 
 export function useUpdateProfileMutation() {

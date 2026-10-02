@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/form/Form";
 import { Input } from "@/components/ui/input/Input";
 import { Checkbox } from "@/components/ui/checkbox/Checkbox";
-import { Text } from "@/components/ui";
-import { FormUserValues } from "../schemas/form-user.schema";
+import type { Control } from "react-hook-form";
+import type { FormUserValues } from "../schemas/form-user.schema";
 
 interface SubMerchant {
   id: string;
@@ -20,7 +20,7 @@ interface SubMerchant {
 }
 
 interface SubMerchantSelectionProps {
-  control: any;
+  control: Control<FormUserValues>;
   subMerchants: SubMerchant[];
   isLoading: boolean;
   searchKeyword: string;

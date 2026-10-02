@@ -1,6 +1,5 @@
 import { apiClient } from "@/lib/http/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { SubMerchant } from "../types";
 import type {
   NewSubMerchantFormValues,
   SubMerchantFormValues,

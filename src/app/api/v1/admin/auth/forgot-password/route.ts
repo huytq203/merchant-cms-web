@@ -6,8 +6,9 @@ const DEFAULT_PASSWORD = "111111";
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as { username?: string; email?: string };
+  const identifier = body.username?.trim() || body.email?.trim();
 
-  if (!body.username && !body.email) {
+  if (!identifier) {
     return NextResponse.json(
       { success: false, message: "Vui lòng cung cấp username hoặc email", status: "BAD_REQUEST" },
       { status: 400 },
@@ -17,8 +18,8 @@ export async function POST(request: NextRequest) {
   const login = await prisma.login.findFirst({
     where: {
       OR: [
-        { username: body.username ?? "" },
-        { user: { email: body.email ?? "" } },
+        { username: identifier },
+        { user: { email: identifier } },
       ],
     },
     select: { id: true },

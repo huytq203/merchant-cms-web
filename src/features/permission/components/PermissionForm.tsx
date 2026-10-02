@@ -1,7 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { AlertTriangle, Save, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
@@ -50,8 +49,7 @@ const PermissionForm = ({ mode, id = "" }: PermissionFormProps) => {
     useUpdatePermission(id);
   const { mutate: createPermission, isPending: isCreating } =
     useCreatePermission();
-  const { data: permissionData, isLoading: isLoadingPermissionData } =
-    usePermissions();
+  const { data: permissionData } = usePermissions();
   const schema = isEdit ? editPermissionSchema : newPermissionSchema;
 
   const formDefaultValues = isEdit
@@ -78,6 +76,7 @@ const PermissionForm = ({ mode, id = "" }: PermissionFormProps) => {
     }
   }, [data, isEdit, form]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- dự án chưa bật React Compiler, không ảnh hưởng
   const selectedPermissions = form.watch("permissions");
 
   const totalPermissions = permissionData?.data.reduce(

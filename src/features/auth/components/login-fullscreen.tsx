@@ -143,14 +143,14 @@ export function LoginFullScreen() {
               Giải pháp thanh toán
             </span> */}
           </div>
-          <Button
+          {/* <Button
             variant="ghost"
             size="sm"
             className="text-sm text-muted-foreground ml-auto"
           >
             Chưa có tài khoản?&nbsp;
             <span className="text-primary font-semibold">Đăng ký</span>
-          </Button>
+          </Button> */}
         </div>
 
         {/* Centered form */}

@@ -206,7 +206,8 @@ type ActiveDotRenderProps = {
 const makeActiveDot = (
     xKey: string,
     onClick: (payload: ChartClickEvent, event: React.MouseEvent) => void,
-) => (dotProps: unknown) => {
+) => {
+  const ActiveDot = (dotProps: unknown) => {
     const { cx = 0, cy = 0, fill = '', payload = {}, index = 0, dataKey } = dotProps as ActiveDotRenderProps;
     return (
         <circle
@@ -219,6 +220,8 @@ const makeActiveDot = (
             }}
         />
     );
+  };
+  return ActiveDot;
 };
 
 // ─── ChartPie ─────────────────────────────────────────────────────────────────
@@ -321,9 +324,9 @@ export const ChartRadar: React.FC<ChartRadarProps> = ({
 export {
     ResponsiveContainer, LineChart, BarChart, AreaChart, PieChart, RadarChart,
     Line, Bar, Area, Pie, Cell, Radar,
-    XAxis, YAxis, CartesianGrid, Legend, PolarGrid, PolarAngleAxis,
+    XAxis, YAxis, CartesianGrid, Tooltip as ChartPrimitiveTooltip, Legend, PolarGrid, PolarAngleAxis,
 } from 'recharts';
-export type { TooltipProps } from 'recharts';
+export type { TooltipProps as ChartPrimitiveTooltipProps, TooltipContentProps as ChartTooltipContentProps } from 'recharts';
 
 // ─── Re-export tokens so consumers only need one import path ──────────────────
 export type { SeriesItem, PieDataItem, ChartClickEvent } from './chart-tokens';

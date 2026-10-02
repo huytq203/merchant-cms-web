@@ -106,7 +106,7 @@ export function TransactionDetailSheet({
                 </span>
               </DetailRow>
               <DetailRow label="Thực nhận">
-                <span className="font-mono font-semibold text-emerald-600">
+                <span className="font-mono font-semibold text-success">
                   {formatAmount(data.netAmount)}
                 </span>
               </DetailRow>

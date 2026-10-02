@@ -19,7 +19,6 @@ const badgeVariants = tv({
       'soft-success': 'border-transparent bg-success/[0.16] text-success',
       'soft-warning': 'border-transparent bg-warning/[0.16] text-warning',
       'soft-danger':  'border-transparent bg-danger/[0.12] text-danger',
-      'text-danger': 'border-transparent text-danger',
 
       // Glass variant
       glass: 'border border-white/20 bg-white/10 text-foreground backdrop-blur-md shadow-sm',

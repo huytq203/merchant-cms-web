@@ -45,13 +45,13 @@ export function DialogUnlock({
 
         <div className="space-y-4">
           {/* Success Section */}
-          <div className="flex gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+          <div className="flex gap-3 p-3 bg-success-soft rounded-lg border border-success/30">
+            <CheckCircle className="h-5 w-5 text-success shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-green-900">
+              <p className="text-sm font-medium text-success">
                 Mở khóa tài khoản <span className="font-semibold">{user?.name}</span>
               </p>
-              <p className="text-xs text-green-700 mt-1">
+              <p className="text-xs text-success mt-1">
                 Người dùng sẽ có thể đăng nhập lại sau khi mở khóa.
               </p>
             </div>
@@ -59,15 +59,15 @@ export function DialogUnlock({
 
           {/* Current Lock Reason */}
           {user?.lockReason && (
-            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-              <p className="text-xs font-medium text-gray-600 mb-2">Lý do khóa trước đó:</p>
-              <p className="text-sm text-gray-700 italic">{user.lockReason}</p>
+            <div className="bg-muted p-3 rounded-lg border border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Lý do khóa trước đó:</p>
+              <p className="text-sm text-muted-foreground italic">{user.lockReason}</p>
             </div>
           )}
 
           {/* Optional Note Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-muted-foreground">
               Ghi chú mở khóa (tùy chọn)
             </label>
             <Textarea
@@ -81,11 +81,11 @@ export function DialogUnlock({
 
           {/* User Info */}
           {user && (
-            <div className="bg-gray-50 p-3 rounded-lg space-y-1">
-              <p className="text-xs text-gray-600">
+            <div className="bg-muted p-3 rounded-lg space-y-1">
+              <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Email:</span> {user.email}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Số điện thoại:</span> {user.phone}
               </p>
             </div>
@@ -104,7 +104,7 @@ export function DialogUnlock({
             variant="solid"
             isLoading={isLoading}
             onClick={handleSubmit}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-success hover:bg-success/80"
           >
             Mở khóa tài khoản
           </Button>

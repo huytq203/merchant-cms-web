@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Mail } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -43,19 +44,33 @@ export function ForgotPasswordDialog({
     defaultValues: { username: "" },
   });
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
-    const result = await forgotMutation.mutateAsync({
-      username: values.username,
-    });
+    forgotMutation.mutate(
+      { username: values.username },
+      {
+        onSuccess: (result) => {
+          if (result.success) {
+            setMessage({ type: "success", text: result.message });
+            form.reset();
+            setTimeout(() => onOpenChange(false), 2000);
+            return;
+          }
 
-    if (result.success) {
-      setMessage({ type: "success", text: result.message });
-      form.reset();
-      setTimeout(() => onOpenChange(false), 2000);
-    } else {
-      setMessage({ type: "error", text: result.message });
-    }
+          setMessage({ type: "error", text: result.message });
+          toast.error(result.message);
+        },
+        onError: (error) => {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Không thể reset mật khẩu. Vui lòng thử lại.";
+
+          setMessage({ type: "error", text: errorMessage });
+          toast.error(errorMessage);
+        },
+      },
+    );
   });
 
   const busy = form.formState.isSubmitting || forgotMutation.isPending;
@@ -89,10 +104,11 @@ export function ForgotPasswordDialog({
 
             {message && (
               <p
+                role={message.type === "error" ? "alert" : "status"}
                 className={`rounded-md border px-3 py-2 text-sm ${
                   message.type === "success"
-                    ? "border-green-300/30 bg-green-5 text-green-700"
-                    : "border-red-300/30 bg-red-5 text-red-700"
+                    ? "border-success/30 bg-success-soft text-success"
+                    : "border-danger/30 bg-danger-soft text-danger"
                 }`}
               >
                 {message.text}

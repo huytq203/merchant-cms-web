@@ -7,9 +7,8 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card/Card";
-import { Button } from "@/components/ui/button/Button";
 import { Skeleton } from "@/components/ui/skeleton/Skeleton";
-import { ChartArea, ChartBar, ChartLine, Line } from "@/components/ui/chart/Chart";
+import { ChartArea } from "@/components/ui/chart/Chart";
 import { cn } from "@/lib/utils/cn";
 import { useRevenueChartQuery } from "../hooks/use-revenue-chart-query";
 import type { ChartPeriod } from "../types/Dashboard.type";

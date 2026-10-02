@@ -1,4 +1,3 @@
-import { apiClient } from "@/lib/http/api-client";
 import { useQuery } from "@tanstack/react-query";
 import type { SubMerchant, SubMerchantListResponse } from "../types";
 import { subMerchantApi } from "../../../lib/api/SubMerchant";

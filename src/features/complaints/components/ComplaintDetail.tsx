@@ -13,16 +13,7 @@ import { formatDate } from "@/lib/utils/helper";
 import { COMPLAINT_STATUS_OPTIONS } from "../constants/Complaint.constants";
 import type { Complaint, ComplaintMessage } from "../types/types";
 import { ComplaintChatPanel } from "./ComplaintChatPanel";
-import {
-  AlertCircle,
-  Clock,
-  Copy,
-  CreditCard,
-  FileText,
-  History,
-  ImageIcon,
-  MessageSquare,
-} from "lucide-react";
+import { AlertCircle, Clock, CreditCard, FileText, History, ImageIcon, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Text } from "@/components/ui";
 
@@ -86,12 +77,6 @@ export function ComplaintDetail({
   const isOverdue = complaint?.deadline
     ? new Date(complaint.deadline) < new Date()
     : false;
-
-  const handleCopyTxCode = () => {
-    if (complaint?.transactionCode) {
-      void navigator.clipboard.writeText(complaint.transactionCode);
-    }
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

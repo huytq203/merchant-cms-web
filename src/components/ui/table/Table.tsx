@@ -17,6 +17,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 declare module '@tanstack/react-table' {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- generics phải khớp khai báo gốc của TanStack Table
     interface ColumnMeta<TData extends RowData, TValue> {
         align?: 'left' | 'center' | 'right';
     }
@@ -69,7 +70,7 @@ export interface TableProps<TData, TValue = unknown> {
     estimatedRowHeight?: number;
 }
 
-export function Table<TData, TValue = unknown>({
+export function Table<TData>({
     data = [],
     columns,
     isLoading = false,
@@ -98,13 +99,15 @@ export function Table<TData, TValue = unknown>({
     const [page, setPage] = useState(cfg.current ?? 1);
     const [pageSize, setPageSize] = useState(cfg.pageSize ?? 10);
 
-    useEffect(() => {
-        if (cfg.current !== undefined) setPage(cfg.current);
-    }, [cfg.current]);
+    const { current: controlledPage, pageSize: controlledPageSize } = cfg;
 
     useEffect(() => {
-        if (cfg.pageSize !== undefined) setPageSize(cfg.pageSize);
-    }, [cfg.pageSize]);
+        if (controlledPage !== undefined) setPage(controlledPage);
+    }, [controlledPage]);
+
+    useEffect(() => {
+        if (controlledPageSize !== undefined) setPageSize(controlledPageSize);
+    }, [controlledPageSize]);
 
     const pageIndex = page - 1;
     const totalRows = isServerMode ? cfg.total! : data.length;
@@ -182,6 +185,7 @@ export function Table<TData, TValue = unknown>({
         return cols;
     }, [columns, enableRowSelection, enableExpanding]);
 
+    // eslint-disable-next-line react-hooks/incompatible-library -- dự án chưa bật React Compiler, không ảnh hưởng
     const table = useReactTable({
         data,
         columns: finalColumns,

@@ -24,13 +24,6 @@ const timelineVariants = tv({
   },
   variants: {
     size: {
-      xs: {
-        indicator: 'h-4 w-4 [&_svg]:h-2 [&_svg]:w-2',
-        connector: 'w-4',
-        connectorLine: 'mt-4',
-        item: 'gap-4 pb-4',
-        contentWrapper: 'pt-1',
-      },
       sm: {
         indicator: 'h-7 w-7 [&_svg]:h-3.5 [&_svg]:w-3.5',
         connector: 'w-7',

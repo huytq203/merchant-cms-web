@@ -112,7 +112,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {showCount && (
             <span
               className={cn(
-                'pointer-events-none absolute bottom-1 right-3 select-none text-[0.7rem] tabular-nums text-muted-foreground font-mono',
+                'pointer-events-none absolute bottom-1 right-3 select-none text-[0.7rem] tabular-nums text-muted-foreground',
                 isNearLimit && 'font-medium text-warning',
                 isAtLimit && 'text-danger',
               )}

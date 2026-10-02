@@ -27,7 +27,7 @@ export const LoginFullScreen = () => {
     defaultValues: { email: '', password: '', rememberMe: false },
   });
 
-  const onSubmit = async (_data: LoginValues) => {
+  const onSubmit = async () => {
     setIsLoading(true);
     await new Promise<void>((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
