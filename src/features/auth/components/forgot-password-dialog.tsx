@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -17,12 +16,7 @@ import { Form, FormField } from "@/components/ui/form/Form";
 import { Input } from "@/components/ui/input/Input";
 import { Button } from "@/components/ui/button/Button";
 import { useForgotPasswordMutation } from "@/features/auth/hooks/use-forgot-password-mutation";
-
-const forgotPasswordSchema = z.object({
-  username: z.string().min(1, "Vui lòng nhập username hoặc email"),
-});
-
-type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@/features/auth/schemas";
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -41,13 +35,13 @@ export function ForgotPasswordDialog({
 
   const form = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { username: "" },
+    defaultValues: { email: "" },
   });
 
   const onSubmit = form.handleSubmit((values) => {
     setMessage(null);
     forgotMutation.mutate(
-      { username: values.username },
+      { email: values.email },
       {
         onSuccess: (result) => {
           if (result.success) {
@@ -81,7 +75,7 @@ export function ForgotPasswordDialog({
         <DialogHeader>
           <DialogTitle>Quên mật khẩu?</DialogTitle>
           <DialogDescription>
-            Nhập username hoặc email của bạn để reset mật khẩu về 111111
+            Nhập email đăng nhập. Nếu email tồn tại, chúng tôi sẽ gửi liên kết đặt lại mật khẩu.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,12 +83,12 @@ export function ForgotPasswordDialog({
           <form onSubmit={onSubmit} className="space-y-4">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field, fieldState }) => (
                 <Input
-                  label="Username hoặc Email"
-                  type="text"
-                  placeholder="Nhập username hoặc email"
+                  label="Email"
+                  type="email"
+                  placeholder="ten@congty.vn"
                   icon={<Mail className="w-4 h-4" />}
                   error={fieldState.error?.message}
                   {...field}
@@ -134,7 +128,7 @@ export function ForgotPasswordDialog({
                 disabled={busy}
                 isLoading={busy}
               >
-                Reset mật khẩu
+                Gửi liên kết
               </Button>
             </div>
           </form>

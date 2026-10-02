@@ -6,7 +6,8 @@ export const envelopeSchema = z.object({
   status: z.string().nullish(),
   message: z.string().nullish(),
   detail: z.string().nullish(),
-  data: z.unknown(),
+  /** The BE omits `data` when it is null (`@JsonInclude(NON_NULL)`), so the key must be optional. */
+  data: z.unknown().optional(),
 });
 
 /** For endpoints that return no payload. */

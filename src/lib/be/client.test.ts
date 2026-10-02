@@ -93,6 +93,14 @@ describe("createBeClient", () => {
     expect(result).toMatchObject({ success: false, error: { status: 0, code: "NETWORK" } });
   });
 
+
+  it("accepts a success envelope that omits the data key", async () => {
+    mswServer.use(
+      http.post(`${BASE}/forgot`, () => HttpResponse.json({ success: true, message: "success", detail: "ok" })),
+    );
+    const result = await client.post({ path: "/forgot", schema: emptySchema, body: {} });
+    expect(result).toEqual({ success: true, data: undefined });
+  });
   it("accepts an empty 204 body for emptySchema", async () => {
     mswServer.use(http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 204 })));
     const result = await client.post({ path: "/logout", schema: emptySchema });

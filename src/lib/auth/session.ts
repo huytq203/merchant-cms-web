@@ -1,35 +1,29 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cache } from "react";
 
-import { AUTH_COOKIES } from "@/lib/auth/cookies";
 import { decodeJwtPayload, isTokenExpired } from "@/lib/auth/jwt";
+import { readAccessToken } from "@/lib/auth/session-cookies";
+import { fetchMerchantSession } from "@/server/modules/auth/merchant-session.service";
 
 import type { SessionUser } from "@/types/auth";
 
+export { readAccessToken as getAccessToken } from "@/lib/auth/session-cookies";
+
 /**
- * Đọc phiên đăng nhập từ cookie HTTP-only ở Server Component / Server Action.
- * Trả về null nếu chưa đăng nhập hoặc token hết hạn.
+ * The signed-in merchant user, loaded from the BE `/me` once per request.
+ * Returns null when there is no usable token or the BE rejects it.
  */
-export async function getServerSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(AUTH_COOKIES.ACCESS_TOKEN)?.value;
+export const getServerSession = cache(async (): Promise<SessionUser | null> => {
+  const token = await readAccessToken();
   if (!token) return null;
 
   const payload = decodeJwtPayload(token);
   if (!payload || isTokenExpired(payload)) return null;
 
-  return {
-    userId: payload.userId,
-    username: payload.username,
-    email: payload.email,
-    phone: payload.phone,
-    permissionGroupId: payload.permissionGroupId,
-    permissionName: payload.permissionName,
-  };
-}
-
-/** Lấy access token thô để đính vào header Authorization. */
-export async function getAccessToken(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get(AUTH_COOKIES.ACCESS_TOKEN)?.value ?? null;
-}
+  const result = await fetchMerchantSession();
+  if (!result.success) {
+    console.error("[session] /merchant/me failed", result.error.code);
+    return null;
+  }
+  return result.data;
+});

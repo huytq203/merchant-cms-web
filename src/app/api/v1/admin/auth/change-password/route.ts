@@ -1,61 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+
+import { newPasswordSchema } from "@/features/auth/schemas";
 import { getServerSession } from "@/lib/auth/session";
-import { prisma } from "@/lib/db/prisma";
+import { toHttpStatus } from "@/lib/be/errors";
+import { changePassword } from "@/server/modules/auth/merchant-password.service";
 
-const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Mật khẩu hiện tại là bắt buộc"),
-    newPassword: z.string().min(6, "Mật khẩu mới phải có ít nhất 6 ký tự"),
-    confirmPassword: z.string().optional(),
-  })
-  .refine(
-    (data) => !data.confirmPassword || data.newPassword === data.confirmPassword,
-    { message: "Mật khẩu xác nhận không khớp", path: ["confirmPassword"] },
-  );
+const bodySchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: newPasswordSchema,
+});
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   const session = await getServerSession();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized", success: false }, { status: 401 });
+  if (!session) return NextResponse.json({ message: "Phiên đăng nhập đã hết hạn" }, { status: 401 });
+  const body = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!body.success) {
+    return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });
   }
-
-  const body = await request.json();
-  const validation = changePasswordSchema.safeParse(body);
-  if (!validation.success) {
-    return NextResponse.json(
-      { message: "Dữ liệu không hợp lệ", success: false, errors: validation.error.flatten().fieldErrors },
-      { status: 422 },
-    );
-  }
-
-  const { currentPassword, newPassword } = validation.data;
-
-  const loginEntry = await prisma.login.findFirst({
-    where: { userId: session.userId },
-    select: { id: true, password: true },
+  const result = await changePassword({
+    currentPassword: body.data.currentPassword,
+    newPassword: body.data.newPassword,
+    confirmPassword: body.data.newPassword,
   });
-  if (!loginEntry) {
-    return NextResponse.json(
-      { message: `Không tìm thấy tài khoản ${session.userId}`, success: false },
-      { status: 404 },
-    );
+  if (!result.success) {
+    return NextResponse.json({ message: result.error.message, code: result.error.code }, { status: toHttpStatus(result.error) });
   }
-
-  const isValid = await bcrypt.compare(currentPassword, loginEntry.password);
-  if (!isValid) {
-    return NextResponse.json(
-      { message: "Mật khẩu hiện tại không đúng", success: false },
-      { status: 400 },
-    );
-  }
-
-  const hashed = await bcrypt.hash(newPassword, 10);
-  await prisma.login.update({
-    where: { id: loginEntry.id },
-    data: { password: hashed },
-  });
-
-  return NextResponse.json({ message: "Đổi mật khẩu thành công", success: true });
+  return NextResponse.json({ success: true });
 }

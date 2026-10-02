@@ -1,46 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/db/prisma";
+import { NextResponse } from "next/server";
 
-const DEFAULT_PASSWORD = "111111";
+import { forgotPasswordSchema } from "@/features/auth/schemas";
+import { toHttpStatus } from "@/lib/be/errors";
+import { FORGOT_PASSWORD_MESSAGE, forgotPassword } from "@/server/modules/auth/merchant-password.service";
 
-export async function POST(request: NextRequest) {
-  const body = (await request.json()) as { username?: string; email?: string };
-  const identifier = body.username?.trim() || body.email?.trim();
-
-  if (!identifier) {
-    return NextResponse.json(
-      { success: false, message: "Vui lòng cung cấp username hoặc email", status: "BAD_REQUEST" },
-      { status: 400 },
-    );
+export async function POST(request: Request) {
+  const body = forgotPasswordSchema.safeParse(await request.json().catch(() => null));
+  if (!body.success) {
+    return NextResponse.json({ message: body.error.issues[0]?.message ?? "Email không hợp lệ" }, { status: 400 });
   }
-
-  const login = await prisma.login.findFirst({
-    where: {
-      OR: [
-        { username: identifier },
-        { user: { email: identifier } },
-      ],
-    },
-    select: { id: true },
-  });
-
-  if (!login) {
-    return NextResponse.json(
-      { success: false, message: "Không tìm thấy tài khoản", status: "NOT_FOUND" },
-      { status: 404 },
-    );
+  const result = await forgotPassword(body.data.email);
+  if (!result.success) {
+    return NextResponse.json({ message: result.error.message }, { status: toHttpStatus(result.error) });
   }
-
-  const hashed = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-  await prisma.login.update({
-    where: { id: login.id },
-    data: { password: hashed },
-  });
-
-  return NextResponse.json({
-    success: true,
-    message: `Mật khẩu đã được reset thành: ${DEFAULT_PASSWORD}`,
-    status: "OK",
-  });
+  return NextResponse.json({ success: true, message: FORGOT_PASSWORD_MESSAGE });
 }

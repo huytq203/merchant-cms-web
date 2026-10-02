@@ -14,10 +14,10 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
       .replace(/_/g, "/");
 
     const json = Buffer.from(base64, "base64").toString("utf-8");
-    const payload = JSON.parse(json) as JwtPayload;
+    const payload = JSON.parse(json) as unknown;
 
-    if (typeof payload !== "object" || !payload) return null;
-    return payload;
+    if (typeof payload !== "object" || !payload || typeof (payload as Record<string, unknown>).exp !== "number") return null;
+    return payload as JwtPayload;
   } catch {
     return null;
   }

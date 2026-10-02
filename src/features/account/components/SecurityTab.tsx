@@ -44,8 +44,7 @@ export function SecurityTab() {
       <div className="flex items-start gap-3 rounded-lg border border-info/30 bg-info/8 p-3">
         <InfoIcon className="mt-0.5 h-4 w-4 shrink-0 text-info" />
         <p className="text-sm text-info/90">
-          Để đảm bảo an toàn, mật khẩu phải có độ dài ít nhất 8 ký tự, bao
-          gồm cả chữ cái viết hoa, chữ thường và chữ số.
+          Để đảm bảo an toàn, mật khẩu cần từ 10 đến 128 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&).
         </p>
       </div>
 
@@ -62,7 +61,7 @@ export function SecurityTab() {
           {...register("newPassword")}
           type="password"
           label="MẬT KHẨU MỚI"
-          placeholder="Tối thiểu 8 ký tự"
+          placeholder="Tối thiểu 10 ký tự"
           error={errors.newPassword?.message}
         />
         <Input

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -22,10 +22,10 @@ import {
   UserMenuItem,
 } from "@/components/ui/sidebar/Sidebar";
 import { Separator } from "@/components/ui/separator/Separator";
-import { routesConfig } from "./constants/route.constants";
+import { filterRoutesByPermissions, routesConfig } from "./constants/route.constants";
 import { Badge } from "@/components/ui/badge/Badge";
 import { BadgeCheck, BellIcon, LogOut } from "lucide-react";
-import { useSessionQuery } from "@/features/auth/hooks/use-session-query";
+import { useSession } from "@/features/auth/components/session-provider";
 import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
 import { AccountDialog } from "@/features/account/components/AccountDialog";
 
@@ -36,9 +36,10 @@ export default function DocSidebar() {
 
   const { logout, isPending: isLoggingOut } = useLogoutMutation();
   const [accountOpen, setAccountOpen] = useState(false);
-  const { data: session } = useSessionQuery();
-  const displayName = session?.username ?? "";
-  const displayEmail = session?.email ?? "";
+  const session = useSession();
+  const displayName = session.username;
+  const displayEmail = session.email ?? "";
+  const visibleRoutes = useMemo(() => filterRoutesByPermissions(routesConfig, session.permissions), [session.permissions]);
 
   return (
     <>
@@ -73,7 +74,7 @@ export default function DocSidebar() {
 
         {/* Navigation */}
         <SidebarContent>
-          {routesConfig.map((section) => {
+          {visibleRoutes.map((section) => {
             const isChildActive = section.items.some(
               (item) =>
                 pathname === item.href ||

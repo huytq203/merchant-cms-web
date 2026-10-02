@@ -432,6 +432,14 @@ describe("createBeClient", () => {
     expect(result).toMatchObject({ success: false, error: { status: 0, code: "NETWORK" } });
   });
 
+  it("accepts a success envelope that omits the data key", async () => {
+    mswServer.use(
+      http.post(`${BASE}/forgot`, () => HttpResponse.json({ success: true, message: "success", detail: "ok" })),
+    );
+    const result = await client.post({ path: "/forgot", schema: emptySchema, body: {} });
+    expect(result).toEqual({ success: true, data: undefined });
+  });
+
   it("accepts an empty 204 body for emptySchema", async () => {
     mswServer.use(http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 204 })));
     const result = await client.post({ path: "/logout", schema: emptySchema });
@@ -496,7 +504,8 @@ export const envelopeSchema = z.object({
   status: z.string().nullish(),
   message: z.string().nullish(),
   detail: z.string().nullish(),
-  data: z.unknown(),
+  /** The BE omits `data` when it is null (`@JsonInclude(NON_NULL)`), so the key must be optional. */
+  data: z.unknown().optional(),
 });
 
 /** For endpoints that return no payload. */
@@ -789,7 +798,7 @@ MERCHANT_API_MODE=live
 - [ ] **Step 4: Run to verify pass**
 
 Run: `npx vitest run src/lib && npm run typecheck && npm run lint`
-Expected: all tests PASS (env 4, errors 6, client 8); typecheck and lint clean.
+Expected: all tests PASS (env 4, errors 6, client 9); typecheck and lint clean.
 
 - [ ] **Step 5: Commit (controller)**
 
@@ -2347,7 +2356,9 @@ const AUTH_PATH_PREFIX = "/v1/admin/auth/";
 const SESSION_EXPIRED_URL = "/api/v1/admin/auth/session-expired";
 
 let onSessionExpired: () => void = () => {
-  window.location.assign(SESSION_EXPIRED_URL);
+  // A full-page load is required: the route handler clears cookies, then redirects. An absolute URL
+  // also satisfies @next/next/no-location-assign-relative-destination without disabling the rule.
+  window.location.assign(new URL(SESSION_EXPIRED_URL, window.location.origin).href);
 };
 
 export function setSessionExpiredHandler(handler: () => void): void {
@@ -2928,6 +2939,8 @@ export function useForgotPasswordMutation() {
 `src/features/account/schemas.ts`: in `changePasswordSchema`, replace the `newPassword` definition with `newPassword: newPasswordSchema,` and add `import { newPasswordSchema } from "@/features/auth/schemas";` at the top. Leave `updateProfileSchema` unchanged.
 
 Delete: `src/lib/auth/services/auth-service.ts`, `src/lib/http/server-client.ts`, `src/app/api/v1/admin/auth/login/route.ts`, `src/app/api/v1/admin/auth/logout/route.ts`, `src/app/api/v1/admin/auth/me/route.ts`. Do **not** delete `use-session-query.ts` yet (Task 10).
+
+Also remove the temporary `BeLoginResponse` interface and `LoginResponse` alias from `src/types/auth.ts` (Task 5 left them only so the old `auth-service.ts` kept compiling), and add `src/types/auth.ts` to this task's Modify list.
 
 - [ ] **Step 6: Run to verify pass**
 

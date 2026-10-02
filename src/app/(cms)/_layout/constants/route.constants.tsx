@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import type { MerchantPermission } from "@/features/auth/permissions";
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -18,15 +19,16 @@ export interface SubPage {
   pattern?: string;  // pattern match, dùng [segment] cho dynamic (e.g. "/sub-merchants/[id]/edit")
 }
 
-interface SidebarItem {
+export interface SidebarItem {
   title: string;
   href: string;
   icon?: React.ReactNode;
   badge?: string;
   subPages?: SubPage[];
+  permission?: MerchantPermission;
 }
 
-interface SidebarSection {
+export interface SidebarSection {
   title: string;
   icon?: React.ReactNode;
   collapsible: boolean;
@@ -93,16 +95,19 @@ export const routesConfig: SidebarSection[] = [
     items: [
       {
         title: "Quản lý quyền hạn",
+        permission: "MANAGE_PERMISSION_GROUP",
         href: "/permissions",
         icon: <ShieldCheck className="w-4 h-4" />,
       },
       {
         title: "Quản lý nhân sự",
+        permission: "MANAGE_USER",
         href: "/users",
         icon: <Users className="w-4 h-4" />,
       },
       {
         title: "Danh sách Sub Merchant",
+        permission: "MANAGE_SUB_MERCHANT",
         href: "/sub-merchants",
         icon: <Store className="w-4 h-4" />,
         subPages: [
@@ -118,29 +123,46 @@ export const routesConfig: SidebarSection[] = [
     items: [
       {
         title: "Danh sách giao dịch",
+        permission: "VIEW_TRANSACTION",
         href: "/transaction",
         icon: <ArrowLeftRight className="w-4 h-4" />,
       },
       {
         title: "Quản lý Đơn hàng",
+        permission: "VIEW_ORDER",
         href: "/order",
         icon: <ShoppingBag className="w-4 h-4" />,
       },
       {
         title: "Hoàn tiền",
+        permission: "VIEW_REFUND",
         href: "/refund",
         icon: <RotateCcw className="w-4 h-4" />,
       },
       {
         title: "Khiếu nại",
+        permission: "VIEW_DISPUTE",
         href: "/complaint",
         icon: <MessageSquareWarning className="w-4 h-4" />,
       },
       {
         title: "Lịch sử Rút Tiền",
+        permission: "VIEW_WITHDRAWAL",
         href: "/withdrawal",
         icon: <Wallet className="w-4 h-4" />,
       },
     ],
   },
 ];
+
+export function filterRoutesByPermissions(
+  sections: SidebarSection[],
+  permissions: readonly MerchantPermission[],
+): SidebarSection[] {
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.permission || permissions.includes(item.permission)),
+    }))
+    .filter((section) => section.items.length > 0);
+}

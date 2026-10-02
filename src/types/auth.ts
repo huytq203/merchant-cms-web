@@ -1,46 +1,34 @@
+import type { MerchantPermission } from "@/features/auth/permissions";
+
 export type UserRole = "ACCOUNTANT" | "OPERATOR" | "SUPER_ADMIN" | string;
 
+export type MerchantUserStatus = "PENDING" | "ACTIVE" | "LOCKED";
+
 export interface SessionUser {
+  /** BE `merchantUserId`. */
   userId: string;
+  /** Display name: full name, falling back to email, then id. */
   username: string;
+  fullName?: string;
   email?: string;
   phone?: string;
+  status: MerchantUserStatus;
+  merchantIds: string[];
+  subMerchantIds: string[];
+  permissions: MerchantPermission[];
+  authorizationVersion: number;
+  /** Legacy fields kept optional until the Đợt 2 account/user plans remove their consumers. */
   permissionGroupId?: string;
   permissionName?: string;
   subMerchantScope?: string;
   assignedSubMerchantsIds?: string[];
   createdAt?: string;
-  status?: string;
 }
 
-/** Payload chuẩn của JWT access token từ Keycloak/BE */
+/** Claims the frontend reads from the access token (never used to authenticate). */
 export interface JwtPayload {
-  userId: string;
-  username: string;
-  email?: string;
-  phone?: string;
-  roles?: string[];
-  permissions?: string[];
-  permissionGroupId?: string;
-  permissionName?: string;
   exp: number;
-  iat: number;
-  jti: string;
+  iat?: number;
+  sub?: string;
 }
 
-/** Contract response từ BE khi login thành công */
-export interface BeLoginResponse {
-  data: {
-    accessToken: string;
-    expiresIn: number;
-    refreshToken: string;
-    refreshExpiresIn: number;
-  };
-  message: string;
-  detail: string;
-  success: boolean;
-  status: string;
-}
-
-/** Kept cho backward-compat nếu một số chỗ còn import */
-export type LoginResponse = BeLoginResponse;

@@ -100,7 +100,7 @@ function UserActionsCell({ user }: { user: User }) {
   const { mutate: resetMutate } = useForgotPasswordMutation();
   function handleResetConfirm() {
     resetMutate(
-      { username: user.email },
+      { email: user.email },
       {
         onSuccess: () =>{
              setResetOpen(false)

@@ -1,3 +1,4 @@
+import { newPasswordSchema } from "@/features/auth/schemas";
 import { z } from "zod";
 
 export const updateProfileSchema = z.object({
@@ -15,12 +16,7 @@ export const updateProfileSchema = z.object({
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
-    newPassword: z
-      .string()
-      .min(8, "Mật khẩu tối thiểu 8 ký tự")
-      .regex(/[A-Z]/, "Phải có ít nhất 1 chữ hoa")
-      .regex(/[a-z]/, "Phải có ít nhất 1 chữ thường")
-      .regex(/[0-9]/, "Phải có ít nhất 1 chữ số"),
+    newPassword: newPasswordSchema,
     confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

@@ -72,32 +72,70 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, message, code, details);
 }
 
-async function request<T>(
-  method: string,
-  path: string,
-  options: RequestOptions = {},
-): Promise<T> {
-  const { body, query, serverCookie, headers, ...rest } = options;
-  const finalHeaders = new Headers(headers);
+const REFRESH_PATH = "/v1/admin/auth/refresh";
+const AUTH_PATH_PREFIX = "/v1/admin/auth/";
+const SESSION_EXPIRED_URL = "/api/v1/admin/auth/session-expired";
 
+let onSessionExpired: () => void = () => {
+  // A full-page load is required: the route handler clears cookies, then redirects. An absolute URL
+  // also satisfies @next/next/no-location-assign-relative-destination without disabling the rule.
+  window.location.assign(new URL(SESSION_EXPIRED_URL, window.location.origin).href);
+};
+
+export function setSessionExpiredHandler(handler: () => void): void {
+  onSessionExpired = handler;
+}
+
+let inflightRefresh: Promise<boolean> | null = null;
+
+/** One shared refresh for all parallel 401s. */
+function refreshSessionOnce(): Promise<boolean> {
+  inflightRefresh ??= fetch(buildUrl(REFRESH_PATH), { method: "POST", credentials: "include" })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      inflightRefresh = null;
+    });
+  return inflightRefresh;
+}
+
+function buildInit(method: string, options: RequestOptions): RequestInit {
+  const { body, query: _query, serverCookie, headers, ...rest } = options;
+  void _query;
+  const finalHeaders = new Headers(headers);
   if (body !== undefined && !(body instanceof FormData)) {
     finalHeaders.set("Content-Type", "application/json");
   }
   finalHeaders.set("Accept", "application/json");
   if (serverCookie) finalHeaders.set("Cookie", serverCookie);
-
-  const res = await fetch(buildUrl(path, query), {
+  return {
     ...rest,
     method,
     headers: finalHeaders,
     credentials: "include",
     body:
-      body === undefined
-        ? undefined
-        : body instanceof FormData
-          ? body
-          : JSON.stringify(body),
-  });
+      body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+  };
+}
+
+async function request<T>(
+  method: string,
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = buildUrl(path, options.query);
+  let res = await fetch(url, buildInit(method, options));
+
+  const canRefresh =
+    res.status === 401 && typeof window !== "undefined" && !path.startsWith(AUTH_PATH_PREFIX);
+  if (canRefresh) {
+    if (await refreshSessionOnce()) {
+      res = await fetch(url, buildInit(method, options));
+    }
+    if (res.status === 401) {
+      onSessionExpired();
+    }
+  }
 
   if (!res.ok) throw await parseError(res);
 
