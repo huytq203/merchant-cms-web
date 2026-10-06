@@ -1,51 +1,18 @@
-export type TransactionStatus = 'success' | 'pending' | 'failed' | 'refunded';
-export type CardType = 'visa' | 'mastercard' | 'napas' | 'amex';
-export type PaymentMethod = 'credit_card' | 'debit_card' | 'qr';
+import type { z } from "zod";
+import type {
+  cardTypeSchema,
+  paymentMethodSchema,
+  transactionListQuerySchema,
+  transactionListResultSchema,
+  transactionSchema,
+  transactionStatusSchema,
+  transactionTypeSchema,
+} from "./schemas/transaction.schema";
 
-export interface Transaction {
-  id: string;
-  code: string;
-  cardType: CardType;
-  cardNumber: string;
-  cardHolderName: string;
-  amount: number;
-  currency: string;
-  fee: number;
-  netAmount: number;
-  subMerchantId: string;
-  subMerchantName: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  createdAt: string;
-  status: TransactionStatus;
-  description: string;
-  referenceCode: string;
-  paymentMethod: PaymentMethod;
-  bankCode: string;
-  responseCode: string;
-  responseMessage: string;
-}
-
-export interface TransactionListFilter {
-  keyword?: string;
-  customerContact?: string;
-  status?: TransactionStatus | string;
-  cardType?: CardType;
-  paymentMethod?: string;
-  subMerchantId?: string;
-  bankCode?: string;
-  createdFrom?: Date | null;
-  createdTo?: Date | null;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface TransactionListResponse {
-  data: Transaction[];
-  pagination: {
-    total: number;
-    page: number;
-    pageSize: number;
-  };
-}
+export type TransactionType = z.infer<typeof transactionTypeSchema>;
+export type TransactionStatus = z.infer<typeof transactionStatusSchema>;
+export type CardType = z.infer<typeof cardTypeSchema>;
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+export type Transaction = z.infer<typeof transactionSchema>;
+export type TransactionListResult = z.infer<typeof transactionListResultSchema>;
+export type TransactionListFilter = z.infer<typeof transactionListQuerySchema>;

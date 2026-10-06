@@ -1,22 +1,41 @@
-import { Download } from "lucide-react";
-import { Button } from "@/components/ui";
-import ComplaintForm from "@/features/complaints/components/ComplaintForm";
+import { HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/features/auth/components/access-denied";
+import { hasPermission } from "@/features/auth/permissions";
+import { complaintQueries, parseComplaintSearchParams } from "@/features/complaints/complaint-queries";
+import { ComplaintsContainer } from "@/features/complaints/components/ComplaintsContainer";
+import { SampleDataBanner } from "@/features/sample-data/components/SampleDataBanner";
+import { resolveModuleSource } from "@/lib/be/api-mode";
+import { getServerSession } from "@/lib/auth/session";
+import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { listComplaints } from "@/server/modules/complaints/complaint.service";
 
-export default function ComplaintPage() {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function ComplaintPage({ searchParams }: Props) {
+  const user = await getServerSession();
+  if (!user) redirect("/api/v1/admin/auth/session-expired");
+  const merchantId = user.merchantIds[0];
+  if (!merchantId || !hasPermission(user.permissions, "VIEW_DISPUTE")) {
+    return <AccessDenied />;
+  }
+  const filter = parseComplaintSearchParams(await searchParams);
+  const state = await prefetchDehydrated(async (client) => {
+    await client.prefetchQuery({
+      ...complaintQueries.list(filter),
+      queryFn: async () => unwrapOrRedirect(await listComplaints({ ...filter, merchantId })),
+    });
+  });
+  const abilities = {
+    canReply: hasPermission(user.permissions, "REPLY_DISPUTE"),
+    canCreate: hasPermission(user.permissions, "CREATE_DISPUTE"),
+  };
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Quản lý Khiếu nại</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Theo dõi và xử lý khiếu nại từ các nguồn
-          </p>
-        </div>
-        <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" />}>
-          Tải Excel
-        </Button>
-      </div>
-      <ComplaintForm />
+      {resolveModuleSource("complaints") === "fixture" && <SampleDataBanner />}
+      <HydrationBoundary state={state}>
+        <ComplaintsContainer filter={filter} abilities={abilities} />
+      </HydrationBoundary>
     </div>
   );
 }

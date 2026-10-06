@@ -7,29 +7,32 @@ import {
   CardContent,
 } from "@/components/ui/card/Card";
 import { Button } from "@/components/ui/button/Button";
-
 import { Table } from "@/components/ui";
-import { useHandle } from "../hooks/useHandle";
 import { MerchantColumn } from "../columns/Dashboard.column";
+import type { RecentTransaction } from "../types/Dashboard.type";
 
-
-export function RecentTransactions() {
-  const{data}=useHandle();
-  const columns = MerchantColumn
+export function RecentTransactions({ rows }: { rows: RecentTransaction[] }) {
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Giao dịch gần đây</CardTitle>
-          <Link href="/transactions">
-            <Button variant="link" size="sm">
-              Xem tất cả
-            </Button>
-          </Link>
+          <Button
+            variant="link"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/transaction" role="link" />}
+          >
+            Xem tất cả
+          </Button>
         </div>
       </CardHeader>
-      <CardContent className="">
-        <Table columns={columns} data={data?.data||[]} />
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">Chưa có giao dịch nào gần đây</p>
+        ) : (
+          <Table columns={MerchantColumn} data={rows} pagination={false} />
+        )}
       </CardContent>
     </Card>
   );

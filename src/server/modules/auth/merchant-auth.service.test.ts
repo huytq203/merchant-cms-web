@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { createBeClient } from "@/lib/be/client";
+import { isRefreshRejected } from "@/server/modules/auth/merchant-auth.service";
 import {
   logoutSession,
   refreshTokens,
@@ -25,6 +26,15 @@ const challenge = {
   resendRemaining: 3,
 };
 const tokens = { accessToken: "a.b.c", expiresIn: 300, refreshToken: "r-1", refreshExpiresIn: 86400 };
+
+describe("isRefreshRejected", () => {
+  it.each([400, 401])("rejects refresh status %i", (status) => {
+    expect(isRefreshRejected({ status, code: `HTTP_${status}`, message: "Rejected" })).toBe(true);
+  });
+  it.each([0, 403, 429, 500, 502, 503])("preserves the session for status %i", (status) => {
+    expect(isRefreshRejected({ status, code: status === 0 ? "TIMEOUT" : `HTTP_${status}`, message: "Unavailable" })).toBe(false);
+  });
+});
 
 describe("merchant auth service", () => {
   it("posts email and password and returns the OTP challenge", async () => {

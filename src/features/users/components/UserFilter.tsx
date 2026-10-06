@@ -1,90 +1,73 @@
 "use client";
 
-import { Button, ComboBox, Input } from "@/components/ui";
-import React from "react";
-import { Control, Controller, UseFormHandleSubmit, UseFormRegister, UseFormReset } from "react-hook-form";
+import { useState } from "react";
+import { Button } from "@/components/ui/button/Button";
+import { Input } from "@/components/ui/input/Input";
+import { Select } from "@/components/ui/select/Select";
+import { userStatusOptions } from "../constants/user.constants";
+import type { UserFilter as UserFilterValues } from "../user-queries";
+import { merchantLabel } from "../utils/user-mapper";
 
-export interface UserFilterValues {
-  name: string;
-  status: string;
-  permissionGroupId: string;
+interface Props {
+  filter: UserFilterValues;
+  merchantIds: string[];
+  onSearch: (values: Pick<UserFilterValues, "query" | "status" | "merchantId">) => void;
 }
 
-interface UserFilterProps {
-  onFilter: (values: UserFilterValues) => void;
-  handleClear: () => void;
-  permissionOptions: { label: string; value: string }[];
-  register: UseFormRegister<UserFilterValues>;
-  handleSubmit: UseFormHandleSubmit<UserFilterValues>;
-  reset: UseFormReset<UserFilterValues>;
-  control: Control<UserFilterValues>;
-}
-
-const STATUS_OPTIONS = [
-  { label: "Hoạt động", value: "active" },
-  { label: "Không hoạt động", value: "inactive" },
-  { label: "Bị khóa", value: "locked" },
-];
-
-const UserFilter = ({
-  onFilter,
-  handleClear,
-  permissionOptions,
-  register,
-  handleSubmit,
-  control,
-}: UserFilterProps) => {
+export function UserFilter({ filter, merchantIds, onSearch }: Props) {
+  const [query, setQuery] = useState(filter.query ?? "");
+  const [status, setStatus] = useState(filter.status ?? "");
+  const [merchantId, setMerchantId] = useState(filter.merchantId ?? "");
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSearch({
+      ...(query.trim() ? { query: query.trim() } : {}),
+      ...(status ? { status: status as UserFilterValues["status"] } : {}),
+      ...(merchantId ? { merchantId } : {}),
+    });
+  };
+  const clear = () => {
+    setQuery("");
+    setStatus("");
+    setMerchantId("");
+    onSearch({});
+  };
   return (
-    <form onSubmit={handleSubmit(onFilter)}>
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="Họ tên hoặc Email"
-            placeholder="Nhập tên hoặc email"
-            {...register("name")}
+    <form onSubmit={submit} className="rounded-xl border border-border bg-background p-4" aria-label="Bộ lọc người dùng">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Input
+          label="Tên hoặc email"
+          placeholder="Nhập tên hoặc email cần tìm"
+          value={query}
+          maxLength={100}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <Select
+          label="Trạng thái"
+          placeholder="Chọn trạng thái"
+          value={status}
+          onChange={setStatus}
+          clearable={false}
+          options={[{ value: "", label: "Tất cả trạng thái" }, ...userStatusOptions]}
+        />
+        {merchantIds.length > 1 && (
+          <Select
+            label="Merchant"
+            placeholder="Chọn merchant"
+            value={merchantId}
+            onChange={setMerchantId}
+            clearable={false}
+            options={[
+              { value: "", label: "Merchant mặc định" },
+              ...merchantIds.map((id) => ({ value: id, label: merchantLabel(merchantIds, id) })),
+            ]}
           />
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <ComboBox
-                label="Trạng thái"
-                placeholder="----Chọn trạng thái----"
-                options={STATUS_OPTIONS}
-                value={field.value}
-                onChange={(val) =>
-                  field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
-                }
-              />
-            )}
-          />
-          <Controller
-            name="permissionGroupId"
-            control={control}
-            render={({ field }) => (
-              <ComboBox
-                label="Nhóm quyền"
-                placeholder="----Chọn nhóm quyền----"
-                options={permissionOptions}
-                value={field.value}
-                onChange={(val) =>
-                  field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
-                }
-              />
-            )}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button type="submit" variant="solid">
-            Tìm kiếm
-          </Button>
-          <Button type="button" variant="outline" onClick={handleClear}>
-            Xóa bộ lọc
-          </Button>
-        </div>
+        )}
+      </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={clear}>Xoá lọc</Button>
+        <Button type="submit" variant="solid">Tìm kiếm</Button>
       </div>
     </form>
   );
-};
-
-export default UserFilter;
+}

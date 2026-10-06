@@ -11,7 +11,7 @@ const normalizeBaseUrl = (value: string) =>
 const serverEnvSchema = z.object({
   IDENTITY_BASE_URL: z.url().transform(normalizeBaseUrl),
   MERCHANT_BASE_URL: z.url().transform(normalizeBaseUrl),
-  MERCHANT_API_MODE: z.enum(["live", "fixture"]).default("fixture"),
+  MERCHANT_API_MODE: z.enum(["live", "fixture"]).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -22,7 +22,10 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
     const keys = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))];
     throw new Error(`Invalid server environment: ${keys.join(", ")}`);
   }
-  return parsed.data;
+  return {
+    ...parsed.data,
+    MERCHANT_API_MODE: parsed.data.MERCHANT_API_MODE ?? (source.NODE_ENV === "production" ? "live" : "fixture"),
+  };
 }
 
 let cached: ServerEnv | undefined;

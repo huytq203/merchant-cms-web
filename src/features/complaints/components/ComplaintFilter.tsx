@@ -1,99 +1,101 @@
 "use client";
-import { Button, ComboBox, DatePicker, Form, FormField } from "@/components/ui";
-import React from "react";
-import { COMPLAINT_SOURCE_OPTIONS, COMPLAINT_STATUS_OPTIONS } from "../constants/Complaint.constants";
-import { RefreshCw, Search } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, ComboBox, DatePicker, Form, FormField, Input } from "@/components/ui";
 import { useForm } from "react-hook-form";
-import { ComplaintListFilter } from "../types/types";
-
-type FilterFormValues = {
-  fromDate?: Date;
-  toDate?: Date;
-  source?: string;
-  status?: string;
-};
+import { COMPLAINT_SOURCE_OPTIONS, COMPLAINT_STATUS_OPTIONS } from "../constants/Complaint.constants";
+import { complaintFilterSchema, type ComplaintFilterValues } from "../schemas/complaint.schema";
 
 interface ComplaintFilterProps {
-  onSearch: (value: ComplaintListFilter) => void;
+  onSearch: (values: ComplaintFilterValues) => void;
+  defaultValues?: ComplaintFilterValues;
 }
 
-export function ComplaintFilter({ onSearch }: ComplaintFilterProps) {
-  const SOURCE_SELECT = [
-    { label: "Tất cả nguồn", value: "" },
-    ...COMPLAINT_SOURCE_OPTIONS,
-  ];
-  const STATUS_SELECT = [
-    { label: "Tất cả trạng thái", value: "" },
-    ...COMPLAINT_STATUS_OPTIONS,
-  ];
+const SOURCE_SELECT = COMPLAINT_SOURCE_OPTIONS.map(({ value, label }) => ({ value, label }));
+const STATUS_SELECT = COMPLAINT_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
 
-  const DEFAULT_FORM_VALUES: FilterFormValues = {
-    fromDate: undefined,
-    toDate: undefined,
-    source: "",
-    status: "",
-  };
+const EMPTY_VALUES: ComplaintFilterValues = { keyword: "", fromDate: null, toDate: null, source: "", status: "" };
 
-  const form = useForm<FilterFormValues>({ defaultValues: DEFAULT_FORM_VALUES });
+const firstValue = (value: string | string[]) => (typeof value === "string" ? value : (value[0] ?? ""));
+
+export function ComplaintFilter({ onSearch, defaultValues }: ComplaintFilterProps) {
+  const form = useForm<ComplaintFilterValues>({
+    resolver: zodResolver(complaintFilterSchema),
+    defaultValues: { ...EMPTY_VALUES, ...defaultValues },
+  });
 
   const handleReset = () => {
-    form.reset(DEFAULT_FORM_VALUES);
-    onSearch({});
-  };
-
-  const handleSubmit = (values: FilterFormValues) => {
-    const filter: ComplaintListFilter = {
-      createdFromDate: values.fromDate?.toISOString(),
-      createdToDate: values.toDate?.toISOString(),
-      source: values.source?.trim() || undefined,
-      status: values.status?.trim() || undefined,
-    };
-    onSearch(filter);
+    form.reset(EMPTY_VALUES);
+    onSearch(EMPTY_VALUES);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+      <form className="space-y-4" onSubmit={form.handleSubmit(onSearch)}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <FormField
+            control={form.control}
+            name="keyword"
+            render={({ field }) => (
+              <Input label="Mã khiếu nại / Mã GD" placeholder="Nhập mã khiếu nại hoặc mã giao dịch" {...field} />
+            )}
+          />
           <FormField
             control={form.control}
             name="fromDate"
             render={({ field }) => (
-              <DatePicker label="Từ ngày" value={field.value} onChange={field.onChange} />
+              <DatePicker
+                label="Từ ngày"
+                placeholder="Chọn ngày bắt đầu"
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
+              />
             )}
           />
           <FormField
             control={form.control}
             name="toDate"
             render={({ field }) => (
-              <DatePicker label="Đến ngày" value={field.value} onChange={field.onChange} />
+              <DatePicker
+                label="Đến ngày"
+                placeholder="Chọn ngày kết thúc"
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
+                error={form.formState.errors.toDate?.message}
+              />
             )}
           />
           <FormField
             control={form.control}
             name="source"
             render={({ field }) => (
-              <ComboBox label="Nguồn" {...field} options={SOURCE_SELECT} placeholder="----Chọn nguồn----" />
+              <ComboBox
+                label="Nguồn"
+                value={field.value ?? ""}
+                onValueChange={(val) => field.onChange(firstValue(val))}
+                options={SOURCE_SELECT}
+                placeholder="Tất cả nguồn"
+              />
             )}
           />
           <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
-              <ComboBox label="Trạng thái" {...field} options={STATUS_SELECT} placeholder="----Chọn trạng thái----" />
+              <ComboBox
+                label="Trạng thái"
+                value={field.value ?? ""}
+                onValueChange={(val) => field.onChange(firstValue(val))}
+                options={STATUS_SELECT}
+                placeholder="Tất cả trạng thái"
+              />
             )}
           />
         </div>
-        <div className="flex justify-end gap-2 mt-3">
-          <Button
-            type="reset"
-            variant="outline"
-            onClick={handleReset}
-            leftIcon={<RefreshCw className="h-4 w-4" />}
-          >
-            Xóa bộ lọc
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={handleReset}>
+            Xóa lọc
           </Button>
-          <Button type="submit" leftIcon={<Search className="h-4 w-4" />}>
+          <Button type="submit" variant="solid">
             Tìm kiếm
           </Button>
         </div>

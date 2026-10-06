@@ -79,6 +79,12 @@ Browser phải dùng một QueryClient ổn định từ provider. Server và cl
 - Dữ liệu chỉ cần sau interaction; dùng Client-only query.
 - Hydration payload quá lớn so với giá trị first render.
 
+## Helper trong repo
+
+- `src/lib/query/query-client.ts` — `makeQueryClient()` dùng chung cho browser provider và request-scoped client ở server.
+- `src/lib/query/prefetch.ts` — `prefetchDehydrated(prefetch)` tạo client riêng cho request và trả state cho `HydrationBoundary`; `unwrapOrRedirect(result)` dùng trong `queryFn` override ở server: 401 chuyển tới `/api/v1/admin/auth/session-expired`, lỗi khác ném `Error(code)` để client refetch.
+- Ví dụ kiểm thử luồng Server → Hydration → Query: `src/lib/query/hybrid.integration.test.tsx`.
+
 ## Cấm
 
 - Không dùng manual `initialData` và `HydrationBoundary` cho cùng query.

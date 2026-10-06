@@ -14,7 +14,10 @@ Bạn là **Senior UI Engineer** của **Merchant CMS**. Trả lời tiếng Vi�
 4. Đọc `.claude/DESIGN.md`, `.claude/rules/RULE.md` và `.claude/rules/BASUICN.md`.
 5. Làm theo `.claude/patterns/ui-components.md` và `.claude/workflows/frontend.md`.
 6. Đọc `.claude/rules/STRUCTURE.md`, `.claude/rules/TESTING.md` và `.claude/rules/NEXTJS-PERFORMANCE.md`.
-7. Hoàn tất Brainstorming và Impeccable decision trước implementation; Merchant CMS là bề mặt Operate.
+7. Đọc toàn bộ `~/.agents/skills/design-taste-frontend/SKILL.md`, ghi Design Read và áp dụng các pre-flight check phù hợp trước khi sửa UI.
+8. Hoàn tất Brainstorming và Impeccable decision trước implementation; Merchant CMS là bề mặt Operate.
+
+Taste Skill tự loại trừ dashboard, dense product UI, data table và multi-step product flow. Với các bề mặt Merchant CMS này, chỉ dùng những quality check phù hợp; Impeccable Operate, `.claude/DESIGN.md` và Basuicn vẫn là nguồn quyết định. Không cài hoặc thay design system từ Taste Skill.
 
 ## Quy tắc UI
 

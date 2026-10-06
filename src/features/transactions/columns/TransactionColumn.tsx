@@ -2,26 +2,60 @@ import { Badge } from '@/components/ui/badge/Badge';
 import { cn } from '@/lib/utils/cn';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Eye, RotateCcw } from 'lucide-react';
-import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
+import { RowAction } from '@/features/sample-data/components/RowAction';
+import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS, TRANSACTION_TYPE_OPTIONS } from '../constants/Transaction.constants';
 import type { Transaction } from '../types';
 import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
-import { Button } from '@/components/ui';
 
+export type TransactionColumnActions = {
+  canRefund: boolean;
+  onViewDetail: (transaction: Transaction) => void;
+  onRefund: (transaction: Transaction) => void;
+};
 
-export const getColumn = (
-  onViewDetail: (transaction: Transaction) => void,
-  onRefund: (transaction: Transaction) => void,
-  
-): ColumnDef<Transaction>[] => [
+function Slot() {
+  return <span className="inline-block h-8 w-8" aria-hidden="true" />;
+}
+
+function RowActions({ transaction, actions }: { transaction: Transaction; actions: TransactionColumnActions }) {
+  const showRefund = actions.canRefund && transaction.status === 'success';
+  return (
+    <div className="flex items-center justify-center gap-1">
+      {showRefund ? (
+        <RowAction label={`Hoàn tiền giao dịch ${transaction.code}`} onClick={() => actions.onRefund(transaction)}>
+          <RotateCcw size={16} />
+        </RowAction>
+      ) : (
+        <Slot />
+      )}
+      <RowAction label={`Xem chi tiết giao dịch ${transaction.code}`} onClick={() => actions.onViewDetail(transaction)}>
+        <Eye size={16} />
+      </RowAction>
+    </div>
+  );
+}
+
+export const getColumn = (actions: TransactionColumnActions): ColumnDef<Transaction>[] => [
   {
     id: 'code',
     header: 'Mã giao dịch',
     cell: ({ row }) => (
-      <span className="font-mono font-semibold text-primary text-sm">
-        {row.original.code}
-      </span>
+      <div>
+        <span className="font-mono font-semibold text-primary text-sm">{row.original.code}</span>
+        <p className="font-mono text-xs text-muted-foreground">{row.original.invoiceCode ?? '—'}</p>
+      </div>
     ),
     size: 150,
+  },
+  {
+    id: 'type',
+    header: 'Loại giao dịch',
+    cell: ({ row }) => (
+      <Badge variant="soft-primary">
+        {TRANSACTION_TYPE_OPTIONS.find((option) => option.value === row.original.type)?.label}
+      </Badge>
+    ),
+    size: 160,
   },
   {
     id: 'card',
@@ -33,7 +67,7 @@ export const getColumn = (
           <p className="text-xs text-muted-foreground mb-0.5">
             {CARD_TYPE_LABELS[t.cardType]}
           </p>
-          <p className="font-mono text-sm text-foreground">{t.cardNumber}</p>
+          <p className="font-mono text-sm text-foreground">{t.cardNumber.replace(/^.*?(\d{4})$/, '**** $1')}</p>
           <p className="text-xs text-muted-foreground truncate max-w-[180px]">
             {t.cardHolderName}
           </p>
@@ -100,7 +134,7 @@ export const getColumn = (
         (o) => o.value === row.original.status,
       );
       return (
-        <Badge variant={option?.variant ?? 'outline'}>
+        <Badge className="min-w-24 justify-center" variant={option?.variant ?? 'outline'}>
           {option?.label ?? row.original.status}
         </Badge>
       );
@@ -109,42 +143,10 @@ export const getColumn = (
   },
   {
     id: 'actions',
-    header: '',
+    header: 'Thao tác',
     meta: { align: 'center' },
     enableSorting: false,
-    cell: ({ row }) => {
-      const t = row.original;
-      const canRefund = t.status === 'success';
-      return (
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            disabled={!canRefund}
-            onClick={() => onRefund(t)}
-            title="Hoàn tiền"
-            className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors border',
-              canRefund
-                ? 'border-warning/60 text-warning hover:bg-warning/10'
-                : 'border-transparent text-muted-foreground opacity-40 cursor-not-allowed',
-            )}
-          >
-            <RotateCcw className="h-3 w-3" />
-            Hoàn tiền
-          </button>
-          <Button
-            onClick={() => onViewDetail(t)}
-            title="Xem chi tiết"
-            variant="outline"
-            size="sm"
-            leftIcon={<Eye className="h-3 w-3" />}
-            className='rounded-md'
-          >
-            Chi tiết
-          </Button>
-        </div>
-      );
-    },
-    size: 160,
+    cell: ({ row }) => <RowActions transaction={row.original} actions={actions} />,
+    size: 120,
   },
 ];

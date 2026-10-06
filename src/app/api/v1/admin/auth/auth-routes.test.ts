@@ -89,4 +89,24 @@ describe("auth route handlers", () => {
     expect(response.status).toBe(401);
     expect(cookieStore.delete).toHaveBeenCalledWith("refresh_token");
   });
+
+  it.each([503, 429])("refresh preserves cookies on backend status %i", async (status) => {
+    await setup();
+    cookieStore.get.mockReturnValue({ value: "refresh-token" });
+    mswServer.use(http.post(`${AUTH}/refresh`, () => HttpResponse.json({ message: "Unavailable" }, { status })));
+    const { POST } = await import("@/app/api/v1/admin/auth/refresh/route");
+    const response = await POST();
+    expect(response.status).toBe(status === 503 ? 502 : 429);
+    expect(cookieStore.delete).not.toHaveBeenCalled();
+  });
+
+  it("refresh clears cookies and returns 401 when the backend rejects the token", async () => {
+    await setup();
+    cookieStore.get.mockReturnValue({ value: "refresh-token" });
+    mswServer.use(http.post(`${AUTH}/refresh`, () => HttpResponse.json({ message: "Rejected" }, { status: 400 })));
+    const { POST } = await import("@/app/api/v1/admin/auth/refresh/route");
+    const response = await POST();
+    expect(response.status).toBe(401);
+    expect(cookieStore.delete).toHaveBeenCalledWith("refresh_token");
+  });
 });

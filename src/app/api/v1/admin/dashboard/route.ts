@@ -1,15 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDashboardTransactions } from "@/server/modules/dashboard/dashboard.service";
+import { NextResponse } from "next/server";
+import { getDashboardOverview } from "@/server/modules/dashboard/dashboard.service";
+import { moduleErrorResponse, requireModuleAccess } from "@/server/modules/sample-data/require-module-access";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-
-  const result = await getDashboardTransactions({
-    page: Number(searchParams.get("page")) || 1,
-    pageSize: Number(searchParams.get("pageSize")) || 10,
-    keyword: searchParams.get("keyword") ?? "",
-    status: searchParams.get("status") ?? "",
-  });
-
-  return NextResponse.json(result);
+/** Dashboard needs the session only: it shows the signed-in merchant's own summary. */
+export async function GET() {
+  const access = await requireModuleAccess();
+  if (!access.ok) return access.response;
+  const result = await getDashboardOverview();
+  return result.success ? NextResponse.json(result.data) : moduleErrorResponse(result.error);
 }

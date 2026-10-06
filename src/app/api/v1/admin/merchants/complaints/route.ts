@@ -1,21 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getComplaintList } from "@/server/modules/complaints/complaint.service";
+import { NextResponse } from "next/server";
+import { complaintListQuerySchema } from "@/features/complaints/schemas/complaint.schema";
+import { listComplaints } from "@/server/modules/complaints/complaint.service";
+import { moduleErrorResponse, requireModuleAccess } from "@/server/modules/sample-data/require-module-access";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  try {
-    const result = await getComplaintList({
-      page: Number(searchParams.get("page")) || 1,
-      pageSize: Number(searchParams.get("pageSize")) || 10,
-      keyword: searchParams.get("keyword") ?? "",
-      status: searchParams.get("status") ?? "",
-      source: searchParams.get("source") ?? "",
-      createdFromDate: searchParams.get("createdFromDate") ?? "",
-      createdToDate: searchParams.get("createdToDate") ?? "",
-    });
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[complaints] GET error:", error);
-    return NextResponse.json({ message: String(error), success: false }, { status: 500 });
-  }
+export async function GET(request: Request) {
+  const access = await requireModuleAccess("VIEW_DISPUTE");
+  if (!access.ok) return access.response;
+  const query = complaintListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+  if (!query.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
+  const result = await listComplaints({ ...query.data, merchantId: access.merchantId });
+  return result.success ? NextResponse.json(result.data) : moduleErrorResponse(result.error);
 }

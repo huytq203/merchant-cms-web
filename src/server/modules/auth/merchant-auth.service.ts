@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { BeClient, BeResult } from "@/lib/be/client";
+import type { BeError } from "@/lib/be/errors";
 import { emptySchema } from "@/lib/be/envelope";
 import { identityClient } from "@/lib/be/services";
 import {
@@ -13,6 +14,10 @@ import {
 } from "@/server/modules/auth/merchant-auth.dto";
 
 export const MERCHANT_AUTH_PATH = "/api/v1/merchant/auth";
+
+export function isRefreshRejected(error: BeError): boolean {
+  return error.status === 400 || error.status === 401;
+}
 
 /** Step 1: checks the password and emails an OTP. */
 export function requestLoginOtp(

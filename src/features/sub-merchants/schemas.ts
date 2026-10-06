@@ -1,46 +1,77 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { inheritedFieldSchema, lockSourceSchema, subMerchantStatusSchema } from "@/lib/be/node-schemas";
+
+export { inheritedFieldSchema, lockSourceSchema, subMerchantStatusSchema } from "@/lib/be/node-schemas";
+
+/**
+ * Summary row from `GET /api/v1/merchant/sub-merchants` (and the admin list, same shape plus extras).
+ * The merchant DTO is a Lombok bean with `private boolean isDefault`, which Jackson serialises as
+ * `default`; the admin record keeps `isDefault`. Accept both and expose one `isDefault`.
+ */
+export const subMerchantSummarySchema = z
+  .object({
+    id: z.uuid(),
+    code: z.string(),
+    name: z.string(),
+    status: subMerchantStatusSchema,
+    isDefault: z.boolean().optional(),
+    default: z.boolean().optional(),
+    lockSource: lockSourceSchema.nullish(),
+    merchantId: z.uuid().nullish(),
+    merchantCode: z.string().nullish(),
+    merchantName: z.string().nullish(),
+    phone: inheritedFieldSchema(z.string()).nullish(),
+    createdAt: z.string().nullish(),
+  })
+  .transform(({ default: legacyDefault, isDefault, ...rest }) => ({
+    ...rest,
+    isDefault: isDefault ?? legacyDefault ?? false,
+  }));
+
+/** `MerchantSubMerchantDetailResponse`: a record, so the key is `isDefault`; createdBy/updatedBy are not sent. */
+export const subMerchantDetailSchema = z.object({
+  id: z.uuid(),
+  code: z.string(),
+  name: z.string(),
+  businessField: z.string().nullish(),
+  status: subMerchantStatusSchema,
+  isDefault: z.boolean(),
+  lockSource: lockSourceSchema.nullish(),
+  merchantId: z.uuid(),
+  merchantCode: z.string().nullish(),
+  merchantName: z.string().nullish(),
+  legalName: z.string().nullish(),
+  taxCode: z.string().nullish(),
+  legalRepresentativeName: z.string().nullish(),
+  taxCodeEditable: z.boolean(),
+  phone: inheritedFieldSchema(z.string()),
+  address: inheritedFieldSchema(z.string()),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
+});
 
 export const subMerchantFilterSchema = z.object({
   keyword: z.string().max(100).optional(),
-  status: z.string().optional(),
+  status: subMerchantStatusSchema.optional(),
 });
 
-export const subMerchantFormSchema = z.object({
-  name: z.string().min(1, 'Tên sub-merchant là bắt buộc').max(100),
-  businessType: z.string().min(1, 'Loại hình kinh doanh là bắt buộc'),
-  contact: z.string().min(1, 'Thông tin liên hệ là bắt buộc').max(50),
-  status: z.enum(['active', 'inactive', 'locked']),
-});
-
-export const newSubMerchantSchema = z.object({
-  // Section 1 – Thông tin chung
-  name: z.string().min(1, 'Tên Sub-merchant là bắt buộc').max(100),
-  businessType: z.string().min(1, 'Lĩnh vực kinh doanh là bắt buộc'),
-  taxCode: z.string().optional(),
-  representative: z.string().optional(),
-  address: z.string().min(1, 'Địa chỉ trụ sở là bắt buộc'),
-  logo: z.any().optional(),
-  // Section 2 – Key kết nối
-  webhookUrl: z.string().optional(),
-  // Section 3 – Tài khoản ngân hàng
-  bankName: z.string().min(1, 'Ngân hàng thụ hưởng là bắt buộc'),
-  bankBranch: z.string().optional(),
-  accountNumber: z.string().min(1, 'Số tài khoản là bắt buộc'),
-  accountName: z.string().min(1, 'Tên chủ tài khoản là bắt buộc'),
-  status: z.string().optional(),
-  // Section 4 – Cấu hình thông báo vận hành
-  notifyEnabled: z.boolean(),
-  notifyTxSuccess: z.boolean(),
-  notifyTxFailed: z.boolean(),
-  notifyDispute: z.boolean(),
-  notifyFreeze: z.boolean(),
-  notifyPolicyChange: z.boolean(),
-  notifyEmails: z.string().optional(),
-  // Section 4 – Hóa đơn điện tử
-  eInvoiceEnabled: z.boolean(),
-  eInvoiceEmails: z.string().optional(),
-});
+export const subMerchantFormSchema = z
+  .object({
+    name: z.string().trim().min(1, "Tên điểm bán là bắt buộc").max(255, "Tối đa 255 ký tự"),
+    businessField: z.string().trim().max(100, "Tối đa 100 ký tự"),
+    inheritPhone: z.boolean(),
+    phone: z.string().trim().max(15, "Tối đa 15 ký tự"),
+    inheritAddress: z.boolean(),
+    address: z.string().trim().max(500, "Tối đa 500 ký tự"),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.inheritPhone && value.phone === "") {
+      ctx.addIssue({ code: "custom", path: ["phone"], message: "Nhập số điện thoại hoặc chọn kế thừa" });
+    }
+    if (!value.inheritAddress && value.address === "") {
+      ctx.addIssue({ code: "custom", path: ["address"], message: "Nhập địa chỉ hoặc chọn kế thừa" });
+    }
+  });
 
 export type SubMerchantFilterValues = z.infer<typeof subMerchantFilterSchema>;
 export type SubMerchantFormValues = z.infer<typeof subMerchantFormSchema>;
-export type NewSubMerchantFormValues = z.infer<typeof newSubMerchantSchema>;

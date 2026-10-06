@@ -15,13 +15,16 @@ Feature/UI task phải đi theo thứ tự:
 
 1. **Brainstorming:** chốt mục tiêu, actor, flow, states, boundaries và acceptance criteria.
 2. **Impeccable:** dùng `shape` cho surface/flow mới, `audit` hoặc `critique` cho UI hiện có, và `optimize` cho UI performance.
-3. Đọc [design system](../DESIGN.md), [structure rules](../rules/STRUCTURE.md) và kiểm tra [Basuicn](../rules/BASUICN.md).
-4. Chọn Server-only, Client-only hoặc Hybrid theo [Next.js performance rules](../rules/NEXTJS-PERFORMANCE.md).
-5. Chốt skeleton, error, empty và data states theo [page-loading pattern](../patterns/page-loading.md).
-6. Viết failing behavior test theo [testing rules](../rules/TESTING.md).
-7. Mới bắt đầu implementation.
+3. **Taste Skill:** đọc toàn bộ `~/.agents/skills/design-taste-frontend/SKILL.md`; ghi Design Read và áp dụng scope/pre-flight phù hợp trước khi sửa UI.
+4. Đọc [design system](../DESIGN.md), [structure rules](../rules/STRUCTURE.md) và kiểm tra [Basuicn](../rules/BASUICN.md).
+5. Chọn Server-only, Client-only hoặc Hybrid theo [Next.js performance rules](../rules/NEXTJS-PERFORMANCE.md).
+6. Chốt skeleton, error, empty và data states theo [page-loading pattern](../patterns/page-loading.md).
+7. Viết failing behavior test theo [testing rules](../rules/TESTING.md).
+8. Mới bắt đầu implementation.
 
 Không bỏ qua gate chỉ vì UI trông đơn giản; scale độ sâu theo rủi ro và phạm vi.
+
+Taste Skill không áp dụng trực tiếp cho dashboard, dense product UI, data table và multi-step product flow. Với các bề mặt đó, dùng những quality check phù hợp của skill nhưng giữ **Impeccable Operate**, [DESIGN.md](../DESIGN.md) và Basuicn làm chuẩn. Không cài hoặc thay design system chỉ vì Taste Skill nhắc tới một package khác.
 
 ### Quy trình nhẹ
 
@@ -40,7 +43,7 @@ Trước khi code, trả lời bằng một câu cho mỗi mục:
 
 - Ai dùng (vai trò) và họ cần hoàn thành tác vụ nào.
 - Dữ liệu chính, số lượng điển hình và cột/trường nào quan trọng nhất.
-- Hành động chính của màn hình (đúng một CTA `variant="action"`) và hành động phá huỷ nếu có.
+- Hành động chính của màn hình (đúng một CTA `variant="solid"`, teal) và hành động phá huỷ nếu có.
 
 ### 2. Kiểm tra component
 
@@ -52,7 +55,7 @@ Màu, radius, shadow và font lấy từ [design system](../DESIGN.md) và `src/
 
 ### 4. Bố cục theo mẫu quen thuộc
 
-- Trang danh sách: tiêu đề + CTA chính, thanh filter, bảng, phân trang. Filter và phân trang đồng bộ với `searchParams`.
+- Trang danh sách: tiêu đề + CTA chính, card bộ lọc, card bảng (phân trang trong card). Filter và phân trang đồng bộ với `searchParams`.
 - Trang form: nhóm trường theo ý nghĩa, nhãn rõ ràng, lỗi hiển thị ngay tại trường, nút lưu cố định vị trí.
 - Hành động phá huỷ (khoá, xoá, huỷ): dùng dialog xác nhận, nêu rõ đối tượng bị ảnh hưởng, nút xác nhận dùng màu `danger`.
 - Trạng thái (active/locked/pending…) dùng `Badge` với token `success/warning/danger/info`; không chỉ dựa vào màu, luôn kèm chữ.
@@ -71,7 +74,7 @@ Chỉ dùng để phản hồi hành động hoặc giải thích chuyển trạ
 
 ## Anti-patterns
 
-- Hơn một CTA vàng trên cùng màn hình.
+- Hơn một CTA chính (teal đặc) trên cùng màn hình hoặc modal.
 - Màu feedback thay thế màu thương hiệu cho điều hướng; trạng thái chỉ thể hiện bằng màu.
 - Inline style hoặc CSS-in-JS khi Tailwind token đã đáp ứng.
 - Tự tạo primitive trong feature khi Basuicn hoặc `src/components/ui/` đã có.
@@ -88,4 +91,5 @@ Chỉ dùng để phản hồi hành động hoặc giải thích chuyển trạ
 - [ ] Kiểm tra dark mode nếu màn hình dùng token nền/viền.
 - [ ] Contrast chữ đạt WCAG AA; trạng thái có chữ kèm màu.
 - [ ] Brainstorming và Impeccable decision đã được ghi nhận ở mức tương xứng; không overengineering task nhỏ.
+- [ ] Đã đọc Taste Skill, ghi Design Read và chạy các pre-flight check phù hợp với phạm vi Merchant CMS.
 - [ ] `npm run typecheck` và `npm run lint` sạch.

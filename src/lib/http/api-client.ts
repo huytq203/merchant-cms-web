@@ -86,13 +86,14 @@ export function setSessionExpiredHandler(handler: () => void): void {
   onSessionExpired = handler;
 }
 
-let inflightRefresh: Promise<boolean> | null = null;
+type RefreshOutcome = "ok" | "rejected" | "unavailable";
+let inflightRefresh: Promise<RefreshOutcome> | null = null;
 
 /** One shared refresh for all parallel 401s. */
-function refreshSessionOnce(): Promise<boolean> {
+function refreshSessionOnce(): Promise<RefreshOutcome> {
   inflightRefresh ??= fetch(buildUrl(REFRESH_PATH), { method: "POST", credentials: "include" })
-    .then((response) => response.ok)
-    .catch(() => false)
+    .then((response): RefreshOutcome => response.ok ? "ok" : response.status === 401 ? "rejected" : "unavailable")
+    .catch((): RefreshOutcome => "unavailable")
     .finally(() => {
       inflightRefresh = null;
     });
@@ -129,10 +130,12 @@ async function request<T>(
   const canRefresh =
     res.status === 401 && typeof window !== "undefined" && !path.startsWith(AUTH_PATH_PREFIX);
   if (canRefresh) {
-    if (await refreshSessionOnce()) {
+    const outcome = await refreshSessionOnce();
+    if (outcome === "ok") {
       res = await fetch(url, buildInit(method, options));
     }
-    if (res.status === 401) {
+    if (outcome === "unavailable") throw new ApiError(503, "Không kết nối được máy chủ");
+    if (outcome === "rejected" || res.status === 401) {
       onSessionExpired();
     }
   }

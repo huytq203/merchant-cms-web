@@ -1,62 +1,88 @@
-"server-only";
+import "server-only";
 
-import type { PermissionGroupResponse } from "./permission.entity";
+import { emptySchema, pageSchema } from "@/lib/be/envelope";
+import { merchantClient } from "@/lib/be/services";
+import { ok } from "@/lib/http/result";
+import type { BeResult } from "@/lib/be/client";
 import {
-  findAllPermissionGroups,
-  findAllPermissionCategories,
-  findPermissionGroupById,
-  insertPermissionGroup,
-  syncPermissions,
-  updatePermissionGroup,
-  type FindAllPermissionParams,
-} from "./permission.repository";
+  permissionCatalogSchema,
+  permissionGroupSchema,
+  permissionGroupUserSchema,
+  type PermissionCatalogItem,
+  type PermissionGroup,
+  type PermissionGroupFormValues,
+  type PermissionGroupUser,
+} from "@/features/permission/schemas/permission-group.schema";
+import { toGroupRequest } from "@/features/permission/utils/permission-group-mapper";
+import { permissionGroupPaths } from "./permission-group.paths";
 
-export interface PaginatedPermissions {
-  data: PermissionGroupResponse[];
-  pagination: { page: number; pageSize: number; total: number };
+export interface PermissionGroupFilter {
+  merchantId: string;
+  page: number;
+  pageSize: number;
+  query?: string;
+  systemOnly?: boolean;
 }
 
-export async function getPermissionList(
-  params: FindAllPermissionParams,
-): Promise<PaginatedPermissions> {
-  return findAllPermissionGroups(params);
+export interface PermissionGroupPage<T> {
+  rows: T[];
+  total: number;
 }
 
-export async function getPermissionById(id: string): Promise<PermissionGroupResponse | null> {
-  return findPermissionGroupById(id);
+export function listPermissionCatalog(): Promise<BeResult<PermissionCatalogItem[]>> {
+  return merchantClient().get({ path: permissionGroupPaths.catalog, schema: permissionCatalogSchema });
 }
 
-export async function createPermissionGroup(input: {
-  name: string;
-  permissions: string[];
-}): Promise<PermissionGroupResponse> {
-  const now = new Date();
-  const id = Date.now().toString();
-
-  await insertPermissionGroup({ id, name: input.name, permissions: input.permissions, now });
-
-  const created = await findPermissionGroupById(id);
-  if (!created) throw new Error("Failed to create permission group");
-  return created;
+export async function listPermissionGroups(filter: PermissionGroupFilter): Promise<BeResult<PermissionGroupPage<PermissionGroup>>> {
+  const result = await merchantClient().get({
+    path: permissionGroupPaths.list,
+    schema: pageSchema(permissionGroupSchema),
+    query: {
+      merchantId: filter.merchantId,
+      page: filter.page,
+      size: filter.pageSize,
+      query: filter.query,
+      systemOnly: filter.systemOnly,
+    },
+  });
+  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
 
-export async function getPermissionCatalog() {
-  return findAllPermissionCategories();
+export function getPermissionGroup(id: string): Promise<BeResult<PermissionGroup>> {
+  return merchantClient().get({ path: permissionGroupPaths.detail(id), schema: permissionGroupSchema });
 }
 
-export async function updatePermissionGroupById(
-  id: string,
-  input: { name?: string; status?: string; permissions?: string[] },
-): Promise<PermissionGroupResponse | null> {
-  const existing = await findPermissionGroupById(id);
-  if (!existing) return null;
+export function createPermissionGroup(values: PermissionGroupFormValues, merchantId: string): Promise<BeResult<PermissionGroup>> {
+  return merchantClient().post({
+    path: permissionGroupPaths.create,
+    schema: permissionGroupSchema,
+    body: toGroupRequest(values, merchantId),
+  });
+}
 
-  if (input.name !== undefined || input.status !== undefined) {
-    await updatePermissionGroup(id, { name: input.name, status: input.status });
-  }
-  if (Array.isArray(input.permissions)) {
-    await syncPermissions(id, input.permissions);
-  }
+export function updatePermissionGroup(id: string, values: PermissionGroupFormValues): Promise<BeResult<PermissionGroup>> {
+  const { merchantId, ...body } = toGroupRequest(values, "");
+  void merchantId;
+  return merchantClient().put({ path: permissionGroupPaths.update(id), schema: permissionGroupSchema, body });
+}
 
-  return findPermissionGroupById(id);
+export function deletePermissionGroup(id: string): Promise<BeResult<void>> {
+  return merchantClient().delete({ path: permissionGroupPaths.delete(id), schema: emptySchema });
+}
+
+export function assignGroupUsers(id: string, userIds: string[]): Promise<BeResult<void>> {
+  return merchantClient().post({
+    path: permissionGroupPaths.assignUsers(id),
+    schema: emptySchema,
+    body: userIds,
+  });
+}
+
+export async function listGroupUsers(id: string, page: number): Promise<BeResult<PermissionGroupPage<PermissionGroupUser>>> {
+  const result = await merchantClient().get({
+    path: permissionGroupPaths.users(id),
+    schema: pageSchema(permissionGroupUserSchema),
+    query: { page, size: 10 },
+  });
+  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }

@@ -1,38 +1,41 @@
-import { Button, Card, CardContent, Text } from "@/components/ui";
-import PermissionTable from "@/features/permission/components/PermissionTable";
-import { Plus, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { HydrationBoundary } from '@tanstack/react-query';
+import { redirect } from 'next/navigation';
+import { prefetchDehydrated, unwrapOrRedirect } from '@/lib/query/prefetch';
+import { getServerSession } from '@/lib/auth/session';
+import { hasPermission } from '@/features/auth/permissions';
+import { AccessDenied } from '@/features/auth/components/access-denied';
+import { listPermissionCatalog, listPermissionGroups } from '@/server/modules/permissions/permission.service';
+import { parsePermissionGroupSearchParams, permissionGroupQueries } from '@/features/permission/permission-group-queries';
+import { PermissionGroupContainer } from '@/features/permission/components/PermissionGroupContainer';
 
-const page = () => {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function PermissionsPage({ searchParams }: Props) {
+  const session = await getServerSession();
+  if (!session) redirect('/api/v1/admin/auth/session-expired');
+  if (!hasPermission(session.permissions, 'MANAGE_PERMISSION_GROUP')) {
+    return <AccessDenied />;
+  }
+  const merchantId = session.merchantIds[0];
+  if (!merchantId) {
+    return <AccessDenied />;
+  }
+  const filter = parsePermissionGroupSearchParams(await searchParams);
+  const state = await prefetchDehydrated(async (client) => {
+    await Promise.all([
+      client.prefetchQuery({
+        ...permissionGroupQueries.catalog(),
+        queryFn: async () => unwrapOrRedirect(await listPermissionCatalog()),
+      }),
+      client.prefetchQuery({
+        ...permissionGroupQueries.list(filter),
+        queryFn: async () => unwrapOrRedirect(await listPermissionGroups({ merchantId, ...filter })),
+      }),
+    ]);
+  });
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardContent className="flex justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div className="">
-              <Text as="h1" className="text-xl font-bold">
-                Quản lý nhóm quyền
-              </Text>
-              <Text as="p" className="text-sm text-muted-foreground">
-                Quản lý nhóm quyền của merchant
-              </Text>
-            </div>
-          </div>
-          <Link href="/permissions/new">
-            <Button leftIcon={<Plus />}>Thêm mới nhóm quyền</Button>
-          </Link>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="space-y-3">
-          <PermissionTable />
-        </CardContent>
-      </Card>
-    </div>
+    <HydrationBoundary state={state}>
+      <PermissionGroupContainer filter={filter} />
+    </HydrationBoundary>
   );
-};
-
-export default page;
+}

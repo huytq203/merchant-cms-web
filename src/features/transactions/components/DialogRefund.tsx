@@ -2,6 +2,7 @@
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -70,9 +71,9 @@ export function DialogRefund({ transaction, open, onOpenChange }: DialogRefundPr
     onOpenChange(next);
   };
 
-  const onSubmit = async () => {
-    // TODO: gọi API tạo yêu cầu hoàn tiền
-    handleOpenChange(false);
+  const onSubmit = () => {
+    // Chưa có API BE: báo rõ thay vì giả vờ đã gửi thành công.
+    toast.info('Chức năng chưa được hỗ trợ');
   };
 
   return (

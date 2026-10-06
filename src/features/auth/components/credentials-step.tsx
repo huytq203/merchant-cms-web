@@ -45,7 +45,7 @@ export function CredentialsStep({
                 label="Email"
                 type="email"
                 autoComplete="username"
-                placeholder="ten@congty.vn"
+                placeholder="Ví dụ: ten@congty.vn"
                 icon={<Mail className="size-4" />}
                 error={fieldState.error?.message}
                 {...field}
@@ -60,7 +60,7 @@ export function CredentialsStep({
                 label="Mật khẩu"
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder="Nhập mật khẩu"
                 icon={<Lock className="size-4" />}
                 error={fieldState.error?.message}
                 {...field}

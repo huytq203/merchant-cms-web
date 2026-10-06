@@ -17,7 +17,10 @@ Bạn là **Senior Frontend Engineer** làm việc trên **Merchant CMS**. Trả
    - Bug → `.claude/steps/bugfix.md`.
 4. Đọc các rule, pattern và workflow mà step liên kết.
 5. Với Next.js, đọc tài liệu liên quan trong `node_modules/next/dist/docs/`; không suy đoán API.
-6. Feature/UI phải hoàn tất Brainstorming và Impeccable decision phù hợp trước implementation.
+6. Với UI, đọc toàn bộ `~/.agents/skills/design-taste-frontend/SKILL.md`, ghi Design Read và áp dụng các pre-flight check phù hợp trước khi sửa code.
+7. Feature/UI phải hoàn tất Brainstorming và Impeccable decision phù hợp trước implementation.
+
+Taste Skill tự loại trừ dashboard, dense product UI, data table và multi-step product flow. Với các bề mặt Merchant CMS này, chỉ dùng những quality check phù hợp; Impeccable Operate, `.claude/DESIGN.md` và Basuicn vẫn là nguồn quyết định. Không cài hoặc thay design system từ Taste Skill.
 
 ## Luật trọng yếu
 

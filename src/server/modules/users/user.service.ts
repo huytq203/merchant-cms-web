@@ -1,114 +1,77 @@
-"server-only";
+import "server-only";
 
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/db/prisma";
-import type { UserResponse } from "./user.entity";
-import {
-  findAllUsers,
-  findUserById,
-  insertUser,
-  syncSubMerchants,
-  updateUser,
-  patchUserStatus,
-  deleteUser,
-  userExists,
-  getPermissionGroupName,
-  type FindAllUserParams,
-} from "./user.repository";
-import type { CreateUserInput, UpdateUserInput, PatchUserLockInput } from "@/app/api/v1/admin/merchants/users/types/schemas";
+import { pageSchema } from "@/lib/be/envelope";
+import { merchantClient } from "@/lib/be/services";
+import { ok } from "@/lib/http/result";
+import type { BeResult } from "@/lib/be/client";
+import { merchantUserSchema, scopeProposalSchema, type MerchantUser, type ScopeProposal, type UserFormValues } from "@/features/users/schemas/user.schema";
+import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils/user-mapper";
+import { userPaths } from "./user.paths";
 
-export interface PaginatedUsers {
-  data: UserResponse[];
-  pagination: { page: number; pageSize: number; total: number };
+export interface UserFilter {
+  merchantId: string;
+  page: number;
+  pageSize: number;
+  query?: string;
 }
 
-export async function getUserList(params: FindAllUserParams): Promise<PaginatedUsers> {
-  return findAllUsers(params);
-}
-
-export async function getUserById(id: string): Promise<UserResponse | null> {
-  return findUserById(id);
-}
-
-export async function createUser(input: CreateUserInput): Promise<UserResponse> {
-  const now = new Date();
-  const userId = Date.now().toString();
-  const permissionGroupName = await getPermissionGroupName(input.permissionGroupId);
-
-  await insertUser({
-    id: userId,
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    permissionGroupId: input.permissionGroupId,
-    permissionGroupName,
-    subMerchantScope: input.subMerchantScope,
-    now,
+export async function listUsers(filter: UserFilter): Promise<BeResult<{ rows: MerchantUser[]; total: number }>> {
+  const result = await merchantClient().get({
+    path: userPaths.list,
+    schema: pageSchema(merchantUserSchema),
+    query: { merchantId: filter.merchantId, page: filter.page, size: filter.pageSize },
   });
-
-  if (input.assignedSubMerchantsIds?.length) {
-    await syncSubMerchants(userId, input.assignedSubMerchantsIds);
-  }
-
-  const hashedPassword = await bcrypt.hash("111111", 10);
-  await prisma.login.create({
-    data: {
-      id: (Date.now() + 1).toString(),
-      userId,
-      username: input.email,
-      password: hashedPassword,
-    },
-  });
-
-  const created = await findUserById(userId);
-  return created!;
+  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
 
-export async function updateUserById(
+export function getUser(id: string): Promise<BeResult<MerchantUser>> {
+  return merchantClient().get({ path: userPaths.detail(id), schema: merchantUserSchema });
+}
+
+export function createUser(values: UserFormValues, merchantId: string): Promise<BeResult<MerchantUser>> {
+  return merchantClient().post({ path: userPaths.create, schema: merchantUserSchema, body: toCreateUserRequest(values, merchantId) });
+}
+
+export function updateUser(id: string, values: { fullName: string; phone?: string }): Promise<BeResult<MerchantUser>> {
+  return merchantClient().put({ path: userPaths.detail(id), schema: merchantUserSchema, body: toUpdateUserRequest(values) });
+}
+
+export function lockUser(id: string, reason: string): Promise<BeResult<MerchantUser>> {
+  return merchantClient().post({ path: userPaths.lock(id), schema: merchantUserSchema, body: { reason } });
+}
+
+export function unlockUser(id: string): Promise<BeResult<MerchantUser>> {
+  return merchantClient().post({ path: userPaths.unlock(id), schema: merchantUserSchema });
+}
+
+export async function resetUserPassword(
   id: string,
-  input: UpdateUserInput,
-): Promise<UserResponse | null> {
-  if (!(await userExists(id))) return null;
-
-  let permissionGroupName: string | null | undefined;
-  if (input.permissionGroupId) {
-    permissionGroupName = await getPermissionGroupName(input.permissionGroupId);
-  }
-
-  await updateUser(id, {
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    subMerchantScope: input.subMerchantScope,
-    permissionGroupId: input.permissionGroupId,
-    permissionGroupName,
+  otp: { otpSessionId: string; otp: string },
+): Promise<BeResult<{ success: true }>> {
+  const result = await merchantClient().post({
+    path: userPaths.resetPassword(id),
+    schema: merchantUserSchema,
+    body: { otp },
   });
-
-  if (input.assignedSubMerchantsIds !== undefined) {
-    await syncSubMerchants(id, input.assignedSubMerchantsIds);
-  }
-
-  return findUserById(id);
+  return result.success ? ok({ success: true }) : result;
 }
 
-export async function patchUserLock(
-  id: string,
-  input: PatchUserLockInput,
-): Promise<UserResponse | null> {
-  const existing = await findUserById(id);
-  if (!existing) return null;
-
-  const lockReason =
-    input.lockReason !== undefined ? input.lockReason : existing.lockReason;
-  const status = lockReason ? "locked" : "active";
-  const lockedAt = lockReason ? (input.lockedAt ?? new Date().toISOString()) : null;
-
-  await patchUserStatus(id, status, lockReason ?? null, lockedAt);
-  return findUserById(id);
+export function assignUserGroups(id: string, groupIds: string[]): Promise<BeResult<MerchantUser>> {
+  return merchantClient().post({ path: userPaths.assignGroups(id), schema: merchantUserSchema, body: { ids: groupIds } });
 }
 
-export async function removeUser(id: string): Promise<boolean> {
-  if (!(await userExists(id))) return false;
-  await deleteUser(id);
-  return true;
+export function getScopeProposal(id: string): Promise<BeResult<ScopeProposal>> {
+  return merchantClient().get({ path: userPaths.scopeProposal(id), schema: scopeProposalSchema });
+}
+
+export function approveScopeProposal(id: string): Promise<BeResult<ScopeProposal>> {
+  return merchantClient().post({ path: userPaths.approveScopeProposal(id), schema: scopeProposalSchema });
+}
+
+export function rejectScopeProposal(id: string, reason: string): Promise<BeResult<ScopeProposal>> {
+  return merchantClient().post({
+    path: userPaths.rejectScopeProposal(id),
+    schema: scopeProposalSchema,
+    body: { reason },
+  });
 }

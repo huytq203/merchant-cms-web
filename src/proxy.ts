@@ -8,36 +8,36 @@ import {
 } from "@/lib/auth/auth-routing";
 import { AUTH_COOKIES } from "@/lib/auth/cookies";
 import { buildSessionCookies, type CookieSpec } from "@/lib/auth/session-cookies";
-import { refreshTokensOnce } from "@/server/modules/auth/merchant-auth.service";
+import { safeCallback } from "@/features/auth/utils/safe-callback";
+import { isRefreshRejected, refreshTokensOnce } from "@/server/modules/auth/merchant-auth.service";
 
 function handleCors(request: NextRequest): NextResponse | null {
   const origin = request.headers.get("origin") ?? "";
-  const isVercelOrigin =
-    origin.endsWith(".vercel.app") || origin === "http://localhost:3000";
-
-  if (request.method === "OPTIONS") {
-    const res = new NextResponse(null, { status: 204 });
-    if (isVercelOrigin) {
-      res.headers.set("Access-Control-Allow-Origin", origin);
-      res.headers.set("Access-Control-Allow-Credentials", "true");
-      res.headers.set(
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+  const isAllowedOrigin = allowedOrigins.includes(origin);
+  const response = request.method === "OPTIONS" ? new NextResponse(null, { status: 204 }) : NextResponse.next();
+  if (isAllowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", origin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    if (request.method === "OPTIONS") {
+      response.headers.set(
         "Access-Control-Allow-Methods",
         "GET, POST, PUT, PATCH, DELETE, OPTIONS",
       );
-      res.headers.set(
+      response.headers.set(
         "Access-Control-Allow-Headers",
         "Content-Type, Authorization, Accept",
       );
     }
-    return res;
   }
-  return null;
+  return response;
 }
 
 function redirectTo(request: NextRequest, pathname: string, callbackUrl?: string): NextResponse {
   const url = request.nextUrl.clone();
-  url.pathname = pathname;
-  url.search = "";
+  const target = new URL(pathname, url.origin);
+  url.pathname = target.pathname;
+  url.search = target.search;
   if (callbackUrl) url.searchParams.set("callbackUrl", callbackUrl);
   return NextResponse.redirect(url);
 }
@@ -59,13 +59,14 @@ async function handleRefresh(request: NextRequest): Promise<NextResponse> {
   const result = await refreshTokensOnce(refreshToken);
 
   if (!result.success) {
+    if (!isRefreshRejected(result.error)) return NextResponse.next();
     const response =
       pathname === LOGIN_PATH ? NextResponse.next() : redirectTo(request, LOGIN_PATH, pathname + search);
     return clearCookies(response);
   }
 
   const specs = buildSessionCookies(result.data, { secure: process.env.NODE_ENV === "production" });
-  if (pathname === LOGIN_PATH) return applyCookies(redirectTo(request, DASHBOARD_PATH), specs);
+  if (pathname === LOGIN_PATH) return applyCookies(redirectTo(request, safeCallback(request.nextUrl.searchParams.get("callbackUrl"))), specs);
 
   const headers = new Headers(request.headers);
   headers.set("cookie", mergeCookieHeader(request.headers.get("cookie"), specs));

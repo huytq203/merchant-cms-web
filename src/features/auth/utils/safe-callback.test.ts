@@ -7,7 +7,7 @@ describe("safeCallback", () => {
     expect(safeCallback("/orders?page=2")).toBe("/orders?page=2");
   });
 
-  it.each([null, "", "orders", "//evil.com", "https://evil.com", "/\\evil.com", "javascript:alert(1)"])(
+  it.each([null, "", "orders", "//evil.com", "https://evil.com", "/\\evil.com", "/\t/evil.com", "/\n/evil.com", "/login", "/api/x", "javascript:alert(1)"])(
     "falls back to the dashboard for %s",
     (value) => {
       expect(safeCallback(value)).toBe("/dashboard");

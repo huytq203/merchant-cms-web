@@ -1,59 +1,56 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { PermissionData } from "../types/type";
-import { Button } from "@/components/ui";
-import { Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/badge/Badge";
-import { PERMISSION_LABEL, PermissionStatus } from "../constants/Permission.constant";
-import { formatDate } from "@/lib/utils/helper";
+'use client';
 
-export function buildPermissionColumns<T = string>(
-  onEdit: (item: PermissionData<T>) => void,
-): ColumnDef<PermissionData<T>>[] {
+import type { ColumnDef } from '@tanstack/react-table';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button/Button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip/Tooltip';
+import { canEditGroup } from '../utils/permission-group-mapper';
+import type { PermissionGroup } from '../schemas/permission-group.schema';
+
+interface Actions {
+  onView: (group: PermissionGroup) => void;
+  onEdit: (group: PermissionGroup) => void;
+  onDelete: (group: PermissionGroup) => void;
+}
+
+function ActionButton({ label, children, onClick }: { label: string; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={onClick} />}>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function buildPermissionColumns(actions: Actions): ColumnDef<PermissionGroup>[] {
   return [
+    { accessorKey: 'code', header: 'Mã nhóm' },
+    { accessorKey: 'name', header: 'Tên nhóm quyền' },
+    { accessorKey: 'description', header: 'Mô tả', cell: ({ row }) => row.original.description || 'Không có mô tả' },
+    { id: 'scope', header: 'Cấp quản lý', cell: ({ row }) => row.original.system ? 'Hệ thống' : 'Merchant' },
+    { id: 'permissionCount', header: 'Số quyền', cell: ({ row }) => row.original.permissions.length },
     {
-      header: "Tên nhóm quyền",
-      accessorKey: "name",
-    },
-    {
-      header: "Số người dùng",
-      accessorKey: "userCount",
-    },
-    {
-      header: "Ngày tạo",
-      accessorKey: "createdAt",
-      cell: ({ row }) => <div>{formatDate(row.original.createdAt)}</div>,
-    },
-    {
-      header: "Trạng thái",
-      accessorKey: "status",
-      meta: { align: "center" },
+      id: 'actions',
+      header: 'Thao tác',
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Badge
-          variant={
-            row.original.status === PermissionStatus?.ACTIVE
-              ? "soft-success"
-              : "soft-danger"
-          }
-        >
-          {PERMISSION_LABEL[row.original.status as PermissionStatus]}
-        </Badge>
-      ),
-    },
-    {
-      header: "Hành động",
-      accessorKey: "action",
-      size: 100,
-      meta: { align: "center" },
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant="info-outline"
-          leftIcon={<Pencil className="h-4 w-4" />}
-          className="rounded-md"
-          onClick={() => onEdit(row.original)}
-        >
-          Chỉnh sửa
-        </Button>
+        <div className="flex min-w-28 justify-center gap-1">
+          <ActionButton label={`Xem ${row.original.name}`} onClick={() => actions.onView(row.original)}>
+            <Eye className="h-4 w-4" />
+          </ActionButton>
+          {canEditGroup(row.original) ? (
+            <>
+              <ActionButton label={`Sửa ${row.original.name}`} onClick={() => actions.onEdit(row.original)}>
+                <Pencil className="h-4 w-4" />
+              </ActionButton>
+              <ActionButton label={`Xoá ${row.original.name}`} onClick={() => actions.onDelete(row.original)}>
+                <Trash2 className="h-4 w-4" />
+              </ActionButton>
+            </>
+          ) : null}
+        </div>
       ),
     },
   ];

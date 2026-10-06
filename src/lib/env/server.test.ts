@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { parseServerEnv } from "@/lib/env/server";
 
 describe("parseServerEnv", () => {
+  it("defaults to live mode in production", () => {
+    const env = parseServerEnv({
+      IDENTITY_BASE_URL: "https://identity.test",
+      MERCHANT_BASE_URL: "https://merchant.test",
+      NODE_ENV: "production",
+    });
+    expect(env.MERCHANT_API_MODE).toBe("live");
+  });
   it("trims trailing slashes and defaults the mode to fixture", () => {
     const env = parseServerEnv({
       IDENTITY_BASE_URL: "https://identity.test/",

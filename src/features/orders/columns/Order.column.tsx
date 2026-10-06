@@ -1,104 +1,88 @@
-"use client";
+import type { ReactNode } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Eye, QrCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge/Badge";
-import { type ColumnDef } from "@tanstack/react-table";
-import { Eye } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/button/Button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
 import { formatAmount, formatDate } from "@/lib/utils/helper";
-import {
-  ORDER_SOURCE_OPTIONS,
-  ORDER_STATUS_OPTIONS,
-} from "../constants/Order.constants";
+import { BANK_OPTIONS, ORDER_STATUS_OPTIONS, labelOf } from "../constants/Order.constants";
 import type { Order } from "../types/types";
+import { canRefreshQr } from "../utils/order-mapper";
 
-export function getOrderColumns(
-  onViewDetail: (order: Order) => void,
-): ColumnDef<Order>[] {
+export type OrderColumnActions = {
+  onView: (order: Order) => void;
+  onViewQr: (order: Order) => void;
+};
+
+type ActionProps = { label: string; onClick: () => void; children: ReactNode };
+
+function Action({ label, onClick, children }: ActionProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={onClick} />}
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function Slot({ children }: { children?: ReactNode }) {
+  return <span className="inline-flex h-8 w-8 items-center justify-center">{children}</span>;
+}
+
+export function OrderStatusBadge({ status }: { status: Order["status"] }) {
+  const option = ORDER_STATUS_OPTIONS.find((item) => item.value === status);
+  return (
+    <Badge variant={option?.variant ?? "outline"} className="w-44 justify-center">
+      {option?.label ?? "Không xác định"}
+    </Badge>
+  );
+}
+
+function RowActions({ order, actions }: { order: Order; actions: OrderColumnActions }) {
+  const showQr = canRefreshQr(order.status);
+  return (
+    <div className="flex items-center gap-1">
+      <Action label={`Xem chi tiết đơn ${order.orderCode}`} onClick={() => actions.onView(order)}>
+        <Eye size={16} />
+      </Action>
+      {showQr ? (
+        <Action label={`Xem mã QR đơn ${order.orderCode}`} onClick={() => actions.onViewQr(order)}>
+          <QrCode size={16} />
+        </Action>
+      ) : <Slot />}
+    </div>
+  );
+}
+
+export function getOrderColumns(actions: OrderColumnActions): ColumnDef<Order>[] {
   return [
     {
-      id: "code",
+      accessorKey: "orderCode",
       header: "Mã đơn hàng",
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-foreground text-sm">
-          {row.original.code}
-        </span>
-      ),
-      size: 160,
-    },
-    {
-      id: "createdAt",
-      header: "Thời gian tạo",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {formatDate(row.original.createdAt)}
-        </span>
-      ),
-      size: 150,
-    },
-    {
-      id: "source",
-      header: "Nguồn",
-      cell: ({ row }) => {
-        const opt = ORDER_SOURCE_OPTIONS.find(
-          (o) => o.value === row.original.source,
-        );
-        return (
-          <Badge variant={opt?.variant ?? "outline"} size="sm">
-            {opt?.label ?? row.original.source}
-          </Badge>
-        );
-      },
-      size: 120,
-    },
-    {
-      id: "createdBy",
-      header: "Người tạo",
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.createdBy ?? "Hệ thống"}</span>
-      ),
-      size: 140,
+      cell: ({ row }) => <span className="font-mono font-semibold">{row.original.orderCode}</span>,
     },
     {
       id: "amount",
-      header: "Tổng thanh toán",
-      meta: { align: "right" },
-      cell: ({ row }) => (
-        <span className="font-mono font-semibold text-sm">
-          {formatAmount(row.original.amount)}
-        </span>
-      ),
-      size: 150,
+      header: "Số tiền",
+      cell: ({ row }) => <span className="font-mono">{formatAmount(row.original.amount)}</span>,
     },
     {
-      id: "status",
-      header: "Trạng thái",
-      cell: ({ row }) => {
-        const opt = ORDER_STATUS_OPTIONS.find(
-          (o) => o.value === row.original.status,
-        );
-        return (
-          <Badge variant={opt?.variant ?? "outline"}>
-            {opt?.label ?? row.original.status}
-          </Badge>
-        );
-      },
-      size: 130,
+      id: "bankCode",
+      header: "Ngân hàng",
+      cell: ({ row }) => labelOf(BANK_OPTIONS, row.original.bankCode),
     },
+    { id: "createdAt", header: "Ngày tạo", cell: ({ row }) => formatDate(row.original.createdAt) },
+    { id: "expiredAt", header: "Hết hạn", cell: ({ row }) => formatDate(row.original.expiredAt) },
+    { id: "status", header: "Trạng thái", cell: ({ row }) => <OrderStatusBadge status={row.original.status} /> },
     {
       id: "actions",
-      header: "",
-      meta: { align: "center" },
+      header: "Thao tác",
       enableSorting: false,
-      cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="Xem chi tiết"
-          onClick={() => onViewDetail(row.original)}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-      ),
-      size: 60,
+      cell: ({ row }) => <RowActions order={row.original} actions={actions} />,
     },
   ];
 }

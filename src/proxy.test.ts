@@ -76,4 +76,39 @@ describe("proxy", () => {
     );
     expect(response.status).toBe(204);
   });
+
+  it("keeps refresh cookies and continues when the backend returns 503", async () => {
+    mswServer.use(http.post(`${AUTH}/refresh`, () => HttpResponse.json({ message: "Unavailable" }, { status: 503 })));
+    const proxy = await loadProxy();
+    const response = await proxy(request("/orders", "refresh_token=r-old"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.cookies.get("refresh_token")).toBeUndefined();
+  });
+
+  it("uses a safe callback after refreshing on login", async () => {
+    mswServer.use(http.post(`${AUTH}/refresh`, () => HttpResponse.json(envelope(tokens))));
+    const proxy = await loadProxy();
+    const response = await proxy(request("/login?callbackUrl=%2Forders%3Fpage%3D2", "refresh_token=r-old"));
+    const location = new URL(response.headers.get("location") ?? "");
+    expect(location.pathname).toBe("/orders");
+    expect(location.search).toBe("?page=2");
+  });
+
+  it("does not grant CORS to a wildcard vercel origin", async () => {
+    const proxy = await loadProxy();
+    const response = await proxy(new NextRequest("http://localhost:3000/api/x", { method: "OPTIONS", headers: { origin: "https://evil.vercel.app" } }));
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("grants CORS to an explicitly listed origin on preflight and regular requests", async () => {
+    vi.stubEnv("CORS_ALLOWED_ORIGINS", "https://trusted.example");
+    const proxy = await loadProxy();
+    for (const method of ["OPTIONS", "GET"]) {
+      const response = await proxy(new NextRequest("http://localhost:3000/api/x", { method, headers: { origin: "https://trusted.example" } }));
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("https://trusted.example");
+      expect(response.headers.get("Access-Control-Allow-Credentials")).toBe("true");
+    }
+  });
+
 });

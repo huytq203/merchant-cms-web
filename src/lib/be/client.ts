@@ -113,6 +113,10 @@ export function createBeClient(options: BeClientOptions) {
 
     const data = req.schema.safeParse(envelope.data.data);
     if (!data.success) {
+      if (process.env.NODE_ENV !== "production") {
+        const fields = data.error.issues.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.code}`);
+        console.error(`[be] response schema mismatch ${req.path}`, fields.slice(0, 10));
+      }
       const error = invalidResponseError(response.status);
       return fail(error, error.code);
     }

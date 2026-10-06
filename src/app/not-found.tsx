@@ -15,8 +15,12 @@ export default function NotFound() {
         <p className="mt-3 text-sm text-muted-foreground">
           Đường dẫn bạn truy cập không tồn tại hoặc đã bị di chuyển.
         </p>
-        <Button  className="mt-6">
-          <Link href="/dashboard">Về trang chủ</Link>
+        <Button
+          className="mt-6"
+          nativeButton={false}
+          render={<Link href="/dashboard" role="link" />}
+        >
+          Về trang chủ
         </Button>
       </div>
     </div>

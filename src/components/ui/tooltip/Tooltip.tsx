@@ -30,7 +30,9 @@ const TooltipTrigger = React.forwardRef<
     render={render ?? (React.isValidElement(children) ? children : undefined)}
     {...props}
   >
-    {React.isValidElement(children) ? undefined : children}
+    {/* An explicit `render` element keeps its children (for example an icon);
+        only a lone element child with no `render` is itself the trigger. */}
+    {render || !React.isValidElement(children) ? children : undefined}
   </BaseTooltip.Trigger>
 ));
 TooltipTrigger.displayName = 'TooltipTrigger';

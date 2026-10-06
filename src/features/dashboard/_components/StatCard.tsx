@@ -11,6 +11,7 @@ interface StatTrend {
 }
 
 export interface StatCardProps {
+  featured?: boolean;
   title: string;
   value: string;
   trend: StatTrend;
@@ -18,18 +19,18 @@ export interface StatCardProps {
   iconClassName: string;
 }
 
-export function StatCard({ title, value, trend, icon, iconClassName }: StatCardProps) {
+export function StatCard({ title, value, trend, icon, iconClassName, featured = false }: StatCardProps) {
   const isUp = trend.direction === 'up';
 
   return (
-    <Card>
+    <Card className={featured ? 'border-0 bg-gradient-to-br from-brand to-primary text-white' : undefined}>
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
-          <div className={cn('rounded-xl p-3 shrink-0', iconClassName)}>
+          <div className={cn('rounded-xl p-3 shrink-0', featured ? 'bg-white/15 text-white' : iconClassName)}>
             {icon}
           </div>
           <div className="flex-1 min-w-0">
-            <Text size="sm" color="muted" weight="medium" as="p" className='truncate w-full'>
+            <Text size="sm" weight="medium" as="p" className={cn('truncate w-full', featured ? 'text-white/90' : 'text-muted-foreground')}>
               {title}
             </Text>
             <Text
@@ -37,14 +38,14 @@ export function StatCard({ title, value, trend, icon, iconClassName }: StatCardP
               weight="bold"
               as="p"
               numeric
-              className="tracking-tight mt-1 leading-tight truncate w-full"
+              className={cn('tracking-tight mt-1 leading-tight truncate w-full', featured && 'text-white')}
             >
               {value}
             </Text>
             <div
               className={cn(
                 'inline-flex items-center gap-1 text-xs font-medium mt-2',
-                isUp ? 'text-success' : 'text-danger',
+                featured ? 'text-white' : isUp ? 'text-success' : 'text-danger',
               )}
             >
               {isUp
@@ -52,7 +53,7 @@ export function StatCard({ title, value, trend, icon, iconClassName }: StatCardP
                 : <TrendingDown className="w-3.5 h-3.5 shrink-0" />
               }
               <span>{trend.value}</span>
-              <span className="text-muted-foreground font-normal ">{trend.label}</span>
+              <span className={cn('font-normal', featured ? 'text-white/90' : 'text-muted-foreground')}>{trend.label}</span>
             </div>
           </div>
         </div>

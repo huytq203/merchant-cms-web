@@ -1,36 +1,16 @@
-export type ComplaintStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
-export type ComplaintSource = 'customer' | 'gateway' | 'merchant';
+import type { z } from "zod";
+import type {
+  complaintListQuerySchema,
+  complaintListResultSchema,
+  complaintMessageSchema,
+  complaintSchema,
+  complaintSourceSchema,
+  complaintStatusSchema,
+} from "../schemas/complaint.schema";
 
-export interface Complaint {
-  id: string;
-  ticketCode: string;
-  transactionId: string | null;
-  transactionCode: string | null;
-  source: ComplaintSource;
-  content: string;
-  status: ComplaintStatus;
-  deadline: string | null;
-  note: string | null;
-  lastUpdatedAt: string | null;
-  createdAt: string;
-}
-
-export interface ComplaintMessage {
-  id: string;
-  role: 'admin' | 'merchant';
-  senderName: string;
-  content: string;
-  time: string;
-}
-
-export interface ComplaintListResponse {
-  data: Complaint[];
-  pagination: { total: number; page: number; pageSize: number };
-}
-
-export type ComplaintListFilter = {
-  createdFromDate?: string;
-  createdToDate?: string;
-  source?: string;
-  status?: string;
-};
+export type ComplaintStatus = z.infer<typeof complaintStatusSchema>;
+export type ComplaintSource = z.infer<typeof complaintSourceSchema>;
+export type Complaint = z.infer<typeof complaintSchema>;
+export type ComplaintMessage = z.infer<typeof complaintMessageSchema>;
+export type ComplaintListResult = z.infer<typeof complaintListResultSchema>;
+export type ComplaintListFilter = z.infer<typeof complaintListQuerySchema>;

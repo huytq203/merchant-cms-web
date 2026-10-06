@@ -1,71 +1,35 @@
-"server-only";
+import "server-only";
 
-import type { SubMerchantResponse } from "./sub-merchant.entity";
-import {
-  findAllSubMerchants,
-  findSubMerchantById,
-  insertSubMerchant,
-  updateSubMerchant,
-  patchSubMerchantStatus,
-  deleteSubMerchant,
-  subMerchantExists,
-  type FindAllSubMerchantParams,
-  type UpdateSubMerchantData,
-} from "./sub-merchant.repository";
+import { pageSchema } from "@/lib/be/envelope";
+import { merchantClient } from "@/lib/be/services";
+import { ok } from "@/lib/http/result";
+import type { BeResult } from "@/lib/be/client";
+import { subMerchantDetailSchema, subMerchantSummarySchema, type SubMerchantFormValues } from "@/features/sub-merchants/schemas";
+import type { SubMerchantDetail, SubMerchantListFilter, SubMerchantListResult } from "@/features/sub-merchants/types";
+import { toCreateRequest, toUpdateRequest } from "@/features/sub-merchants/utils/sub-merchant-mapper";
+import { subMerchantPaths } from "./sub-merchant.paths";
 
-export interface PaginatedSubMerchants {
-  data: SubMerchantResponse[];
-  pagination: { page: number; pageSize: number; total: number };
+export async function listSubMerchants(filter: SubMerchantListFilter): Promise<BeResult<SubMerchantListResult>> {
+  const result = await merchantClient().get({
+    path: subMerchantPaths.list,
+    schema: pageSchema(subMerchantSummarySchema),
+    // The merchant endpoint scopes by session and only paginates; keyword/status are not supported by BE yet.
+    query: { page: filter.page, size: filter.pageSize },
+  });
+  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
 
-export async function getSubMerchantList(
-  params: FindAllSubMerchantParams,
-): Promise<PaginatedSubMerchants> {
-  return findAllSubMerchants(params);
-}
+export const getSubMerchant = (id: string): Promise<BeResult<SubMerchantDetail>> =>
+  merchantClient().get({ path: subMerchantPaths.detail(id), schema: subMerchantDetailSchema });
 
-export async function getSubMerchantById(id: string): Promise<SubMerchantResponse | null> {
-  return findSubMerchantById(id);
-}
+export const createSubMerchant = (values: SubMerchantFormValues, merchantId: string): Promise<BeResult<SubMerchantDetail>> =>
+  merchantClient().post({ path: subMerchantPaths.create, schema: subMerchantDetailSchema, body: toCreateRequest(values, merchantId) });
 
-export async function createSubMerchant(
-  input: Omit<Parameters<typeof insertSubMerchant>[0], "id" | "now">,
-): Promise<SubMerchantResponse> {
-  const now = new Date();
-  const id = `SUB-${Date.now()}`;
-  const merchantId = input.merchantId || `MCH-${Date.now()}`;
+export const updateSubMerchant = (id: string, values: SubMerchantFormValues): Promise<BeResult<SubMerchantDetail>> =>
+  merchantClient().put({ path: subMerchantPaths.update(id), schema: subMerchantDetailSchema, body: toUpdateRequest(values) });
 
-  await insertSubMerchant({ ...input, id, merchantId, now });
-  return findSubMerchantById(id) as Promise<SubMerchantResponse>;
-}
+export const lockSubMerchant = (id: string, reason: string): Promise<BeResult<SubMerchantDetail>> =>
+  merchantClient().post({ path: subMerchantPaths.lock(id), schema: subMerchantDetailSchema, body: { reason } });
 
-export async function updateSubMerchantById(
-  id: string,
-  data: UpdateSubMerchantData,
-): Promise<SubMerchantResponse | null> {
-  if (!(await subMerchantExists(id))) return null;
-  await updateSubMerchant(id, data);
-  return findSubMerchantById(id);
-}
-
-export async function toggleSubMerchantStatus(
-  id: string,
-  lockReason: string | null | undefined,
-  existingLockReason: string | null | undefined,
-): Promise<SubMerchantResponse | null> {
-  if (!(await subMerchantExists(id))) return null;
-
-  const resolvedLockReason =
-    lockReason !== undefined ? lockReason : (existingLockReason ?? null);
-  const status = resolvedLockReason ? "locked" : "active";
-  const lockedAt = resolvedLockReason ? new Date().toISOString() : null;
-
-  await patchSubMerchantStatus(id, status, resolvedLockReason, lockedAt);
-  return findSubMerchantById(id);
-}
-
-export async function removeSubMerchant(id: string): Promise<boolean> {
-  if (!(await subMerchantExists(id))) return false;
-  await deleteSubMerchant(id);
-  return true;
-}
+export const unlockSubMerchant = (id: string, reason: string): Promise<BeResult<SubMerchantDetail>> =>
+  merchantClient().post({ path: subMerchantPaths.unlock(id), schema: subMerchantDetailSchema, body: { reason } });

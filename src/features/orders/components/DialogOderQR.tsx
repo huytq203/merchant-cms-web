@@ -1,107 +1,79 @@
 "use client";
-import { useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog/Dialog";
-import { Button } from "@/components/ui/button/Button";
-import { QRCode } from "@/components/ui/qrcode/QRCode";
-import { CheckCircle2, Copy, Download, Mail } from "lucide-react";
-import { toast } from "sonner";
 
-interface DialogOderQRProps {
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button/Button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog/Dialog";
+import { QRCode } from "@/components/ui/qrcode/QRCode";
+import { formatAmount, formatDate } from "@/lib/utils/helper";
+import type { Order } from "../types/types";
+import { isOrderQrExpired } from "../utils/order-mapper";
+
+type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  paymentUrl: string;
-}
+  order: Order | null;
+  isLoading: boolean;
+  loadError?: string;
+  canRefresh: boolean;
+  onRefresh: () => Promise<void>;
+  isRefreshing: boolean;
+  refreshError?: string;
+  /** A QR was just re-issued in this dialog, so the new code is shown even if the order expiry is unchanged. */
+  justRefreshed: boolean;
+};
 
-export function DialogOderQR({
-  open,
-  onOpenChange,
-  paymentUrl,
-}: DialogOderQRProps) {
-  const qrRef = useRef<HTMLDivElement>(null);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(paymentUrl);
-    toast.success("Đã sao chép liên kết");
-  };
-
-  const handleDownloadQR = () => {
-    const svg = qrRef.current?.querySelector("svg");
-    if (!svg) return;
-    const blob = new Blob([svg.outerHTML], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = "qr-thanh-toan.svg";
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+export function DialogOderQR(props: Props) {
+  const { open, onOpenChange, order, isLoading, loadError, canRefresh, onRefresh, isRefreshing, refreshError } = props;
+  const expired = order ? isOrderQrExpired(order, new Date()) && !props.justRefreshed : false;
+  const qrValue = order?.qrCode ?? "";
+  const ready = Boolean(order) && !isLoading && !loadError;
+  const showRefresh = canRefresh && order?.status === "ACTIVE";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader className="items-center text-center space-y-2">
-          <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="h-8 w-8 text-success" />
-          </div>
-          <DialogTitle>Tạo Link thành công!</DialogTitle>
+        <DialogHeader>
+          <DialogTitle>Mã QR thanh toán</DialogTitle>
           <DialogDescription>
-            Gửi link hoặc mã QR này cho khách hàng để thanh toán
+            {order ? `Đơn ${order.orderCode} — ${formatAmount(order.amount)}` : "Đang tải đơn hàng"}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex justify-center py-2 ">
-          <QRCode
-            ref={qrRef}
-            value={paymentUrl || "https://example.com"}
-            size="lg"
-            level="M"
-            renderer="svg"
-          />
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
-            <span className="flex-1 text-sm font-mono text-primary truncate min-w-0">
-              {paymentUrl}
-            </span>
-            <Button
-              size="sm"
-              variant="glass-white"
-              onClick={handleCopy}
-              leftIcon={<Copy className="h-3.5 w-3.5" />}
-            >
-              Sao chép
-            </Button>
+        {isLoading && <p className="py-6 text-center text-sm">Đang tải mã QR...</p>}
+        {loadError && (
+          <p role="alert" className="text-sm text-danger">
+            {loadError}
+          </p>
+        )}
+        {order && ready && !expired && qrValue && (
+          <div className="flex justify-center py-2">
+            <QRCode value={qrValue} size="lg" level="M" renderer="svg" title={`Mã QR đơn ${order.orderCode}`} />
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              leftIcon={<Download className="h-4 w-4" />}
-              onClick={handleDownloadQR}
-            >
-              Tải QR
-            </Button>
-            <Button
-              leftIcon={<Mail className="h-4 w-4" />}
-              onClick={() => toast.info("Tính năng gửi email đang phát triển")}
-            >
-              Gửi Email
-            </Button>
-          </div>
-        </div>
-
-        {/* <DialogFooter>
-          <Button
-            variant="outline"
-            className="w-full mt-3"
-            onClick={() => onOpenChange(false)}
-          >
-            Đóng
+        )}
+        {ready && !expired && !qrValue && (
+          <p className="py-6 text-center text-sm text-muted-foreground">Đơn hàng chưa có mã QR.</p>
+        )}
+        {order && ready && expired && (
+          <p role="status" className="py-6 text-center text-sm text-muted-foreground">
+            Mã QR đã hết hạn từ {formatDate(order.expiredAt)}. Làm mới để lấy mã mới.
+          </p>
+        )}
+        {refreshError && (
+          <p role="alert" className="text-sm text-danger">
+            {refreshError}
+          </p>
+        )}
+        {showRefresh && (
+          <Button type="button" variant="outline" isLoading={isRefreshing} onClick={() => void onRefresh()}>
+            <RefreshCw size={16} aria-hidden="true" /> Làm mới QR
           </Button>
-        </DialogFooter> */}
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-
-export default DialogOderQR;

@@ -1,30 +1,32 @@
-import { ArrowUpFromLine, Download } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui";
-import WithdrawalForm from "@/features/withdrawals/components/WithdrawalForm";
+import { HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/features/auth/components/access-denied";
+import { hasPermission } from "@/features/auth/permissions";
+import { WithdrawalsContainer } from "@/features/withdrawals/components/WithdrawalsContainer";
+import { parseWithdrawalSearchParams, withdrawalQueries } from "@/features/withdrawals/withdrawal-queries";
+import { getServerSession } from "@/lib/auth/session";
+import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { listWithdrawals } from "@/server/modules/withdrawals/withdrawal.service";
 
-export default function WithdrawalPage() {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function WithdrawalPage({ searchParams }: Props) {
+  const user = await getServerSession();
+  if (!user) redirect("/api/v1/admin/auth/session-expired");
+  if (!hasPermission(user.permissions, "VIEW_WITHDRAWAL")) {
+    return <AccessDenied />;
+  }
+  const filter = parseWithdrawalSearchParams(await searchParams);
+  const state = await prefetchDehydrated(async (client) => {
+    await client.prefetchQuery({
+      ...withdrawalQueries.list(filter),
+      queryFn: async () => unwrapOrRedirect(await listWithdrawals(filter)),
+    });
+  });
+  const abilities = { canCreate: hasPermission(user.permissions, "CREATE_WITHDRAWAL") };
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Lịch sử Rút Tiền</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Quản lý các yêu cầu rút tiền thủ công và quyết toán tự động T+1
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" />}>
-            Xuất Excel
-          </Button>
-          <Link href="/withdrawal/new">
-            <Button size="sm" leftIcon={<ArrowUpFromLine className="h-4 w-4" />}>
-              Tạo yêu cầu rút tiền
-            </Button>
-          </Link>
-        </div>
-      </div>
-      <WithdrawalForm />
-    </div>
+    <HydrationBoundary state={state}>
+      <WithdrawalsContainer filter={filter} abilities={abilities} />
+    </HydrationBoundary>
   );
 }

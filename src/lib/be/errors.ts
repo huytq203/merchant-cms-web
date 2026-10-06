@@ -77,7 +77,31 @@ export function toBeError(status: number, body: unknown): BeError {
   return fieldErrors ? { status, code, message: text, fieldErrors } : { status, code, message: text };
 }
 
-/** HTTP status a Route Handler should answer with for a backend failure. */
+/** HTTP status a Route Handler should answer with for a backend failure; never a 2xx/3xx (e.g. INVALID_RESPONSE). */
 export function toHttpStatus(error: BeError): number {
-  return error.status === 0 || error.status >= 500 ? 502 : error.status;
+  return error.status < 400 || error.status >= 500 ? 502 : error.status;
+}
+
+/**
+ * HTTP status for a failed BE *domain* call (not an auth call). Route handlers run only after the
+ * guard validated the session against `/merchant/me`, so a BE 401 here means the BE chain refused
+ * the call, not that the user's session expired. Answering 401 would make the browser client log
+ * the user out, so it becomes 403.
+ */
+export function toDomainHttpStatus(error: BeError): number {
+  return error.status === 401 ? 403 : toHttpStatus(error);
+}
+
+/** Message paired with {@link toDomainHttpStatus}: a BE 401 is shown as a permission problem, not an expired session. */
+export function domainErrorMessage(error: BeError): string {
+  return error.status === 401 ? STATUS_MESSAGES[403] ?? error.message : error.message;
+}
+
+export function merchantDomainErrorMessage(error: BeError): string {
+  const message = domainErrorMessage(error);
+  if (/cannot manage yourself/i.test(message)) return "Bạn không thể sửa chính mình";
+  if (/cannot lock (the )?last (merchant )?administrator/i.test(message)) {
+    return "Không thể khoá quản trị viên cuối cùng. Hãy gán quyền quản trị cho người khác trước.";
+  }
+  return message;
 }

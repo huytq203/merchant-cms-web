@@ -19,7 +19,9 @@ UI library khác.
 Task feature/UI/data còn phải dẫn `.claude/rules/STRUCTURE.md`,
 `.claude/rules/TESTING.md` và `.claude/rules/NEXTJS-PERFORMANCE.md` khi liên quan.
 Prompt phải truyền quyết định Brainstorming/Impeccable đã được controller duyệt; Codex
-không tự đổi visual direction. Với table, Hybrid data hoặc route page, prompt phải nêu
+không tự đổi visual direction. Với UI, prompt còn phải bắt Codex đọc toàn bộ Taste Skill
+global tại `~/.agents/skills/design-taste-frontend/SKILL.md` và tuân theo scope của skill.
+Với table, Hybrid data hoặc route page, prompt phải nêu
 `columns/`, query contract/`staleTime` và `loading.tsx` skeleton tương ứng.
 
 Bạn là lớp vỏ mỏng có chủ đích: mọi phán đoán kỹ thuật thuộc về Codex, mọi phán đoán
@@ -68,6 +70,25 @@ cat > "$WORK/prompt.md" <<'PROMPT'
 Bạn đang thi công MỘT task trong kế hoạch triển khai của repo này.
 
 Nguyên tắc bắt buộc:
+- Trước khi sửa code, đọc `AGENTS.md`, `.claude/CLAUDE.md` và step tương ứng với
+  loại task. Nếu task có UI, đọc thêm `.claude/workflows/frontend.md`,
+  `.claude/DESIGN.md`, `.claude/rules/BASUICN.md` và
+  `.claude/patterns/ui-components.md`.
+- Với UI, đọc TOÀN BỘ Taste Skill global tại
+  `~/.agents/skills/design-taste-frontend/SKILL.md` trước khi implementation; ghi
+  Design Read và chạy các pre-flight check phù hợp. Skill tự loại trừ dashboard,
+  dense product UI, data table và multi-step product flow, nên với các bề mặt
+  Merchant CMS này chỉ áp dụng quality check phù hợp; Impeccable Operate,
+  `.claude/DESIGN.md` và Basuicn vẫn là nguồn quyết định. Không cài hoặc thay design
+  system chỉ vì Taste Skill liệt kê một lựa chọn khác.
+- Với feature/UI, áp dụng quyết định Brainstorming và Impeccable đã ghi trong task
+  hoặc brief trước khi implementation. Dùng `shape` cho surface/flow mới,
+  `audit` hoặc `critique` cho UI hiện có, và `optimize` cho UI performance. Xem
+  quyết định đã duyệt là visual direction bắt buộc; không tự đổi direction. Nếu
+  brief chưa có quyết định cần thiết, DỪNG trước khi sửa UI và báo controller.
+- Với UI, dùng Basuicn làm nguồn component đầu tiên. Nếu local và registry đều
+  không có component cần thiết, DỪNG phần UI phụ thuộc và xin quyết định theo mẫu
+  trong `.claude/rules/BASUICN.md`; không tự tạo primitive hoặc cài UI library khác.
 - Làm ĐÚNG phạm vi task được giao. Không làm task khác, không refactor ngoài phạm vi.
   CHỈ sửa các tệp có tên trong mục "Files" của task (hoặc call site cross-module
   mà task yêu cầu grep-sửa). Không tạo tệp mới, không thêm dependency mới vào

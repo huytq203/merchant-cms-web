@@ -1,59 +1,26 @@
-'use client';
-import { useCallback, useMemo, useState } from 'react';
-import { Table } from '@/components/ui';
-import { type ColumnDef } from '@tanstack/react-table';
-import { getWithdrawalColumns } from '../columns/Withdrawal.column';
-import { WithdrawalDetail } from './WithdrawalDetail';
-import type { Withdrawal } from '../types/types';
+"use client";
 
-interface WithdrawalTableProps {
-  data: Withdrawal[];
-  isLoading?: boolean;
-  total?: number;
-  page?: number;
-  pageSize?: number;
-  onPageChange?: (page: number, pageSize: number) => void;
-}
+import { Table } from "@/components/ui/table/Table";
+import { getWithdrawalColumns } from "../columns/Withdrawal.column";
+import type { Withdrawal } from "../types/types";
 
-export function WithdrawalTable({
-  data,
-  isLoading,
-  total,
-  page = 1,
-  pageSize = 10,
-  onPageChange,
-}: WithdrawalTableProps) {
-  const [selected, setSelected] = useState<Withdrawal | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+type Props = {
+  rows: Withdrawal[];
+  total: number;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number, pageSize: number) => void;
+  onView: (withdrawal: Withdrawal) => void;
+};
 
-  const handleViewDetail = useCallback((withdrawal: Withdrawal) => {
-    setSelected(withdrawal);
-    setDetailOpen(true);
-  }, []);
-
-  const columns = useMemo<ColumnDef<Withdrawal>[]>(
-    () => getWithdrawalColumns(handleViewDetail),
-    [handleViewDetail],
-  );
-
+export function WithdrawalTable({ rows, total, page, pageSize, onPageChange, onView }: Props) {
+  const columns = getWithdrawalColumns({ onView });
   return (
-    <>
-      <Table
-        data={data}
-        columns={columns}
-        isLoading={isLoading}
-        labels={{ empty: 'Không tìm thấy yêu cầu rút tiền nào phù hợp' }}
-        pagination={
-          total !== undefined
-            ? { total, current: page, pageSize, pageSizeOptions: [10, 20, 50], onChange: onPageChange }
-            : false
-        }
-      />
-      <WithdrawalDetail
-        withdrawal={selected}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
-    </>
+    <Table
+      data={rows}
+      columns={columns}
+      labels={{ empty: "Chưa có yêu cầu rút tiền" }}
+      pagination={{ total, current: page, pageSize, onChange: onPageChange }}
+    />
   );
 }

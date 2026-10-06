@@ -4,7 +4,7 @@ import type { ComplaintStatus, ComplaintSource } from '../types/types';
 export const COMPLAINT_STATUS_OPTIONS: { value: ComplaintStatus; label: string; variant: BadgeProps['variant'] }[] = [
   { value: 'pending',    label: 'Chờ tiếp nhận', variant: 'soft-warning' },
   { value: 'processing', label: 'Đang xử lý',    variant: 'soft-primary' },
-  { value: 'resolved',   label: 'Đã kết thúc',   variant: 'soft-success' },
+  { value: 'resolved',   label: 'Đã xử lý',   variant: 'soft-success' },
   { value: 'rejected',   label: 'Từ chối',        variant: 'soft-danger'  },
 ];
 

@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { revenueChartQuerySchema } from "@/features/dashboard/schemas/dashboard.schema";
 import { getRevenueChart } from "@/server/modules/dashboard/dashboard.service";
+import { moduleErrorResponse, requireModuleAccess } from "@/server/modules/sample-data/require-module-access";
 
-export async function GET(request: NextRequest) {
-  const period = request.nextUrl.searchParams.get("period") ?? "monthly";
-
-  const result = await getRevenueChart(period);
-  if (!result) {
-    return NextResponse.json(
-      { error: "period phải là: daily | weekly | monthly | yearly" },
-      { status: 400 },
-    );
+export async function GET(request: Request) {
+  const access = await requireModuleAccess();
+  if (!access.ok) return access.response;
+  const query = revenueChartQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+  if (!query.success) {
+    return NextResponse.json({ message: "period phải là: 7days | 30days | thisMonth" }, { status: 400 });
   }
-
-  return NextResponse.json(result);
+  const result = await getRevenueChart(query.data.period);
+  return result.success ? NextResponse.json(result.data) : moduleErrorResponse(result.error);
 }

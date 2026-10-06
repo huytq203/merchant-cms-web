@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const fromRoot = (path: string) => fileURLToPath(new URL(path, import.meta.url));
+const fromRoot = (path: string) =>
+  fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
   resolve: {
@@ -13,6 +14,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
+    minWorkers: 1,
+    maxWorkers: 2,
     setupFiles: ["./src/test/setup.ts"],
     restoreMocks: true,
     unstubEnvs: true,

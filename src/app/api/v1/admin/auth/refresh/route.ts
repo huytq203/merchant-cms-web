@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { clearSessionCookies, readRefreshToken, writeSessionCookies } from "@/lib/auth/session-cookies";
 import { toHttpStatus } from "@/lib/be/errors";
-import { refreshTokensOnce } from "@/server/modules/auth/merchant-auth.service";
+import { isRefreshRejected, refreshTokensOnce } from "@/server/modules/auth/merchant-auth.service";
 
 export async function POST() {
   const refreshToken = await readRefreshToken();
@@ -12,8 +12,8 @@ export async function POST() {
   }
   const result = await refreshTokensOnce(refreshToken);
   if (!result.success) {
-    await clearSessionCookies();
-    return NextResponse.json({ message: result.error.message }, { status: toHttpStatus(result.error) === 502 ? 502 : 401 });
+    if (isRefreshRejected(result.error)) await clearSessionCookies();
+    return NextResponse.json({ message: result.error.message }, { status: isRefreshRejected(result.error) ? 401 : toHttpStatus(result.error) });
   }
   await writeSessionCookies(result.data);
   return NextResponse.json({ success: true });

@@ -1,39 +1,32 @@
-"use client";
-import Link from "next/link";
-import { Button } from "@/components/ui";
-import { Download, Plus } from "lucide-react";
-import { toast } from "sonner";
-import OrderForm from "@/features/orders/components/OrderForm";
+import { HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/features/auth/components/access-denied";
+import { hasPermission } from "@/features/auth/permissions";
+import { OrdersContainer } from "@/features/orders/components/OrdersContainer";
+import { orderQueries, parseOrderSearchParams } from "@/features/orders/order-queries";
+import { getServerSession } from "@/lib/auth/session";
+import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { listOrders } from "@/server/modules/orders/order.service";
 
-export default function OrderPage() {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function OrdersPage({ searchParams }: Props) {
+  const user = await getServerSession();
+  if (!user) redirect("/api/v1/admin/auth/session-expired");
+  if (!hasPermission(user.permissions, "VIEW_ORDER")) {
+    return <AccessDenied />;
+  }
+  const filter = parseOrderSearchParams(await searchParams);
+  const state = await prefetchDehydrated(async (client) => {
+    await client.prefetchQuery({
+      ...orderQueries.list(filter),
+      queryFn: async () => unwrapOrRedirect(await listOrders(filter)),
+    });
+  });
+  const abilities = { canCreate: hasPermission(user.permissions, "CREATE_ORDER") };
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Quản lý Đơn hàng Tổng hợp
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Theo dõi tất cả giao dịch từ API và Payment Link
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="h-4 w-4" />}
-            onClick={() => toast.info("Đang xuất dữ liệu...")}
-          >
-            Xuất Excel
-          </Button>
-          <Link href="/order/new">
-            <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
-              Tạo Link mới
-            </Button>
-          </Link>
-        </div>
-      </div>
-      <OrderForm />
-    </div>
+    <HydrationBoundary state={state}>
+      <OrdersContainer filter={filter} abilities={abilities} />
+    </HydrationBoundary>
   );
 }

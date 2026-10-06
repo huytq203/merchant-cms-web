@@ -2,21 +2,50 @@
 import { Badge } from '@/components/ui/badge/Badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Eye, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui';
-import { formatAmount, formatDate } from '@/lib/utils/helper';
+import { RowAction } from '@/features/sample-data/components/RowAction';
+import { formatAmount } from '@/lib/utils/helper';
 import { REFUND_STATUS_OPTIONS } from '../constants/Refund.constants';
 import type { Refund } from '../types/type';
 
-export function getRefundColumns(
-  onViewDetail: (refund: Refund) => void,
-  onCancelRefund: (refund: Refund) => void,
-): ColumnDef<Refund>[] {
+export type RefundColumnActions = {
+  canCancel: boolean;
+  onViewDetail: (refund: Refund) => void;
+  onCancelRefund: (refund: Refund) => void;
+};
+
+function Slot() {
+  return <span className="inline-block h-8 w-8" aria-hidden="true" />;
+}
+
+function RowActions({ refund, actions }: { refund: Refund; actions: RefundColumnActions }) {
+  const showCancel = actions.canCancel && refund.status === 'pending';
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <RowAction label={`Xem chi tiết hoàn tiền ${refund.code}`} onClick={() => actions.onViewDetail(refund)}>
+        <Eye size={16} />
+      </RowAction>
+      {showCancel ? (
+        <RowAction
+          label={`Hủy yêu cầu hoàn tiền ${refund.code}`}
+          tone="danger"
+          onClick={() => actions.onCancelRefund(refund)}
+        >
+          <Trash2 size={16} />
+        </RowAction>
+      ) : (
+        <Slot />
+      )}
+    </div>
+  );
+}
+
+export function getRefundColumns(actions: RefundColumnActions, pageOffset = 0): ColumnDef<Refund>[] {
   return [
     {
       id: 'index',
       header: 'STT',
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.index + 1}</span>
+        <span className="text-sm text-muted-foreground">{row.index + 1 + pageOffset}</span>
       ),
       size: 52,
     },
@@ -30,27 +59,14 @@ export function getRefundColumns(
     },
     {
       id: 'transactionCode',
-      header: 'Mã Giao dịch',
+      header: 'Mã GD / HĐ',
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-foreground">{row.original.transactionCode}</span>
+        <div>
+          <span className="font-mono text-sm">{row.original.transactionCode}</span>
+          <p className="font-mono text-xs text-muted-foreground">{row.original.invoiceCode ?? '—'}</p>
+        </div>
       ),
-      size: 150,
-    },
-    {
-      id: 'invoiceCode',
-      header: 'Mã Hóa đơn',
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.invoiceCode ?? '—'}</span>
-      ),
-      size: 130,
-    },
-    {
-      id: 'subMerchant',
-      header: 'Cửa hàng',
-      cell: ({ row }) => (
-        <span className="text-sm truncate block max-w-[160px]">{row.original.subMerchantName}</span>
-      ),
-      size: 180,
+      size: 165,
     },
     {
       id: 'requestAmount',
@@ -71,30 +87,15 @@ export function getRefundColumns(
       size: 150,
     },
     {
-      id: 'feeMb',
-      header: 'Phí hoàn (MB)',
-      meta: { align: 'right' },
+      id: 'fees',
+      header: 'Phí hoàn (MB/NM)',
       cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.feeMb.toLocaleString('vi-VN')}</span>
+        <div className="font-mono text-xs text-muted-foreground">
+          <p>MB {row.original.feeMb.toLocaleString('vi-VN')}</p>
+          <p>NM {row.original.feeNm.toLocaleString('vi-VN')}</p>
+        </div>
       ),
-      size: 120,
-    },
-    {
-      id: 'feeNm',
-      header: 'Phí hoàn (NM)',
-      meta: { align: 'right' },
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.feeNm.toLocaleString('vi-VN')}</span>
-      ),
-      size: 120,
-    },
-    {
-      id: 'createdAt',
-      header: 'Thời gian tạo',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(row.original.createdAt)}</span>
-      ),
-      size: 150,
+      size: 140,
     },
     {
       id: 'createdBy',
@@ -108,24 +109,11 @@ export function getRefundColumns(
       size: 180,
     },
     {
-      id: 'recipient',
-      header: 'Người nhận',
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm font-medium">{row.original.recipientName}</p>
-          {row.original.recipientCard && (
-            <p className="text-xs font-mono text-muted-foreground">{row.original.recipientCard}</p>
-          )}
-        </div>
-      ),
-      size: 170,
-    },
-    {
       id: 'status',
       header: 'Trạng thái',
       cell: ({ row }) => {
         const opt = REFUND_STATUS_OPTIONS.find((o) => o.value === row.original.status);
-        return <Badge variant={opt?.variant ?? 'outline'}>{opt?.label ?? row.original.status}</Badge>;
+        return <Badge className="min-w-24 justify-center" variant={opt?.variant ?? 'outline'}>{opt?.label ?? row.original.status}</Badge>;
       },
       size: 130,
     },
@@ -134,13 +122,8 @@ export function getRefundColumns(
       header: 'Thao tác',
       meta: { align: 'center' },
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="Xem chi tiết" onClick={() => onViewDetail(row.original)}><Eye className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon-sm" title="Xoá" className="text-danger hover:text-danger hover:bg-danger/10" onClick={() => onCancelRefund(row.original)}><Trash2 className="h-4 w-4" /></Button>
-        </div>
-      ),
-      size: 80,
+      cell: ({ row }) => <RowActions refund={row.original} actions={actions} />,
+      size: 100,
     },
   ];
 }

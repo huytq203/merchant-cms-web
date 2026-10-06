@@ -1,9 +1,8 @@
 'use client';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button, Form, FormField, Textarea } from '@/components/ui';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button/Button';
+import { Textarea } from '@/components/ui/textarea/Textarea';
 import {
   Dialog,
   DialogContent,
@@ -11,102 +10,81 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog/Dialog';
+import { reasonBodySchema } from '@/lib/schemas/reason';
 
-const lockSchema = z.object({
-  reason: z.string().min(10, 'Lý do phải có ít nhất 10 ký tự'),
-});
-type LockFormValues = z.infer<typeof lockSchema>;
-
-export interface DialogActiveProps {
+export type ReasonDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  merchantName?: string;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => void | Promise<void>;
   isLoading?: boolean;
-}
+  error?: string | null;
+  title?: string;
+};
 
 export function DialogActive({
   open,
   onOpenChange,
-  merchantName = 'Sub-merchant',
   onConfirm,
   isLoading,
-}: DialogActiveProps) {
-  const form = useForm<LockFormValues>({
-    resolver: zodResolver(lockSchema),
-    defaultValues: { reason: '' },
-  });
+  error,
+  title = 'Khóa điểm bán',
+}: ReasonDialogProps) {
+  const [reason, setReason] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const parsed = reasonBodySchema.safeParse({ reason });
+  const validationError = parsed.success ? null : parsed.error.issues[0]?.message ?? null;
 
-  useEffect(() => {
-    if (open) form.reset();
-  }, [open, form]);
-
-  const handleSubmit = (values: LockFormValues) => {
-    onConfirm(values.reason);
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      setReason('');
+      setLocalError(null);
+    }
+    onOpenChange(next);
+  };
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!parsed.success) {
+      setLocalError(validationError);
+      return;
+    }
+    void onConfirm(parsed.data.reason);
+  };
+  const changeReason = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setReason(event.target.value);
+    setLocalError(null);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Xác nhận khóa hoạt động</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-
-        <div className="my-4 rounded-lg border border-danger/30 bg-danger/5 p-4 space-y-2">
-          <p className="text-sm text-foreground">
-            Bạn đang thực hiện khóa Sub-merchant:{' '}
-            <span className="font-semibold">{merchantName}</span>
-          </p>
-          <ul className="space-y-1 text-sm text-danger">
-            <li className="flex items-start gap-1.5">
-              <span aria-hidden>•</span>
-              Dừng mọi giao dịch thanh toán ngay lập tức.
-            </li>
-            <li className="flex items-start gap-1.5">
-              <span aria-hidden>•</span>
-              Vô hiệu hóa quyền truy cập API Keys.
-            </li>
-          </ul>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-            <FormField
-              name="reason"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
-                    Lý do khóa <span className="text-destructive">*</span>
-                  </label>
-                  <Textarea
-                    placeholder="Vui lòng nhập chi tiết lý do khóa (Ví dụ: Nghi ngờ gian lận, Vi phạm hợp đồng...)"
-                    rows={3}
-                    showCount
-                    maxLength={200}
-                    description="Tối thiểu 10 ký tự."
-                    error={fieldState.error?.message}
-                    {...field}
-                  />
-                </div>
-              )}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Hủy bỏ
-              </Button>
-              <Button type="submit" variant="danger" isLoading={isLoading}>
-                Xác nhận khóa
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <form className="mt-5 space-y-4" onSubmit={submit}>
+          <Textarea
+            label="Lý do"
+            placeholder="Nhập lý do (10–500 ký tự)"
+            aria-label="Lý do"
+            required
+            value={reason}
+            onChange={changeReason}
+            error={localError ?? (reason ? validationError ?? undefined : undefined)}
+          />
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              variant="solid"
+              disabled={!parsed.success || isLoading}
+              isLoading={isLoading}
+            >
+              Xác nhận
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

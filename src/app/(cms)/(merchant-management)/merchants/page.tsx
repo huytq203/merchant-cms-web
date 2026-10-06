@@ -1,115 +1,37 @@
-"use client";
-import * as Card from "@/components/ui/card/Card";
-import { Button } from "@/components/ui";
-import { TransactionFilters } from "@/features/transactions/components/TransactionFilters";
-import { TransactionTable } from "@/features/transactions/components/TransactionTable";
-import { useTransactionsQuery } from "@/features/transactions/hooks/use-transactions-query";
-import type { TransactionFilterValues } from "@/features/transactions/schemas";
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet/Sheet";
-import { Download, Filter } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import usePagination from "@/hooks/usePagination";
+import { HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { AccessDenied } from "@/features/auth/components/access-denied";
+import { KybContainer } from "@/features/kyb/components/KybContainer";
+import { kybQueries } from "@/features/kyb/kyb-queries";
+import { getServerSession } from "@/lib/auth/session";
+import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { getMerchant, getMerchantStatusHistory } from "@/server/modules/kyb/kyb.service";
 
-export default function TransactionsPage() {
-  const [filter, setFilter] = useState<TransactionFilterValues>({});
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const { setPage, setPageSize, params,page,pageSize } = usePagination();
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-  const payload = {
-    ...params,
-  };
-  const { data, isLoading } = useTransactionsQuery(payload);
-
-  const handleSearch = (values: TransactionFilterValues) => {
-    setFilter(values);
-    setPage(1);
-  };
-
-  const handleExport = () => {
-    toast.info("Đang chuẩn bị dữ liệu, vui lòng đợi...");
-  };
-
+export default async function MerchantsPage({ searchParams }: Props) {
+  const session = await getServerSession();
+  if (!session) redirect("/api/v1/admin/auth/session-expired");
+  const requested = (await searchParams).merchantId;
+  const requestedId = typeof requested === "string" ? requested : undefined;
+  if (requestedId && !session.merchantIds.includes(requestedId)) return <AccessDenied />;
+  const merchantId = requestedId ?? session.merchantIds[0];
+  if (!merchantId) return <AccessDenied />;
+  const state = await prefetchDehydrated(async (client) => {
+    await Promise.all([
+      client.prefetchQuery({
+        ...kybQueries.profile(merchantId),
+        queryFn: async () => unwrapOrRedirect(await getMerchant(merchantId)),
+      }),
+      client.prefetchQuery({
+        ...kybQueries.history(merchantId, 1),
+        queryFn: async () => unwrapOrRedirect(await getMerchantStatusHistory(merchantId, 1)),
+      }),
+    ]);
+  });
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Danh sách giao dịch
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Theo dõi và quản lý tất cả giao dịch của các merchant
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            leftIcon={<Download className="h-4 w-4" />}
-          >
-            Xuất Excel
-          </Button>
-          <Button
-            size="sm"
-            leftIcon={<Filter className="h-4 w-4" />}
-            onClick={() => setIsFilterOpen(true)}
-          >
-            Tìm kiếm nâng cao
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Card.Card>
-        <Card.CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <Card.CardTitle className="text-base">
-              Kết quả tìm kiếm
-              {!!data && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({data.pagination.total} giao dịch)
-                </span>
-              )}
-            </Card.CardTitle>
-          </div>
-        </Card.CardHeader>
-        <Card.CardContent>
-          <TransactionTable
-            data={data?.data ?? []}
-            isLoading={isLoading}
-            total={data?.pagination.total}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={(p, ps) => {
-              setPage(p);
-              setPageSize(ps);
-            }}
-          />
-        </Card.CardContent>
-      </Card.Card>
-
-      {/* Filter Sheet */}
-      <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <SheetContent direction="top" className="h-fit">
-          <SheetHeader>
-            <SheetTitle>Tìm kiếm nâng cao</SheetTitle>
-          </SheetHeader>
-          <SheetBody>
-            <TransactionFilters
-              onSearch={handleSearch}
-              defaultValues={filter}
-            />
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
-    </div>
+    <HydrationBoundary state={state}>
+      <KybContainer merchantId={merchantId} />
+    </HydrationBoundary>
   );
 }

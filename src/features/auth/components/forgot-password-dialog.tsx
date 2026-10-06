@@ -88,7 +88,7 @@ export function ForgotPasswordDialog({
                 <Input
                   label="Email"
                   type="email"
-                  placeholder="ten@congty.vn"
+                  placeholder="Ví dụ: ten@congty.vn"
                   icon={<Mail className="w-4 h-4" />}
                   error={fieldState.error?.message}
                   {...field}

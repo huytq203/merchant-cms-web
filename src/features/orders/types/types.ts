@@ -1,31 +1,15 @@
-export type OrderStatus = 'paid' | 'pending' | 'cancelled' | 'expired';
-export type OrderSource = 'api' | 'payment_link';
+import type { Order, OrderStatus } from "../schemas/order.schema";
 
-export interface Order {
-  id: string;
-  code: string;
-  source: OrderSource;
-  subMerchantId: string;
-  subMerchantName: string;
-  createdBy: string | null;
-  amount: number;
-  transactionId: string | null;
-  transactionCode: string | null;
-  paymentUrl: string | null;
-  status: OrderStatus;
-  createdAt: string|null;
-  updatedAt: string | null;
+export type { Order, OrderStatus };
+
+export interface OrderListFilter {
+  page: number;
+  pageSize: number;
+  orderCode?: string;
+  status?: OrderStatus;
 }
 
-export interface OrderListResponse {
-  data: Order[];
-  pagination: { total: number; page: number; pageSize: number };
+export interface OrderListResult {
+  rows: Order[];
+  total: number;
 }
-
-export type OrderListFilter = {
-  createdFromDate?: string|undefined;
-  createdToDate?: string|undefined;
-  source?: string;
-  createdBy?: string;
-  status?: string;
-};

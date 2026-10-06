@@ -10,15 +10,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 import { ChartArea } from "@/components/ui/chart/Chart";
 import { cn } from "@/lib/utils/cn";
-import { useRevenueChartQuery } from "../hooks/use-revenue-chart-query";
+import { useQuery } from "@tanstack/react-query";
+import { ModuleQueryError } from "@/features/sample-data/components/ModuleQueryError";
+import { dashboardQueries } from "../dashboard-queries";
+import { chartPeriodSchema } from "../schemas/dashboard.schema";
 import type { ChartPeriod } from "../types/Dashboard.type";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui";
+import { Select } from "@/components/ui/select/Select";
 
 const PERIODS: { value: ChartPeriod; label: string }[] = [
-  { value: "daily", label: "Ngày" },
-  { value: "weekly", label: "Tuần" },
-  { value: "monthly", label: "Tháng" },
-  { value: "yearly", label: "Năm" },
+  { value: "7days", label: "7 ngày qua" },
+  { value: "30days", label: "30 ngày qua" },
+  { value: "thisMonth", label: "Tháng này" },
 ];
 
 const SERIES = [{ key: "revenue", name: "Doanh thu (triệu đ)" }];
@@ -31,8 +33,8 @@ const formatVnd = (value: number) =>
   }).format(value);
 
 export default function RevenueChart() {
-  const [period, setPeriod] = React.useState<ChartPeriod>("monthly");
-  const { data, isLoading } = useRevenueChartQuery({ period });
+  const [period, setPeriod] = React.useState<ChartPeriod>("7days");
+  const { data, isLoading, isError, error, refetch } = useQuery(dashboardQueries.revenueChart(period));
 
   const chartData = React.useMemo(
     () =>
@@ -50,16 +52,14 @@ export default function RevenueChart() {
             <CardTitle>Xu hướng doanh thu</CardTitle>
             {isLoading ? (
               <Skeleton className="mt-1.5 h-4 w-48" />
-            ) : (
+            ) : data ? (
               <div className="mt-1.5 flex items-center gap-3 text-sm">
                 <span className="font-semibold text-foreground">
-                  {formatVnd(data?.summary.totalRevenue ?? 0)}
+                  {formatVnd(data.summary.totalRevenue)}
                 </span>
                 <span className="text-muted-foreground">·</span>
                 <span className="text-muted-foreground">
-                  {(data?.summary.totalTransactions ?? 0).toLocaleString(
-                    "vi-VN",
-                  )}{" "}
+                  {data.summary.totalTransactions.toLocaleString("vi-VN")}{" "}
                   giao dịch
                 </span>
                 <span
@@ -73,36 +73,24 @@ export default function RevenueChart() {
                   ) : (
                     <TrendingDown className="h-3.5 w-3.5" />
                   )}
-                  {Math.abs(data?.summary.growthRate ?? 0)}%
+                  {Math.abs(data.summary.growthRate)}%
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="flex gap-1 shrink-0">
-            <Tabs defaultValue={period}>
-              <TabsList className='flex bg-secondary' size="xs">
-                {PERIODS.map((p) => (
-                  <TabsTrigger 
-                    key={p.value}
-                    value={p.value}
-                    onClick={() => setPeriod(p.value)}
-                  >
-                    {p.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            {/* {PERIODS.map((p) => (
-              <Button
-                key={p.value}
-                size="sm"
-                variant={period === p.value ? "secondary" : "ghost"}
-                onClick={() => setPeriod(p.value)}
-              >
-                {p.label}
-              </Button>
-            ))} */}
+          <div className="w-40 shrink-0">
+            <Select
+              aria-label="Kỳ biểu đồ doanh thu"
+              placeholder="Chọn kỳ"
+              value={period}
+              options={PERIODS}
+              onChange={(value) => {
+                const selected = chartPeriodSchema.safeParse(value);
+                if (selected.success) setPeriod(selected.data);
+              }}
+              clearable={false}
+            />
           </div>
         </div>
       </CardHeader>
@@ -110,6 +98,8 @@ export default function RevenueChart() {
       <CardContent className="px-4 pb-4 pt-2">
         {isLoading ? (
           <Skeleton className="h-[280px] w-full rounded-md" />
+        ) : isError ? (
+          <ModuleQueryError error={error} onRetry={() => void refetch()} />
         ) : (
           <ChartArea
             data={chartData}

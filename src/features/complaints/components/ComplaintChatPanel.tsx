@@ -1,5 +1,6 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button/Button';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import { Send } from 'lucide-react';
@@ -8,20 +9,9 @@ import { formatDate } from '@/lib/utils/helper';
 import type { ComplaintMessage } from '../types/types';
 import { Text } from '@/components/ui';
 
-// === Socket integration guide ===
-// Khi socket.io sẵn sàng, thay thế local state bằng hook:
-//   const { messages, sendMessage } = useComplaintSocket(complaintId)
-// Hook cần:
-//   1. connect socket khi mount (io('/complaints'))
-//   2. emit('join', complaintId)
-//   3. on('message', msg => setMessages(prev => [...prev, msg]))
-//   4. expose sendMessage(content) → socket.emit('send_message', { complaintId, content })
-//   5. cleanup: emit('leave', complaintId) + socket.disconnect() khi unmount
-
 interface ComplaintChatPanelProps {
-  complaintId: string;
-  initialMessages?: ComplaintMessage[];
-  onReject?: () => void;
+  messages: ComplaintMessage[];
+  canReply: boolean;
 }
 
 function MessageBubble({ message }: { message: ComplaintMessage }) {
@@ -54,36 +44,17 @@ function MessageBubble({ message }: { message: ComplaintMessage }) {
   );
 }
 
-export function ComplaintChatPanel({
-  // complaintId sẽ được dùng khi tích hợp socket (xem guide ở trên)
-  initialMessages = [],
-  onReject,
-}: ComplaintChatPanelProps) {
-  const [messages, setMessages] = useState<ComplaintMessage[]>(initialMessages);
+export function ComplaintChatPanel({ messages, canReply }: ComplaintChatPanelProps) {
   const [draft, setDraft] = useState('');
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleSend = () => {
     if (!draft.trim()) return;
-    // TODO: thay thế bằng socket.emit('send_message', payload) khi tích hợp socket
-    const newMessage: ComplaintMessage = {
-      id: Date.now().toString(),
-      role: 'merchant',
-      senderName: 'Bạn (Merchant)',
-      content: draft.trim(),
-      time: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, newMessage]);
-    setDraft('');
+    // Chưa có API BE: báo rõ và giữ nguyên nội dung đang soạn thay vì giả vờ đã gửi.
+    toast.info('Chức năng gửi phản hồi chưa được hỗ trợ');
+  };
+
+  const handleReject = () => {
+    toast.info('Chức năng từ chối khiếu nại chưa được hỗ trợ');
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -97,42 +68,41 @@ export function ComplaintChatPanel({
       {messages.length === 0 ? (
         <Text color='muted' size='sm'  className=" text-center py-6">Chưa có tin nhắn nào.</Text>
       ) : (
-        <>
-          {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))}
-          <div ref={bottomRef} />
-        </>
+        messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))
       )}
 
-      <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex flex-col gap-2.5">
-        <Text as='p' size='sm' color='warning' weight='semibold' >
-          • Bạn đang giữ nhiệm vụ xử lý
-        </Text>
-        <Textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Nhập nội dung phản hồi cho Cổng... (Ctrl+Enter để gửi)"
-          rows={3}
-          maxLength={500}
-          showCount
-        />
-        <div className="flex gap-2">
-          <Button variant="danger-outline" className="flex-1" onClick={onReject}>
-            Từ chối
-          </Button>
-          <Button
-            variant="solid"
-            className="flex-1"
-            leftIcon={<Send className="h-4 w-4" />}
-            onClick={handleSend}
-            disabled={!draft.trim()}
-          >
-            Gửi phản hồi
-          </Button>
+      {canReply && (
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex flex-col gap-2.5">
+          <Text as='p' size='sm' color='warning' weight='semibold' >
+            • Bạn đang giữ nhiệm vụ xử lý
+          </Text>
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Nhập nội dung phản hồi cho Cổng... (Ctrl+Enter để gửi)"
+            rows={3}
+            maxLength={500}
+            showCount
+          />
+          <div className="flex gap-2">
+            <Button variant="danger-outline" className="flex-1" onClick={handleReject}>
+              Từ chối
+            </Button>
+            <Button
+              variant="solid"
+              className="flex-1"
+              leftIcon={<Send className="h-4 w-4" />}
+              onClick={handleSend}
+              disabled={!draft.trim()}
+            >
+              Gửi phản hồi
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

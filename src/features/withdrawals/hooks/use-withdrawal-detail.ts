@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { withdrawalApi } from "@/lib/api/withdrawal.api";
+import { withdrawalQueries } from "../withdrawal-queries";
 import type { Withdrawal } from "../types/types";
 
-export function useWithdrawalDetail(id: string | null) {
-  return useQuery<Withdrawal>({
-    queryKey: ["withdrawal-detail", id],
-    queryFn: () => withdrawalApi.getById(id!),
-    enabled: !!id,
-    staleTime: 1000 * 60,
+/** Shows the list row at once and swaps in the fresh record when it arrives. */
+export function useWithdrawalDetail(listed: Withdrawal | null) {
+  const query = useQuery({
+    ...withdrawalQueries.detail(listed?.id ?? ""),
+    enabled: listed !== null,
   });
+  return {
+    withdrawal: query.data ?? listed,
+    loadError: query.data ? undefined : query.error?.message,
+  };
 }

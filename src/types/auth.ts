@@ -29,6 +29,11 @@ export interface SessionUser {
 export interface JwtPayload {
   exp: number;
   iat?: number;
+  iss?: string;
+  azp?: string;
+  typ?: string;
+  aud?: string | string[];
+  roles?: string[];
+  realm_access?: { roles?: string[] };
   sub?: string;
 }
-

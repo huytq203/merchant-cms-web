@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge/Badge"
-import { Transaction } from "@/features/transactions/types"
+import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from "@/features/transactions/constants/Transaction.constants"
 import { ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
+import type { RecentTransaction } from "../types/Dashboard.type"
 
-export const MerchantColumn: ColumnDef<Transaction>[] = [
+export const MerchantColumn: ColumnDef<RecentTransaction>[] = [
   {
     accessorKey: "code",
     header: "Mã giao dịch",
@@ -19,8 +20,8 @@ export const MerchantColumn: ColumnDef<Transaction>[] = [
     accessorKey: "cardType",
     header: "Loại thẻ",
     size: 100,
-    cell: ({ getValue }) => (
-      <span className="text-sm font-medium">{getValue() as string}</span>
+    cell: ({ row }) => (
+      <span className="text-sm font-medium">{CARD_TYPE_LABELS[row.original.cardType]}</span>
     ),
   },
   {
@@ -51,21 +52,11 @@ export const MerchantColumn: ColumnDef<Transaction>[] = [
     accessorKey: "status",
     header: "Trạng thái",
     size: 120,
-    cell: ({ getValue }) => {
-      const status = getValue() as string
-      const variants: Record<string, "soft-success" | "soft-warning" | "soft-danger"> = {
-        success: "soft-success",
-        pending: "soft-warning",
-        failed: "soft-danger",
-      }
-      const labels: Record<string, string> = {
-        success: "Thành công",
-        pending: "Đang xử lý",
-        failed: "Thất bại",
-      }
+    cell: ({ row }) => {
+      const option = TRANSACTION_STATUS_OPTIONS.find((item) => item.value === row.original.status)
       return (
-        <Badge variant={variants[status] || "default"} size="sm">
-          {labels[status] || status}
+        <Badge variant={option?.variant ?? "outline"} size="sm">
+          {option?.label ?? row.original.status}
         </Badge>
       )
     },

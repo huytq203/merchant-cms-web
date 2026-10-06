@@ -17,8 +17,10 @@ interface TransactionDetailSheetProps {
   transaction: Transaction | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  setIsRefundDialog: (open: boolean) => void;
-  setIsReconciliationDialog: (open: boolean) => void;
+  canRefund: boolean;
+  canDispute: boolean;
+  onRefund: () => void;
+  onReconcile: () => void;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -54,8 +56,10 @@ export function TransactionDetailSheet({
   transaction,
   open,
   onOpenChange,
-  setIsRefundDialog,
-  setIsReconciliationDialog,
+  canRefund,
+  canDispute,
+  onRefund,
+  onReconcile,
 }: TransactionDetailSheetProps) {
   const data = transaction;
   const statusOption = data
@@ -133,15 +137,18 @@ export function TransactionDetailSheet({
               <DetailRow label="Thông báo">{data.responseMessage}</DetailRow>
             </dl>
 
-           <div className="flex justify-start mt-3 w-full gap-2">
-             <Button variant="outline" className='flex-1' onClick={() => setIsReconciliationDialog(true)}>
-              Tra soát
-            </Button>
-
-            <Button className='flex-1' onClick={() => setIsRefundDialog(true)}>
-              Hoàn tiền
-            </Button>
-           </div>
+            <div className="mt-3 flex w-full justify-start gap-2">
+              {canDispute && (
+                <Button variant="outline" className="flex-1" onClick={onReconcile}>
+                  Tra soát
+                </Button>
+              )}
+              {canRefund && data.status === 'success' && (
+                <Button className="flex-1" onClick={onRefund}>
+                  Hoàn tiền
+                </Button>
+              )}
+            </div>
           </SheetBody>
         )}
       </SheetContent>

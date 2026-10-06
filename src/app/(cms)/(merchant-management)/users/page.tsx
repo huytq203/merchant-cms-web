@@ -1,40 +1,39 @@
-import { Button, Card, CardContent, Text } from "@/components/ui";
-import UserSection from "@/features/users/components/UserSection";
-import { Plus, Users } from "lucide-react";
-import Link from "next/link";
-import React from "react";
+import { HydrationBoundary } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
+import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { getServerSession } from "@/lib/auth/session";
+import { hasPermission } from "@/features/auth/permissions";
+import { AccessDenied } from "@/features/auth/components/access-denied";
+import { listUsers as getUsersOnServer } from "@/server/modules/users/user.service";
+import { parseUserSearchParams, userQueries } from "@/features/users/user-queries";
+import { UserContainer } from "@/features/users/components/UserContainer";
 
-const UsersPage = () => {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function UsersPage({ searchParams }: Props) {
+  const session = await getServerSession();
+  if (!session) redirect("/api/v1/admin/auth/session-expired");
+  if (!hasPermission(session.permissions, "MANAGE_USER")) {
+    return <AccessDenied />;
+  }
+  const filter = parseUserSearchParams(await searchParams, session.merchantIds);
+  const merchantId = filter.merchantId ?? session.merchantIds[0];
+  if (!merchantId) {
+    return <AccessDenied />;
+  }
+  const state = await prefetchDehydrated(async (client) => {
+    await client.prefetchQuery({
+      ...userQueries.list(filter),
+      queryFn: async () => unwrapOrRedirect(await getUsersOnServer({
+        ...filter,
+        merchantId,
+        page: filter.page,
+      })),
+    });
+  });
   return (
-    <div className="space-y-3">
-      <Card>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div className="">
-                <Text as="h2" className="font-semibold text-xl ">
-                  Quản lý nhân viên
-                </Text>
-                <Text as="p" className="text-sm text-muted-foreground">
-                  Danh sách nhân viên
-                </Text>
-              </div>
-            </div>
-            <Link href={"/users/new"}>
-              <Button leftIcon={<Plus className="w-4 h-4" />}>
-                Thêm mới nhân viên
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      <UserSection />
-    </div>
+    <HydrationBoundary state={state}>
+      <UserContainer filter={filter} merchantIds={session.merchantIds} actorId={session.userId} />
+    </HydrationBoundary>
   );
-};
-
-export default UsersPage;
+}

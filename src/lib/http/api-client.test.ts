@@ -2,17 +2,23 @@
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiClient, setSessionExpiredHandler } from "@/lib/http/api-client";
 import { mswServer } from "@/test/msw";
+
+let apiClient: typeof import("@/lib/http/api-client").apiClient;
+let ApiError: typeof import("@/lib/http/api-client").ApiError;
 
 const ORIGIN = window.location.origin;
 
 describe("apiClient 401 handling in the browser", () => {
   const expired = vi.fn();
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
+    const apiClientModule = await import("@/lib/http/api-client");
+    apiClient = apiClientModule.apiClient;
+    ApiError = apiClientModule.ApiError;
     expired.mockReset();
-    setSessionExpiredHandler(expired);
+    apiClientModule.setSessionExpiredHandler(expired);
   });
 
   it("refreshes once and retries the original request", async () => {
@@ -63,6 +69,32 @@ describe("apiClient 401 handling in the browser", () => {
     );
     await expect(apiClient.get("/v1/things")).rejects.toBeInstanceOf(ApiError);
     expect(expired).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([503, 429])("keeps the session when refresh responds %i", async (status) => {
+    mswServer.use(
+      http.get(`${ORIGIN}/api/v1/things`, () => HttpResponse.json({}, { status: 401 })),
+      http.post(`${ORIGIN}/api/v1/admin/auth/refresh`, () => HttpResponse.json({}, { status })),
+    );
+    await expect(apiClient.get("/v1/things")).rejects.toMatchObject({ status: 503, message: "Không kết nối được máy chủ" });
+    expect(expired).not.toHaveBeenCalled();
+  });
+
+  it("expires the session when a retry still returns 401", async () => {
+    mswServer.use(
+      http.get(`${ORIGIN}/api/v1/things`, () => HttpResponse.json({}, { status: 401 })),
+      http.post(`${ORIGIN}/api/v1/admin/auth/refresh`, () => HttpResponse.json({ ok: true })),
+    );
+    await expect(apiClient.get("/v1/things")).rejects.toMatchObject({ status: 401 });
+    expect(expired).toHaveBeenCalledOnce();
+  });
+  it("keeps the session when the refresh request has a network error", async () => {
+    mswServer.use(
+      http.get(`${ORIGIN}/api/v1/things`, () => HttpResponse.json({}, { status: 401 })),
+      http.post(`${ORIGIN}/api/v1/admin/auth/refresh`, () => HttpResponse.error()),
+    );
+    await expect(apiClient.get("/v1/things")).rejects.toMatchObject({ status: 503 });
+    expect(expired).not.toHaveBeenCalled();
   });
 
   it("does not try to refresh for auth endpoints", async () => {

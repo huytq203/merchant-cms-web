@@ -5,9 +5,11 @@
 1. Đọc [bối cảnh dự án](project-context/CONTEXT.md).
 2. Chọn đúng hướng dẫn trong `steps/` theo loại task.
 3. Đọc các rule, pattern và workflow được step đó dẫn tới.
-4. Với task UI, luôn đọc [quy tắc Basuicn](rules/BASUICN.md) và [quy trình UI component](patterns/ui-components.md).
+4. Với task UI, đọc toàn bộ Taste Skill global tại `~/.agents/skills/design-taste-frontend/SKILL.md`, rồi đọc [quy tắc Basuicn](rules/BASUICN.md) và [quy trình UI component](patterns/ui-components.md).
 5. Với Next.js, đọc tài liệu phù hợp trong `node_modules/next/dist/docs/` trước khi dùng API hoặc convention của framework.
 6. Với feature/UI, hoàn tất **Brainstorming** và lệnh **Impeccable** phù hợp trước implementation; dùng quy trình nhẹ cho typo/copy/refactor không đổi behavior.
+
+Taste Skill tự loại trừ dashboard, dense product UI, data table và multi-step product flow. Với các bề mặt Merchant CMS này, chỉ áp dụng những quality check phù hợp; **Impeccable Operate**, [DESIGN.md](DESIGN.md) và Basuicn vẫn là nguồn quyết định. Không cài hoặc thay design system chỉ vì Taste Skill liệt kê một lựa chọn khác.
 
 ## Chọn step
 

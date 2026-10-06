@@ -1,143 +1,37 @@
-import { Badge } from "@/components/ui/badge/Badge";
-import { cn } from "@/lib/utils/cn";
-import { type ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
-import { Edit, Eye, Lock, Unlock } from "lucide-react";
-import { SUB_MERCHANT_STATUS_OPTIONS } from "../constants/SubMerchant.constants";
-import type { SubMerchant } from "../types";
-import { maskPhone } from "@/lib/utils/helper";
-import { Button } from "@/components/ui";
+import type { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge/Badge';
+import {
+  SubMerchantRowActions,
+  type SubMerchantRowHandlers,
+} from '../components/SubMerchantRowActions';
+import type { SubMerchantRow } from '../types';
 
-function formatDate(dateStr: string) {
-  try {
-    return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
-  } catch {
-    return dateStr;
-  }
+export function statusBadge(row: Pick<SubMerchantRow, 'status' | 'lockSource'>) {
+  if (row.status === 'ACTIVE') return <Badge variant="soft-success">Đang hoạt động</Badge>;
+  if (row.status === 'TERMINATED') return <Badge variant="outline">Đã đóng</Badge>;
+  if (row.lockSource === 'CASCADE') return <Badge variant="soft-warning">Khóa theo Master</Badge>;
+  return <Badge variant="secondary">Đã khóa</Badge>;
 }
 
-export const getColumn = (
-  onViewDetail: (item: SubMerchant) => void,
-  onEdit: (item: SubMerchant) => void,
-  onUpdate: (item: SubMerchant) => void,
-): ColumnDef<SubMerchant>[] => [
-  {
-    id: "id",
-    header: "Mã SM",
-    cell: ({ row }) => (
-      <span className="font-mono font-semibold text-primary text-sm">
-        {row.original.id}
-      </span>
-    ),
-    size: 130,
-  },
-  {
-    id: "name",
-    header: "Tên Sub-merchant",
-    cell: ({ row }) => (
-      <span className="text-sm font-medium text-foreground">
-        {row.original.name}
-      </span>
-    ),
-    size: 220,
-  },
-  {
-    id: "businessType",
-    header: "Loại hình KD",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.businessType}
-      </span>
-    ),
-    size: 160,
-  },
-  {
-    id: "contact",
-    header: "Liên hệ",
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">
-        {maskPhone(row.original.contact)}
-      </span>
-    ),
-    size: 150,
-  },
-  {
-    id: "createdAt",
-    header: "Ngày tạo",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground whitespace-nowrap">
-        {formatDate(row.original.createdAt)}
-      </span>
-    ),
-    size: 140,
-  },
-  {
-    id: "status",
-    header: "Trạng thái",
-    cell: ({ row }) => {
-      const option = SUB_MERCHANT_STATUS_OPTIONS.find(
-        (o) => o.value === row.original.status,
-      );
-      return (
-        <Badge variant={option?.variant ?? "outline"}>
-          {option?.label ?? row.original.status}
-        </Badge>
-      );
+export function getColumn(handlers: SubMerchantRowHandlers): ColumnDef<SubMerchantRow>[] {
+  return [
+    { accessorKey: 'code', header: 'Mã' },
+    { accessorKey: 'name', header: 'Tên' },
+    {
+      id: 'status',
+      header: 'Trạng thái',
+      cell: ({ row }) => statusBadge(row.original),
     },
-    size: 140,
-  },
-  {
-    id: "actions",
-    header: "Hành động",
-     
-    meta: { align: "center" },
-    enableSorting: false,
-    cell: ({ row }) => {
-      const item = row.original;
-      const isLocked = item.status === "locked";
-      return (
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            size="xs"
-            variant="info-outline"
-            type="button"
-            onClick={() => onEdit(item)}
-            title="Chỉnh sửa"
-            className="rounded-md"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-          <Button
-            size="xs"
-            variant="success-outline"
-            onClick={() => onViewDetail(item)}
-            title="Xem chi tiết"
-            className="rounded-md"
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
-
-          <Button
-            size="xs"
-            variant={isLocked ? "danger-outline" : "warning-outline"}
-            type="button"
-            onClick={() => onUpdate(item)}
-            title={isLocked ? "Mở khóa" : "Khóa"}
-            className={cn("rounded-md")}
-          >
-            {isLocked ? (
-              <>
-                <Unlock className="h-3 w-3" />
-              </>
-            ) : (
-              <>
-                <Lock className="h-3 w-3" />
-              </>
-            )}
-          </Button>
-        </div>
-      );
+    {
+      id: 'isDefault',
+      header: 'Mặc định',
+      cell: ({ row }) => row.original.isDefault ? <Badge variant="secondary">Mặc định</Badge> : null,
     },
-    size: 200,
-  },
-];
+    {
+      id: 'actions',
+      header: 'Thao tác',
+      enableSorting: false,
+      cell: ({ row }) => <SubMerchantRowActions item={row.original} {...handlers} />,
+    },
+  ];
+}

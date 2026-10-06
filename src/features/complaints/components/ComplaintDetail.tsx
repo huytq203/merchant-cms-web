@@ -11,35 +11,16 @@ import { Badge } from "@/components/ui/badge/Badge";
 import { Separator } from "@/components/ui/separator/Separator";
 import { formatDate } from "@/lib/utils/helper";
 import { COMPLAINT_STATUS_OPTIONS } from "../constants/Complaint.constants";
-import type { Complaint, ComplaintMessage } from "../types/types";
+import type { Complaint } from "../types/types";
 import { ComplaintChatPanel } from "./ComplaintChatPanel";
-import { AlertCircle, Clock, CreditCard, FileText, History, ImageIcon, MessageSquare } from "lucide-react";
+import { AlertCircle, Clock, CreditCard, FileText, History, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Text } from "@/components/ui";
-
-// Mock messages — thay bằng dữ liệu từ API khi tích hợp
-const MOCK_MESSAGES: ComplaintMessage[] = [
-  {
-    id: "1",
-    role: "admin",
-    senderName: "Cổng Thanh Toán (Admin)",
-    content:
-      "Chào Merchant, vui lòng kiểm tra lại log gửi email và cung cấp bằng chứng đã gửi mã kích hoạt cho khách hàng.",
-    time: "2026-03-12T09:00:00",
-  },
-  {
-    id: "2",
-    role: "merchant",
-    senderName: "Bạn (Merchant)",
-    content:
-      "Chúng tôi đang kiểm tra lại hệ thống mail server. Sẽ phản hồi trong 30 phút tới.",
-    time: "2026-03-12T09:15:00",
-  },
-];
 
 interface ComplaintDetailProps {
   complaint: Complaint | null;
   open: boolean;
+  canReply: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -68,6 +49,7 @@ function SectionTitle({
 export function ComplaintDetail({
   complaint,
   open,
+  canReply,
   onOpenChange,
 }: ComplaintDetailProps) {
   const statusOption = complaint
@@ -135,28 +117,6 @@ export function ComplaintDetail({
                   </div>
                   <div className="flex flex-col gap-y-1">
                     <Text size="xs" color="muted">
-                      Số tiền
-                    </Text>
-                    {/* Mock — thay bằng dữ liệu từ API */}
-                    <Text
-                      size="sm"
-                      color="danger"
-                      className="font-mono font-semibold mt-0.5"
-                    >
-                      500,000 VND
-                    </Text>
-                  </div>
-                  <div className="flex flex-col gap-y-1">
-                    <Text size="xs" color="muted">
-                      Phương thức
-                    </Text>
-                    {/* Mock — thay bằng dữ liệu từ API */}
-                    <Text size="sm" className="mt-0.5">
-                      Ví Flexpay (Nguồn Bank)
-                    </Text>
-                  </div>
-                  <div className="flex flex-col gap-y-1">
-                    <Text size="xs" color="muted">
                       Thời gian GD
                     </Text>
                     <Text size="sm" className="mt-0.5">
@@ -188,12 +148,6 @@ export function ComplaintDetail({
                     &ldquo;{complaint.content}&rdquo;
                   </Text>
                 </div>
-                {/* Attachment placeholder — thay bằng danh sách ảnh thực */}
-                <div className="flex gap-2 flex-wrap">
-                  <div className="w-16 h-16 rounded-lg border border-border/60 bg-muted flex items-center justify-center">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                </div>
               </div>
             </section>
 
@@ -223,8 +177,8 @@ export function ComplaintDetail({
             <section>
               <SectionTitle icon={MessageSquare} title="Trao đổi xử lý" />
               <ComplaintChatPanel
-                complaintId={complaint.id}
-                initialMessages={MOCK_MESSAGES}
+                messages={complaint.messages}
+                canReply={canReply}
               />
             </section>
           </SheetBody>

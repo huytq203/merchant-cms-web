@@ -1,27 +1,12 @@
-export type RefundStatus = "pending" | "approved" | "rejected" | "success";
+import type { z } from "zod";
+import type {
+  refundListQuerySchema,
+  refundListResultSchema,
+  refundSchema,
+  refundStatusSchema,
+} from "../schemas/Refund.schema";
 
-export interface Refund {
-  id: string;
-  code: string;
-  transactionId: string;
-  transactionCode: string;
-  invoiceCode: string | null;
-  subMerchantId: string;
-  subMerchantName: string;
-  requestAmount: number;
-  actualAmount: number;
-  feeMb: number;
-  feeNm: number;
-  recipientName: string;
-  recipientCard: string | null;
-  createdBy: string | null;
-  reason: string | null;
-  status: RefundStatus;
-  createdAt: string;
-  updatedAt: string | null;
-}
-
-export interface RefundListResponse {
-  data: Refund[];
-  pagination: { total: number; page: number; pageSize: number };
-}
+export type RefundStatus = z.infer<typeof refundStatusSchema>;
+export type Refund = z.infer<typeof refundSchema>;
+export type RefundListResult = z.infer<typeof refundListResultSchema>;
+export type RefundListFilter = z.infer<typeof refundListQuerySchema>;

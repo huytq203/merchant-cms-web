@@ -19,6 +19,7 @@
 ```bash
 npm run typecheck
 npm run lint
+npm run test
 npm run build
 ```
 
@@ -36,5 +37,6 @@ Chỉ chạy mức kiểm tra phù hợp với phạm vi thay đổi và báo r�
 ## Vị trí quan trọng
 
 - Design token (CSS variables, `@theme`): `src/styles/index.css`, `src/lib/theme/themes.ts`.
-- API client: `src/lib/http/api-client.ts` (client) và `src/lib/http/server-client.ts` (server, gắn Bearer từ cookie).
+- BE client: `src/lib/be/` (typed, Zod-parsed `Result<T, BeError>`); server env `IDENTITY_BASE_URL`, `MERCHANT_BASE_URL`, `MERCHANT_API_MODE` (xem `.env.example`); session `src/lib/auth/session.ts` (`getServerSession` đọc `/merchant/me`).
+- Test: Vitest + Testing Library + msw (`npm run test`).
 - Baseline kiểm tra: `npm run typecheck` và `npm run lint` hiện sạch lỗi và cảnh báo; mọi cảnh báo mới đều là hồi quy.

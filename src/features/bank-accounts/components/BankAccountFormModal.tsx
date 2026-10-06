@@ -1,0 +1,107 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button/Button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
+import { bankAccountFormSchema } from "../schemas/bank-account-form.schema";
+import { isBankIdentityChanged } from "../utils/bank-mapper";
+import type { BankErrorView } from "../utils/bank-errors";
+import type { BankAccount, BankAccountFormValues } from "../types";
+import { BankAccountFields } from "./BankAccountFields";
+import { BankFailureAlert } from "./BankFailureAlert";
+
+type Props = {
+  open: boolean;
+  /** The account being edited; null when adding. */
+  account: BankAccount | null;
+  /** Values typed before the OTP step, restored when the user comes back. */
+  draft: BankAccountFormValues | null;
+  isSubmitting: boolean;
+  failure: BankErrorView | null;
+  onSubmit: (values: BankAccountFormValues) => void;
+  onClose: () => void;
+  onReload?: () => void;
+};
+
+const blank: BankAccountFormValues = {
+  bankCode: "",
+  accountNumber: "",
+  accountName: "",
+  branchName: "",
+  isDefault: false,
+  reason: "",
+};
+
+function initialValues(account: BankAccount | null, draft: BankAccountFormValues | null): BankAccountFormValues {
+  if (draft) return draft;
+  if (!account) return blank;
+  return {
+    bankCode: account.bankCode,
+    accountNumber: account.accountNumber,
+    accountName: account.accountName,
+    branchName: account.branchName ?? "",
+    reason: "",
+  };
+}
+
+function issuesByField(values: BankAccountFormValues): Record<string, string> | null {
+  const parsed = bankAccountFormSchema.safeParse(values);
+  if (parsed.success) return null;
+  return Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]));
+}
+
+const otpNotice = "Bạn sẽ nhận mã OTP để xác nhận trước khi lưu. Với tài khoản đã liên kết, thay đổi có thể tạo yêu cầu ở trạng thái Chờ duyệt.";
+const branchOnlyNotice = "Chỉ thay đổi chi nhánh nên không cần xác thực OTP.";
+
+export function BankAccountFormModal(props: Props) {
+  const { open, account, draft, isSubmitting, failure, onSubmit, onClose, onReload } = props;
+  const [values, setValues] = useState<BankAccountFormValues>(() => initialValues(account, draft));
+  const [issues, setIssues] = useState<Record<string, string>>({});
+  const needsOtp = !account || isBankIdentityChanged(account, values);
+
+  const change = <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => {
+    setValues((current) => ({ ...current, [field]: value }));
+    setIssues((current) => ({ ...current, [field]: "" }));
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const found = issuesByField(values);
+    setIssues(found ?? {});
+    if (!found) onSubmit(values);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{account ? "Cập nhật tài khoản ngân hàng" : "Thêm tài khoản ngân hàng"}</DialogTitle>
+          <DialogDescription>
+            Tài khoản dùng để nhận quyết toán và rút tiền. Chủ tài khoản phải trùng với pháp nhân đã xác thực KYB.
+          </DialogDescription>
+        </DialogHeader>
+        <form noValidate onSubmit={submit} className="mt-4 space-y-4">
+          <BankAccountFields
+            values={values}
+            issues={issues}
+            mode={account ? "edit" : "create"}
+            askReason={needsOtp}
+            onChange={change}
+          />
+          <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+            {needsOtp ? otpNotice : branchOnlyNotice}
+          </p>
+          <BankFailureAlert failure={failure} onReload={onReload} />
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="solid" isLoading={isSubmitting}>
+              {account ? "Lưu thay đổi" : "Gửi liên kết và xác minh"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

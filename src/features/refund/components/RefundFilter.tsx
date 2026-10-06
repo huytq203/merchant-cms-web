@@ -1,31 +1,34 @@
 "use client";
-import { Button, ComboBox, DatePicker, Form, FormField, Input } from "@/components/ui";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button, MultiSelect, DatePicker, Form, FormField, Input } from "@/components/ui";
 import { useForm } from "react-hook-form";
 import { REFUND_STATUS_OPTIONS } from "../constants/Refund.constants";
-import { RefundFilterValue } from "../schemas/Refund.schema";
-import { useSubMerchants } from "@/features/refund/hooks/use-sub-merchants";
+import { refundFilterSchema, type RefundFilterValue } from "../schemas/Refund.schema";
+import { SubMerchantFilterField } from "@/features/sample-data/components/SubMerchantFilterField";
 
 interface RefundFilterProps {
   onSearch: (values: RefundFilterValue) => void;
   defaultValues?: RefundFilterValue;
+  /** Hidden in fixture mode: fixture sub-merchant ids are not the BE ids this list offers. */
+  showSubMerchant?: boolean;
 }
 
 const EMPTY_VALUES: RefundFilterValue = {
   keyword: "",
   invoiceCode: "",
   transactionCode: "",
-  status: "",
+  status: [],
   subMerchantId: "",
   createdFromDate: null,
   createdToDate: null,
 };
 
-const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
+const STATUS_SELECT = REFUND_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
+
+const RefundFilter = ({ onSearch, defaultValues, showSubMerchant = true }: RefundFilterProps) => {
   const form = useForm<RefundFilterValue>({
-    defaultValues: {
-      ...EMPTY_VALUES,
-      ...defaultValues,
-    },
+    resolver: zodResolver(refundFilterSchema),
+    defaultValues: { ...EMPTY_VALUES, ...defaultValues },
   });
 
   const handleReset = () => {
@@ -33,110 +36,85 @@ const RefundFilter = ({ onSearch, defaultValues }: RefundFilterProps) => {
     onSearch(EMPTY_VALUES);
   };
 
-  const { data: dataSubMerchants } = useSubMerchants();
-  const listSubMerchant = dataSubMerchants?.data.map((item) => {
-    return {
-      value: item.id,
-      label: item.name,
-    };
-  });
-  const STATUS_SELECT = [...REFUND_STATUS_OPTIONS];
-
   return (
     <Form {...form}>
-      <form
-        className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-        onSubmit={form.handleSubmit((values) => {
-          const trimmed = Object.fromEntries(
-            Object.entries(values).map(([key, val]) => [
-              key,
-              typeof val === "string" ? val.trim() : val,
-            ]),
-          );
-          onSearch(trimmed as RefundFilterValue);
-        })}
-      >
-        <FormField
-          control={form.control}
-          name="keyword"
-          render={({ field }) => (
-            <Input
-              {...field}
-              label="Mã hoàn tiền /GD gốc"
-              placeholder="Search..."
-              value={field.value ?? ""}
+      <form className="space-y-4" onSubmit={form.handleSubmit(onSearch)}>
+        <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <FormField
+            control={form.control}
+            name="keyword"
+            render={({ field }) => (
+              <Input
+                {...field}
+                label="Mã hoàn tiền / GD gốc"
+                placeholder="Nhập mã hoàn tiền hoặc mã giao dịch..."
+                value={field.value ?? ""}
+              />
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="invoiceCode"
+            render={({ field }) => (
+              <Input {...field} label="Mã hóa đơn" placeholder="Nhập mã hóa đơn..." value={field.value ?? ""} />
+            )}
+          />
+          {showSubMerchant && (
+            <FormField
+              control={form.control}
+              name="subMerchantId"
+              render={({ field }) => (
+                <SubMerchantFilterField value={field.value ?? ""} onChange={field.onChange} />
+              )}
             />
           )}
-        />
-        <FormField
-          control={form.control}
-          name="invoiceCode"
-          render={({ field }) => (
-            <Input
-              {...field}
-              label="Mã hóa đơn"
-              placeholder="Mã hóa đơn..."
-              value={field.value ?? ""}
-            />
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="subMerchantId"
-          render={({ field }) => (
-            <ComboBox
-              value={field.value ?? ""}
-              label="Submerchant"
-              onValueChange={(val) =>
-                field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
-              }
-              options={listSubMerchant || []}
-              placeholder="Chọn Sub Merchant"
-            />
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="createdFromDate"
-          render={({ field }) => (
-            <DatePicker
-              label="Thời gian từ"
-              value={field.value ?? undefined}
-              onChange={(d) => field.onChange(d instanceof Date ? d : null)}
-            />
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="createdToDate"
-          render={({ field }) => (
-            <DatePicker
-              label="Thời gian đến"
-              value={field.value ?? undefined}
-              onChange={(d) => field.onChange(d instanceof Date ? d : null)}
-            />
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <ComboBox
-              label="Trạng thái phê duyệt"
-              value={field.value}
-              onValueChange={(val) =>
-                field.onChange(typeof val === "string" ? val : (val[0] ?? ""))
-              }
-              options={STATUS_SELECT}
-              placeholder="Trạng thái phê duyệt"
-            />
-          )}
-        />
-        <div className="flex items-center gap-2 justify-end col-span-full ">
-          <Button type="reset" variant={"outline"} onClick={handleReset}>
+          <FormField
+            control={form.control}
+            name="createdFromDate"
+            render={({ field }) => (
+              <DatePicker
+                label="Thời gian từ"
+                placeholder="Chọn thời gian bắt đầu"
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
+              />
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="createdToDate"
+            render={({ field }) => (
+              <DatePicker
+                label="Thời gian đến"
+                placeholder="Chọn thời gian kết thúc"
+                value={field.value ?? undefined}
+                onChange={(d) => field.onChange(d instanceof Date ? d : null)}
+                error={form.formState.errors.createdToDate?.message}
+              />
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <MultiSelect
+                label="Trạng thái (chọn nhiều)"
+                value={field.value}
+                onChange={field.onChange}
+                clearLabel="Xóa trạng thái đã chọn"
+                options={STATUS_SELECT}
+                placeholder="Tất cả trạng thái"
+              />
+            )}
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={handleReset}>
             Xóa lọc
           </Button>
-          <Button type="submit">Tìm kiếm</Button>
+          <Button type="submit" variant="solid">
+            Tìm kiếm
+          </Button>
         </div>
       </form>
     </Form>

@@ -1,5 +1,32 @@
 import type { JwtPayload } from "@/types/auth";
 
+export interface TokenLogView {
+  iss: string | undefined;
+  azp: string | undefined;
+  typ: string | undefined;
+  aud: string | string[] | undefined;
+  roles: string[] | undefined;
+  realmRoles: string[] | undefined;
+  iat: number | undefined;
+  exp: number;
+  secondsToExpiry: number;
+}
+
+/** Non-sensitive claims only, for diagnosing why the BE rejects a token. Never include sub, e-mail or names. */
+export function describeTokenForLog(payload: JwtPayload, nowSeconds: number = Math.floor(Date.now() / 1000)): TokenLogView {
+  return {
+    iss: payload.iss,
+    azp: payload.azp,
+    typ: payload.typ,
+    aud: payload.aud,
+    roles: payload.roles,
+    realmRoles: payload.realm_access?.roles,
+    iat: payload.iat,
+    exp: payload.exp,
+    secondsToExpiry: payload.exp - nowSeconds,
+  };
+}
+
 /**
  * Decode phần payload của JWT mà không verify chữ ký.
  * Chỉ dùng để đọc thông tin user ở server-side — KHÔNG dùng để xác thực.

@@ -17,11 +17,10 @@ describe("unwrapOrRedirect", () => {
     expect(unwrapOrRedirect(ok({ id: 1 }))).toEqual({ id: 1 });
   });
 
-  it("redirects to the session-expired route on 401", async () => {
+  it("does not end the session on a BE 401 from a domain call", async () => {
     const { unwrapOrRedirect } = await import("@/lib/query/prefetch");
-    expect(() => unwrapOrRedirect(fail(error(401, "UNAUTHORIZED"), "UNAUTHORIZED"))).toThrow(
-      "NEXT_REDIRECT:/api/v1/admin/auth/session-expired",
-    );
+    // The CMS layout already validated the session; a 401 here is the BE chain refusing the call.
+    expect(() => unwrapOrRedirect(fail(error(401, "UNAUTHORIZED"), "UNAUTHORIZED"))).toThrow("UNAUTHORIZED");
   });
 
   it("throws the error code for other failures so the client can refetch", async () => {

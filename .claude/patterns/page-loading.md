@@ -1,6 +1,6 @@
 # Page loading và skeleton pattern
 
-Mọi route có `page.tsx` phải có `loading.tsx`. File này tạo instant loading state và Suspense boundary cho route segment theo Next.js App Router.
+Mọi route có `page.tsx` phải có `loading.tsx`. File này tạo instant loading state và Suspense boundary cho route segment theo Next.js App Router. `loading.tsx` trong route group bao phủ mọi route con của group đó.
 
 ## Nguyên tắc
 

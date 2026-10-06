@@ -1,23 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getRefundList } from "@/server/modules/refund/refund.service";
+import { NextResponse } from "next/server";
+import { refundListQuerySchema } from "@/features/refund/schemas/Refund.schema";
+import { listRefunds } from "@/server/modules/refund/refund.service";
+import { moduleErrorResponse, requireModuleAccess } from "@/server/modules/sample-data/require-module-access";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  try {
-    const result = await getRefundList({
-      page: Number(searchParams.get("page")) || 1,
-      pageSize: Number(searchParams.get("pageSize")) || 10,
-      keyword: searchParams.get("keyword") || undefined,
-      invoiceCode: searchParams.get("invoiceCode") || undefined,
-      transactionCode: searchParams.get("transactionCode") || undefined,
-      subMerchantId: searchParams.get("subMerchantId") || undefined,
-      status: searchParams.get("status") || undefined,
-      createdFromDate: searchParams.get("createdFromDate") || undefined,
-      createdToDate: searchParams.get("createdToDate") || undefined,
-    });
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("[refunds] GET error:", error);
-    return NextResponse.json({ message: String(error), success: false }, { status: 500 });
-  }
+export async function GET(request: Request) {
+  const access = await requireModuleAccess("VIEW_REFUND");
+  if (!access.ok) return access.response;
+  const query = refundListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+  if (!query.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
+  const result = await listRefunds({ ...query.data, merchantId: access.merchantId });
+  return result.success ? NextResponse.json(result.data) : moduleErrorResponse(result.error);
 }

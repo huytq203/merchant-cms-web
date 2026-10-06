@@ -1,46 +1,18 @@
-import { Transaction } from "@/features/transactions/types"
+import type { z } from "zod";
+import type {
+  chartPeriodSchema,
+  dashboardOverviewSchema,
+  dashboardSummarySchema,
+  recentTransactionSchema,
+  revenueChartSchema,
+  revenueDataPointSchema,
+  revenueSummarySchema,
+} from "../schemas/dashboard.schema";
 
-export interface ParamsGetAll {
-  page?: number
-  pageSize?: number
-  keyword?: string
-  status?: string
-  salesStaffId?: string
-  total?:number
-  [key: string]: string | number | boolean | null | undefined
-}
-export interface DashboardResponse {
-  data: Transaction[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-  };
-}
-
-// ─── Chart types ──────────────────────────────────────────────────────────────
-
-export type ChartPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-export interface RevenueDataPoint {
-  label: string;
-  revenue: number;       // đơn vị: VND
-  transactions: number;
-}
-
-export interface RevenueSummary {
-  totalRevenue: number;        // đơn vị: VND
-  totalTransactions: number;
-  growthRate: number;          // phần trăm, dương = tăng
-}
-
-export interface RevenueChartResponse {
-  points: RevenueDataPoint[];
-  summary: RevenueSummary;
-}
-
-export interface ChartParams {
-  period: ChartPeriod;
-  year?: number;
-   [key: string]: string | number | boolean | null | undefined
-}
+export type ChartPeriod = z.infer<typeof chartPeriodSchema>;
+export type RevenueDataPoint = z.infer<typeof revenueDataPointSchema>;
+export type RevenueSummary = z.infer<typeof revenueSummarySchema>;
+export type RevenueChartResponse = z.infer<typeof revenueChartSchema>;
+export type DashboardSummary = z.infer<typeof dashboardSummarySchema>;
+export type RecentTransaction = z.infer<typeof recentTransactionSchema>;
+export type DashboardOverview = z.infer<typeof dashboardOverviewSchema>;

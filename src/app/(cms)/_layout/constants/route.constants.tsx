@@ -6,11 +6,15 @@ import {
   ShieldCheck,
   Users,
   Store,
+  MonitorSmartphone,
   ArrowLeftRight,
   ShoppingBag,
   RotateCcw,
   MessageSquareWarning,
   Wallet,
+  ScrollText,
+  Landmark,
+  BadgeCheck,
 } from "lucide-react";
 
 export interface SubPage {
@@ -110,10 +114,24 @@ export const routesConfig: SidebarSection[] = [
         permission: "MANAGE_SUB_MERCHANT",
         href: "/sub-merchants",
         icon: <Store className="w-4 h-4" />,
-        subPages: [
-          { title: "Tạo mới Sub Merchant", pattern: "/sub-merchants/new" },
-          { title: "Chỉnh sửa Sub Merchant", pattern: "/sub-merchants/[id]/edit" },
-        ],
+      },
+      {
+        title: "Danh sách Terminal",
+        permission: "MANAGE_SUB_MERCHANT",
+        href: "/terminals",
+        icon: <MonitorSmartphone className="w-4 h-4" />,
+      },
+      {
+        title: "Tài khoản ngân hàng",
+        permission: "MANAGE_SUB_MERCHANT",
+        href: "/bank-accounts",
+        icon: <Landmark className="w-4 h-4" />,
+      },
+      {
+        title: "Hồ sơ KYB / ĐVCNTT",
+        permission: "MANAGE_SUB_MERCHANT",
+        href: "/merchants",
+        icon: <BadgeCheck className="w-4 h-4" />,
       },
     ],
   },
@@ -150,6 +168,18 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_WITHDRAWAL",
         href: "/withdrawal",
         icon: <Wallet className="w-4 h-4" />,
+      },
+    ],
+  },
+  {
+    title: "Nhật ký hệ thống",
+    collapsible: false,
+    items: [
+      {
+        title: "Audit Log",
+        permission: "VIEW_AUDIT_LOG",
+        href: "/audit-logs",
+        icon: <ScrollText className="w-4 h-4" />,
       },
     ],
   },

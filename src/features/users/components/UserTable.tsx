@@ -1,50 +1,44 @@
 "use client";
-import { Table, Text } from "@/components/ui";
-import React from "react";
-import { useUserQuery } from "../hooks/use-user-query";
-import usePagination from "@/hooks/usePagination";
-import { useUserColumns } from "../columns/User.column";
-import { UserFilterValues } from "./UserFilter";
 
-interface UserTableProps {
-  filter: UserFilterValues;
+import { useMemo } from "react";
+import { Table } from "@/components/ui/table/Table";
+import type { MerchantUser } from "../schemas/user.schema";
+import { buildUserColumns } from "../columns/UserColumn";
+
+interface Props {
+  rows: MerchantUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+  actorId: string;
+  onPageChange: (page: number, pageSize: number) => void;
+  onView: (user: MerchantUser) => void;
+  onEdit: (user: MerchantUser) => void;
+  onLock: (user: MerchantUser) => void;
+  onUnlock: (user: MerchantUser) => void;
+  onReset: (user: MerchantUser) => void;
 }
 
-const UserTable = ({ filter }: UserTableProps) => {
-  const { params, page, pageSize, setPage, setPageSize } = usePagination();
-  const columns = useUserColumns();
-
-  const { data: dataUser, isLoading } = useUserQuery({
-    ...params,
-    name: filter.name || undefined,
-    status: filter.status || undefined,
-    permissionGroupId: filter.permissionGroupId || undefined,
-  });
-
-  return (
-    <div className="space-y-3">
-      <Text className="text-sm font-medium" as={"p"}>
-        Tổng số nhân viên: {dataUser?.pagination.total || 0}
-      </Text>
-      <Table
-        columns={columns}
-        data={dataUser?.data || []}
-        isLoading={isLoading}
-        labels={{ empty: 'Không tìm thấy nhân viên nào phù hợp' }}
-        pagination={
-          dataUser?.pagination.total !== undefined
-            ? {
-                total: dataUser.pagination.total,
-                current: page,
-                pageSize,
-                pageSizeOptions: [10, 20, 50],
-                onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-              }
-            : false
-        }
-      />
-    </div>
+export function UserTable({ rows, total, page, pageSize, actorId, onPageChange, onView, onEdit, onLock, onUnlock, onReset }: Props) {
+  const columns = useMemo(
+    () => buildUserColumns({ actorId, onView, onEdit, onLock, onUnlock, onReset }),
+    [actorId, onView, onEdit, onLock, onUnlock, onReset],
   );
-};
-
-export default UserTable;
+  return (
+    <Table
+      data={rows}
+      columns={columns}
+      enableSorting={false}
+      enableRowSelection
+      labels={{ empty: "Chưa có người dùng", page: "Trang", perPage: " / trang" }}
+      pagination={{
+        total,
+        current: page,
+        pageSize,
+        pageSizeOptions: [10, 20, 50],
+        showTotal: (count) => `${count} người dùng`,
+        onChange: onPageChange,
+      }}
+    />
+  );
+}

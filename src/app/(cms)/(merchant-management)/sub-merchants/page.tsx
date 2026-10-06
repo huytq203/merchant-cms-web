@@ -1,148 +1,31 @@
-'use client';
-import * as Card from '@/components/ui/card/Card';
-import { Button } from '@/components/ui';
-import { SubMerchantFilters } from '@/features/sub-merchants/components/SubMerchantFilters';
-import { SubMerchantTable } from '@/features/sub-merchants/components/SubMerchantTable';
-import { useToggleSubMerchantStatus } from '@/features/sub-merchants/hooks/use-sub-merchant-mutations';
-import { useSubMerchantsQuery } from '@/features/sub-merchants/hooks/use-sub-merchants-query';
-import type { SubMerchantFilterValues } from '@/features/sub-merchants/schemas';
-import type { SubMerchant } from '@/features/sub-merchants/types';
-import { DialogActive } from '@/features/sub-merchants/components/DialogActive';
-import { DialogUnActive } from '@/features/sub-merchants/components/DialogUnActive';
-import usePagination from '@/hooks/usePagination';
-import { Download, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import Link from 'next/link';
+import { HydrationBoundary } from '@tanstack/react-query';
+import { redirect } from 'next/navigation';
+import { getServerSession } from '@/lib/auth/session';
+import { hasPermission } from '@/features/auth/permissions';
+import { AccessDenied } from '@/features/auth/components/access-denied';
+import { prefetchDehydrated, unwrapOrRedirect } from '@/lib/query/prefetch';
+import { listSubMerchants } from '@/server/modules/sub-merchants/sub-merchant.service';
+import { parseSubMerchantSearchParams, subMerchantQueries } from '@/features/sub-merchants/sub-merchant-queries';
+import { SubMerchantsContainer } from '@/features/sub-merchants/components/SubMerchantsContainer';
 
-export default function SubMerchantsPage() {
-  const [filter, setFilter] = useState<SubMerchantFilterValues>({});
-  const [lockTarget, setLockTarget] = useState<SubMerchant | null>(null);
-  const [dialogMode, setDialogMode] = useState<'locked' | 'unlocked' | null>(null);
-  const router = useRouter();
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-  const { setPage, setPageSize, params, page, pageSize } = usePagination();
-  const { data, isLoading } = useSubMerchantsQuery({ ...params, ...filter });
-  const { mutate: toggleStatus, isPending: isToggling } = useToggleSubMerchantStatus();
-
-  const handleSearch = (values: SubMerchantFilterValues) => {
-    setFilter(values);
-    setPage(1);
-  };
-
-  const handleEdit = (item: SubMerchant) => {
-    router.push(`/sub-merchants/${item.id}/edit`);
-  };
-
-  const handleUpdate = (item: SubMerchant) => {
-    setLockTarget(item);
-    setDialogMode(item.status === 'locked' ? 'unlocked' : 'locked');
-  };
-
-  const handleCloseDialog = () => {
-    setLockTarget(null);
-    setDialogMode(null);
-  };
-
-  const handleLockConfirm = (reason: string) => {
-    if (!lockTarget) return;
-    toggleStatus(
-      { id: lockTarget.id, lockReason: reason, lockedAt: new Date().toISOString() },
-      {
-        onSuccess: () => { toast.success('Đã khóa sub-merchant thành công'); handleCloseDialog(); },
-        onError: () => toast.error('Khóa sub-merchant thất bại'),
-      },
-    );
-  };
-
-  const handleUnlockConfirm = () => {
-    if (!lockTarget) return;
-    toggleStatus(
-      { id: lockTarget.id, lockReason: null, lockedAt: null },
-      {
-        onSuccess: () => { toast.success('Đã mở khóa sub-merchant thành công'); handleCloseDialog(); },
-        onError: () => toast.error('Mở khóa sub-merchant thất bại'),
-      },
-    );
-  };
-
+export default async function SubMerchantsPage({ searchParams }: Props) {
+  const session = await getServerSession();
+  if (!session) redirect('/api/v1/admin/auth/session-expired');
+  if (!hasPermission(session.permissions, 'MANAGE_SUB_MERCHANT')) {
+    return <AccessDenied />;
+  }
+  const filter = parseSubMerchantSearchParams(await searchParams);
+  const state = await prefetchDehydrated(async (client) => {
+    await client.prefetchQuery({
+      ...subMerchantQueries.list(filter),
+      queryFn: async () => unwrapOrRedirect(await listSubMerchants(filter)),
+    });
+  });
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Danh sách Sub-merchant</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Quản lý tất cả sub-merchant thuộc hệ thống
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => toast.info('Đang chuẩn bị dữ liệu...')}
-            leftIcon={<Download className="h-4 w-4" />}
-          >
-            Xuất Excel
-          </Button>
-          <Link href="/sub-merchants/new">
-            <Button size="sm" leftIcon={<Plus className="h-4 w-4" />}>
-              Thêm mới
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <Card.Card>
-        <Card.CardHeader className="pb-3">
-          <Card.CardTitle className="text-base">Tìm kiếm</Card.CardTitle>
-        </Card.CardHeader>
-        <Card.CardContent>
-          <SubMerchantFilters onSearch={handleSearch} defaultValues={filter} />
-        </Card.CardContent>
-      </Card.Card>
-
-      <Card.Card>
-        <Card.CardHeader className="pb-3">
-          <Card.CardTitle className="text-base">
-            Kết quả tìm kiếm
-            {!!data && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({data.pagination.total} sub-merchant)
-              </span>
-            )}
-          </Card.CardTitle>
-        </Card.CardHeader>
-        <Card.CardContent>
-          <SubMerchantTable
-            data={data?.data ?? []}
-            isLoading={isLoading}
-            total={data?.pagination.total}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={(p, ps) => { setPage(p); setPageSize(ps); }}
-            onEdit={handleEdit}
-            onUpdate={handleUpdate}
-          />
-        </Card.CardContent>
-      </Card.Card>
-
-      <DialogActive
-        open={dialogMode === 'locked'}
-        onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
-        merchantName={lockTarget?.name}
-        onConfirm={handleLockConfirm}
-        isLoading={isToggling}
-      />
-      <DialogUnActive
-        open={dialogMode === 'unlocked'}
-        onOpenChange={(open) => { if (!open) handleCloseDialog(); }}
-        lockReason={lockTarget?.reason}
-        lockedBy={lockTarget?.lockedBy}
-        lockedAt={lockTarget?.lockedAt}
-        onConfirm={handleUnlockConfirm}
-        isLoading={isToggling}
-      />
-    </div>
+    <HydrationBoundary state={state}>
+      <SubMerchantsContainer filter={filter} />
+    </HydrationBoundary>
   );
 }

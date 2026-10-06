@@ -12,5 +12,5 @@ export async function logoutAction(): Promise<void> {
     await logoutSession(refreshToken);
   }
   await clearSessionCookies();
-  await redirect("/login");
+  redirect("/login");
 }

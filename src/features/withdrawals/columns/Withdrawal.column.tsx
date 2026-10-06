@@ -1,116 +1,100 @@
-'use client';
-import { Badge } from '@/components/ui/badge/Badge';
-import { type ColumnDef } from '@tanstack/react-table';
-import { Eye, Link } from 'lucide-react';
-import { Button } from '@/components/ui';
-import { formatAmount, formatDate } from '@/lib/utils/helper';
-import { WITHDRAWAL_STATUS_OPTIONS } from '../constants/Withdrawal.constants';
-import type { Withdrawal } from '../types/types';
+import type { ColumnDef } from "@tanstack/react-table";
+import { Eye } from "lucide-react";
+import { Button } from "@/components/ui/button/Button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
+import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
+import { formatAmount, formatDate } from "@/lib/utils/helper";
+import { EMPTY_VALUE } from "../constants/Withdrawal.constants";
+import { WithdrawalStatusBadge } from "../components/WithdrawalStatusBadge";
+import type { Withdrawal } from "../types/types";
+import { withdrawalTitle, withdrawalTotalDebit } from "../utils/withdrawal-mapper";
 
-export function getWithdrawalColumns(
-  onViewDetail: (withdrawal: Withdrawal) => void,
-): ColumnDef<Withdrawal>[] {
+export type WithdrawalColumnActions = {
+  onView: (withdrawal: Withdrawal) => void;
+};
+
+const money = (value: number | null) => (value === null ? EMPTY_VALUE : formatAmount(value));
+
+type ViewActionProps = { withdrawal: Withdrawal; onView: (withdrawal: Withdrawal) => void };
+
+function ViewAction({ withdrawal, onView }: ViewActionProps) {
+  const label = `Xem chi tiết yêu cầu rút tiền ${withdrawalTitle(withdrawal)}`;
+  const trigger = (
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={() => onView(withdrawal)} />
+  );
+  return (
+    <Tooltip>
+      <TooltipTrigger render={trigger}>
+        <Eye size={16} />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function BankCell({ withdrawal }: { withdrawal: Withdrawal }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="font-medium">
+        {bankDisplayName(withdrawal.bankCode)}{" "}
+        <span className="font-mono">{withdrawal.bankAccountMasked}</span>
+      </p>
+      <p className="text-xs text-muted-foreground">{withdrawal.bankAccountName}</p>
+    </div>
+  );
+}
+
+function TimeCell({ withdrawal }: { withdrawal: Withdrawal }) {
+  return (
+    <div className="space-y-0.5 text-xs">
+      <p className="font-mono">{formatDate(withdrawal.createdAt)}</p>
+    </div>
+  );
+}
+
+export function getWithdrawalColumns(actions: WithdrawalColumnActions): ColumnDef<Withdrawal>[] {
   return [
     {
-      id: 'index',
-      header: 'STT',
+      id: "transactionCode",
+      header: "Mã giao dịch",
       cell: ({ row }) => (
-        <span className="text-sm font-medium text-muted-foreground">
-          {String(row.index + 1).padStart(2, '0')}
-        </span>
+        <span className="font-mono font-semibold">{row.original.transactionCode ?? "Chờ cấp mã"}</span>
       ),
-      size: 52,
     },
     {
-      id: 'code',
-      header: 'Mã giao dịch',
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-foreground text-sm">{row.original.code}</span>
-      ),
-      size: 160,
+      id: "amount",
+      header: "Số tiền rút",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="font-mono font-semibold">{formatAmount(row.original.amount)}</span>,
     },
     {
-      id: 'subMerchant',
-      header: 'Tài khoản (Sub-MCH)',
-      cell: ({ row }) => (
-        <div>
-          <p className="font-semibold text-primary text-sm">{row.original.subMerchantShort ?? row.original.subMerchantId}</p>
-          <p className="text-xs text-muted-foreground">{row.original.subMerchantName}</p>
-        </div>
-      ),
-      size: 180,
+      id: "fee",
+      header: "Phí rút",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="font-mono text-danger">{money(row.original.fee)}</span>,
     },
     {
-      id: 'amount',
-      header: 'Số tiền rút',
-      meta: { align: 'right' },
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-foreground text-sm">
-          {formatAmount(row.original.amount)}
-        </span>
-      ),
-      size: 140,
+      id: "totalDebit",
+      header: "Tổng trừ ví",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="font-mono">{money(withdrawalTotalDebit(row.original))}</span>,
+    },
+    { id: "bank", header: "Tài khoản nhận", cell: ({ row }) => <BankCell withdrawal={row.original} /> },
+    { id: "createdAt", header: "Ngày yêu cầu", cell: ({ row }) => <TimeCell withdrawal={row.original} /> },
+    {
+      id: "status",
+      header: "Trạng thái",
+      cell: ({ row }) => <WithdrawalStatusBadge status={row.original.status} />,
     },
     {
-      id: 'fee',
-      header: 'Phí GD',
-      meta: { align: 'right' },
-      cell: ({ row }) => (
-        <span className="font-mono text-sm text-danger">- {formatAmount(row.original.fee)}</span>
-      ),
-      size: 100,
-    },
-    {
-      id: 'bankInfo',
-      header: 'Tài khoản nhận tiền',
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm font-semibold uppercase">{row.original.bankName}</p>
-          <p className="text-xs text-muted-foreground font-mono">
-            {row.original.bankAccount} · {row.original.accountName}
-          </p>
-        </div>
-      ),
-      size: 220,
-    },
-    {
-      id: 'requestedAt',
-      header: 'Thời gian yêu cầu',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {formatDate(row.original.requestedAt)}
-        </span>
-      ),
-      size: 150,
-    },
-    {
-      id: 'status',
-      header: 'Tình trạng',
-      cell: ({ row }) => {
-        const opt = WITHDRAWAL_STATUS_OPTIONS.find((o) => o.value === row.original.status);
-        return <Badge variant={opt?.variant ?? 'outline'}>{opt?.label ?? row.original.status}</Badge>;
-      },
-      size: 130,
-    },
-    {
-      id: 'actions',
-      header: 'Thao tác',
-      meta: { align: 'center' },
+      id: "actions",
+      header: "Thao tác",
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Xem chi tiết"
-            onClick={() => onViewDetail(row.original)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Copy link"><Link className="h-4 w-4" /></Button>
+        <div className="flex items-center gap-1">
+          <ViewAction withdrawal={row.original} onView={actions.onView} />
         </div>
       ),
-      size: 80,
     },
   ];
 }

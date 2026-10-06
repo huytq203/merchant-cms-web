@@ -2,6 +2,7 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -53,9 +54,9 @@ export function DialogReconciliation({ transaction, open, onOpenChange }: Dialog
     onOpenChange(next);
   };
 
-  const onSubmit = async () => {
-    // TODO: gọi API tạo yêu cầu tra soát
-    handleOpenChange(false);
+  const onSubmit = () => {
+    // Chưa có API BE: báo rõ thay vì giả vờ đã gửi thành công.
+    toast.info('Chức năng chưa được hỗ trợ');
   };
 
   return (
