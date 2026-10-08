@@ -1,9 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Star, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge/Badge";
-import { Button } from "@/components/ui/button/Button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
+import { createIndexColumn } from "@/components/page/IndexColumn";
+import { RowActions } from "@/components/page/RowActions";
+import { StatusBadge } from "@/components/page/StatusBadge";
 import { BankChangeRequestBadge } from "../components/BankChangeRequestBadge";
 import { bankAccountTitle, bankDisplayName, bankLinkLabel, canChangeBank } from "../utils/bank-mapper";
 import type { BankAccount, BankChangeRequest } from "../types";
@@ -17,33 +17,13 @@ export type BankAccountColumnOptions = {
   onDelete?: (account: BankAccount) => void;
 };
 
-const linkVariants = {
-  LINKED: "soft-success",
-  PENDING_VERIFICATION: "soft-warning",
-  LINK_FAILED: "soft-danger",
-} as const;
-
-type ActionProps = { label: string; onClick: () => void; disabled?: boolean; children: ReactNode };
-
-function Action({ label, onClick, disabled, children }: ActionProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} disabled={disabled} onClick={onClick} />}
-      >
-        {children}
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 function StatusCell({ account, pending }: { account: BankAccount; pending?: BankChangeRequest }) {
   return (
     <div className="flex flex-wrap items-center gap-1">
-      <Badge variant={linkVariants[account.linkStatus]} className="w-36 justify-center">
-        {bankLinkLabel(account)}
-      </Badge>
+      <StatusBadge
+        label={bankLinkLabel(account)}
+        tone={account.linkStatus === "LINKED" ? "success" : account.linkStatus === "PENDING_VERIFICATION" ? "warning" : "danger"}
+      />
       {account.status === "INACTIVE" && <Badge variant="outline">Ngừng sử dụng</Badge>}
       {pending && <BankChangeRequestBadge request={pending} />}
     </div>
@@ -60,39 +40,39 @@ function defaultLabel(account: BankAccount): string {
   return `Đặt ${bankAccountTitle(account)} làm tài khoản mặc định`;
 }
 
-function RowActions({ account, options }: { account: BankAccount; options: BankAccountColumnOptions }) {
+function BankAccountRowActions({ account, options }: { account: BankAccount; options: BankAccountColumnOptions }) {
   const { onEdit, onSetDefault, onDelete } = options;
   const editable = canChangeBank(account, options.pendingChanges[account.id]);
   return (
-    <div className="flex items-center gap-1">
-      <Action label={`Xem tài khoản ${bankAccountTitle(account)}`} onClick={() => options.onView(account)}>
-        <Eye size={16} />
-      </Action>
-      {onEdit && (
-        <Action label={editLabel(account, editable)} disabled={!editable} onClick={() => onEdit(account)}>
-          <Pencil size={16} />
-        </Action>
-      )}
-      {onSetDefault && (
-        <Action
-          label={defaultLabel(account)}
-          disabled={account.isDefault || account.status === "INACTIVE"}
-          onClick={() => onSetDefault(account)}
-        >
-          <Star size={16} />
-        </Action>
-      )}
-      {onDelete && (
-        <Action label={`Xoá tài khoản ${bankAccountTitle(account)}`} onClick={() => onDelete(account)}>
-          <Trash2 size={16} />
-        </Action>
-      )}
-    </div>
+    <RowActions
+      subject={bankAccountTitle(account)}
+      actions={[
+        { label: "Xem tài khoản", icon: <Eye size={16} />, onClick: () => options.onView(account) },
+        {
+          label: "Sửa tài khoản",
+          icon: <Pencil size={16} />,
+          visible: Boolean(onEdit),
+          disabled: !editable,
+          disabledReason: editLabel(account, editable),
+          onClick: () => onEdit?.(account),
+        },
+        {
+          label: "Đặt làm mặc định",
+          icon: <Star size={16} />,
+          visible: Boolean(onSetDefault),
+          disabled: account.isDefault || account.status === "INACTIVE",
+          disabledReason: defaultLabel(account),
+          onClick: () => onSetDefault?.(account),
+        },
+        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, visible: Boolean(onDelete), onClick: () => onDelete?.(account) },
+      ]}
+    />
   );
 }
 
-export function getBankAccountColumns(options: BankAccountColumnOptions): ColumnDef<BankAccount>[] {
+export function getBankAccountColumns(options: BankAccountColumnOptions, page: number, pageSize: number): ColumnDef<BankAccount>[] {
   return [
+    createIndexColumn<BankAccount>({ page, pageSize }),
     {
       id: "bank",
       header: "Ngân hàng",
@@ -103,7 +83,7 @@ export function getBankAccountColumns(options: BankAccountColumnOptions): Column
         </div>
       ),
     },
-    { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "—" },
+    { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "Chưa có" },
     {
       id: "accountNumber",
       header: "Số tài khoản",
@@ -117,9 +97,9 @@ export function getBankAccountColumns(options: BankAccountColumnOptions): Column
     },
     {
       id: "actions",
-      header: "Thao tác",
+      header: () => <span className="w-px whitespace-nowrap">Thao tác</span>,
       enableSorting: false,
-      cell: ({ row }) => <RowActions account={row.original} options={options} />,
+      cell: ({ row }) => <BankAccountRowActions account={row.original} options={options} />,
     },
   ];
 }

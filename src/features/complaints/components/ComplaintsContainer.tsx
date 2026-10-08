@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +37,7 @@ export function ComplaintsContainer({ filter, abilities }: Props) {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Quản lý Khiếu nại</h1>
+          <h1 className="text-2xl font-bold text-foreground">{getRouteTitle("/complaint")}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Theo dõi và xử lý khiếu nại từ các nguồn</p>
         </div>
         <div className="flex items-center gap-2">

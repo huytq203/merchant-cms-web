@@ -1,36 +1,59 @@
 'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog/Dialog';
+import { FormModal } from '@/components/modal/FormModal';
+import { usePermissionForm } from '../hooks/use-permission-form';
 import type { PermissionCatalogItem, PermissionGroup, PermissionGroupFormValues } from '../schemas/permission-group.schema';
+import { isDuplicateGroupCodeError } from '../utils/permission-group-code';
 import { PermissionForm } from './PermissionForm';
+
+const DUPLICATE_NAME_MESSAGE = 'Tên nhóm này đã được dùng. Hãy đặt tên khác.';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   catalog: PermissionCatalogItem[];
+  catalogLoading?: boolean;
   group?: PermissionGroup | null;
   isSubmitting: boolean;
   error?: string;
   onSubmit: (values: PermissionGroupFormValues) => void;
 }
 
-export function PermissionGroupModal({ open, onOpenChange, catalog, group, isSubmitting, error, onSubmit }: Props) {
+function footerNote(count: number) {
+  return count > 0 ? `Đã chọn ${count} quyền` : 'Chưa chọn quyền nào';
+}
+
+function PermissionGroupFormModal({ onOpenChange, catalog, catalogLoading, group, isSubmitting, error, onSubmit }: Omit<Props, 'open'>) {
+  const form = usePermissionForm(group, onSubmit);
+  const isEditing = Boolean(group);
+  const duplicateName = !isEditing && isDuplicateGroupCodeError(error);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{group ? 'Cập nhật nhóm quyền' : 'Thêm nhóm quyền'}</DialogTitle>
-        </DialogHeader>
-        <PermissionForm
-          key={group?.id ?? 'create'}
-          catalog={catalog}
-          group={group}
-          isSubmitting={isSubmitting}
-          error={error}
-          onSubmit={onSubmit}
-          onCancel={() => onOpenChange(false)}
-        />
-      </DialogContent>
-    </Dialog>
+    <FormModal
+      open
+      onOpenChange={onOpenChange}
+      size="lg"
+      title={isEditing ? 'Cập nhật nhóm quyền' : 'Thêm nhóm quyền'}
+      description="Đặt tên nhóm và chọn các quyền người dùng trong nhóm được làm."
+      submitLabel="Lưu nhóm quyền"
+      footerNote={footerNote(form.selected.length)}
+      isSubmitting={isSubmitting}
+      error={duplicateName ? undefined : error}
+      onSubmit={form.submit}
+    >
+      <PermissionForm
+        form={form}
+        catalog={catalog}
+        catalogLoading={catalogLoading}
+        isEditing={isEditing}
+        nameError={duplicateName ? DUPLICATE_NAME_MESSAGE : undefined}
+      />
+    </FormModal>
   );
+}
+
+/** Form state lives only while the modal is open, so each opening starts from the chosen group. */
+export function PermissionGroupModal({ open, group, ...rest }: Props) {
+  if (!open) return null;
+  return <PermissionGroupFormModal key={group?.id ?? 'create'} group={group} {...rest} />;
 }

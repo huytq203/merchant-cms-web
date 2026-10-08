@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button/Button";
@@ -41,7 +42,7 @@ export function RefundsContainer({ filter, abilities, showSubMerchantFilter = tr
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Quản lý yêu cầu hoàn tiền</h1>
+          <h1 className="text-2xl font-bold">{getRouteTitle("/refund")}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Kiểm tra, xử lý các yêu cầu hoàn tiền của cửa hàng.</p>
         </div>
       </header>

@@ -3,7 +3,7 @@ import type { MerchantUserStatus, ScopeProposal } from "../schemas/user.schema";
 export const userStatusLabels: Record<MerchantUserStatus, string> = {
   PENDING: "Chờ kích hoạt",
   ACTIVE: "Đang hoạt động",
-  LOCKED: "Đã khoá",
+  LOCKED: "Đã khóa",
 };
 
 export const userStatusOptions = (Object.keys(userStatusLabels) as MerchantUserStatus[]).map((value) => ({

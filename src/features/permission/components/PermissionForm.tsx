@@ -1,103 +1,101 @@
 'use client';
 
+import { FormModalField, FormModalGrid } from '@/components/modal/FormModalField';
 import { Input } from '@/components/ui/input/Input';
 import { Textarea } from '@/components/ui/textarea/Textarea';
-import { Button } from '@/components/ui/button/Button';
-import { usePermissionForm } from '../hooks/use-permission-form';
-import type {
-  PermissionCatalogItem,
-  PermissionGroup,
-  PermissionGroupFormValues,
-} from '../schemas/permission-group.schema';
-import { groupPermissionsByCategory } from '../utils/permission-group-mapper';
-import { PermissionCategoryGroup } from './PermissionCategoryGroup';
+import type { PermissionFormState } from '../hooks/use-permission-form';
+import type { PermissionCatalogItem } from '../schemas/permission-group.schema';
+import { PermissionPicker } from './PermissionPicker';
 
-type Form = ReturnType<typeof usePermissionForm>;
+interface Props {
+  form: PermissionFormState;
+  catalog: PermissionCatalogItem[];
+  catalogLoading?: boolean;
+  isEditing: boolean;
+  /** Error to show on the name field in addition to validation, for example a taken name. */
+  nameError?: string;
+}
 
-function BasicFields({ form, isEditing }: { form: Form; isEditing: boolean }) {
+function CodeHint({ code, isEditing }: { code: string; isEditing: boolean }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Input
-        label="Mã nhóm"
-        placeholder="Ví dụ: MERCHANT_ADMIN"
-        required
-        value={form.code}
-        disabled={isEditing}
-        onChange={(event) => form.setCode(event.target.value)}
-        error={form.validation.code}
-      />
-      <Input
-        label="Tên nhóm"
-        placeholder="Ví dụ: Quản trị merchant"
-        required
-        value={form.name}
-        onChange={(event) => form.setName(event.target.value)}
-        error={form.validation.name}
-      />
-      <div className="sm:col-span-2">
-        <Textarea
-          label="Mô tả"
-          placeholder="Mô tả phạm vi quyền của nhóm"
-          value={form.description}
-          onChange={(event) => form.setDescription(event.target.value)}
-          error={form.validation.description}
-        />
-      </div>
-    </div>
+    <span className="flex items-center gap-2">
+      <span>{isEditing ? 'Mã nhóm:' : 'Mã nhóm tự tạo:'}</span>
+      <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-brand-ink">
+        {code || 'TEN_NHOM'}
+      </code>
+    </span>
   );
 }
 
-function PermissionSelector({ form, catalog }: { form: Form; catalog: PermissionCatalogItem[] }) {
+function BasicFields({ form, isEditing, nameError }: Pick<Props, 'form' | 'isEditing' | 'nameError'>) {
   return (
-    <div className="space-y-4">
-      <h2 className="font-semibold text-foreground">Phân quyền chi tiết</h2>
-      {catalog.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Chưa có danh mục quyền.</p>
-      ) : null}
-      {groupPermissionsByCategory(catalog).map((category) => (
-        <PermissionCategoryGroup
-          key={category.category}
-          label={category.label}
-          permissions={category.permissions}
-          selected={form.selected}
-          onToggle={form.toggle}
-          onSelectAll={form.selectAll}
-        />
-      ))}
+    <FormModalGrid>
+      <FormModalField
+        label="Tên nhóm"
+        required
+        wide
+        error={form.validation.name ?? nameError}
+        hint={<CodeHint code={form.code} isEditing={isEditing} />}
+      >
+        {(control) => (
+          <Input
+            {...control}
+            placeholder="Ví dụ: Quản trị merchant"
+            maxLength={255}
+            autoComplete="off"
+            value={form.name}
+            onChange={(event) => form.setName(event.target.value)}
+          />
+        )}
+      </FormModalField>
+      <FormModalField label="Mô tả" wide error={form.validation.description}>
+        {(control) => (
+          <Textarea
+            {...control}
+            rows={2}
+            placeholder="Mô tả phạm vi quyền của nhóm"
+            value={form.description}
+            onChange={(event) => form.setDescription(event.target.value)}
+          />
+        )}
+      </FormModalField>
+    </FormModalGrid>
+  );
+}
+
+function PermissionSection({ form, catalog, catalogLoading }: Omit<Props, 'isEditing' | 'nameError'>) {
+  return (
+    <section className="mt-5">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <h3 className="text-sm font-semibold text-foreground">Phân quyền chi tiết</h3>
+        {catalogLoading ? null : (
+          <span className="text-sm tabular-nums text-muted-foreground">
+            Đã chọn {form.selected.length}/{catalog.length} quyền
+          </span>
+        )}
+      </div>
       {form.validation.permissions ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="mb-2 text-xs font-medium text-danger">
           {form.validation.permissions}
         </p>
       ) : null}
-    </div>
+      <PermissionPicker
+        catalog={catalog}
+        isLoading={catalogLoading}
+        selected={form.selected}
+        onToggle={form.toggle}
+        onSelectAll={form.selectAll}
+      />
+    </section>
   );
 }
 
-interface Props {
-  catalog: PermissionCatalogItem[];
-  group?: PermissionGroup | null;
-  isSubmitting: boolean;
-  error?: string;
-  onSubmit: (values: PermissionGroupFormValues) => void;
-  onCancel: () => void;
-}
-
-export function PermissionForm({ catalog, group, isSubmitting, error, onSubmit, onCancel }: Props) {
-  const form = usePermissionForm(group, onSubmit);
-
+/** Body of the permission group modal: name, description and the permission picker. */
+export function PermissionForm({ form, catalog, catalogLoading, isEditing, nameError }: Props) {
   return (
-    <form onSubmit={form.submit} className="space-y-5">
-      <BasicFields form={form} isEditing={Boolean(group)} />
-      <PermissionSelector form={form} catalog={catalog} />
-      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Huỷ
-        </Button>
-        <Button type="submit" variant="solid" disabled={isSubmitting}>
-          Lưu nhóm quyền
-        </Button>
-      </div>
-    </form>
+    <>
+      <BasicFields form={form} isEditing={isEditing} nameError={nameError} />
+      <PermissionSection form={form} catalog={catalog} catalogLoading={catalogLoading} />
+    </>
   );
 }

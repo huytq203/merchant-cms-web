@@ -1,10 +1,8 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ApiError } from "@/lib/http/api-client";
-import { apiClient } from "@/lib/http/api-client";
-import type { MerchantUser, ScopeProposal, UserFormValues } from "../schemas/user.schema";
+import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
 import { hasSameIds } from "../utils/user-mapper";
 import {
   useAssignUserGroups,
@@ -14,24 +12,13 @@ import {
   useUnlockUser,
   useUpdateUser,
 } from "./use-user-mutations";
+import { useScopeProposalActions } from "./use-scope-proposal-actions";
 
-export type UserCommand = "lock" | "unlock" | "reset-password" | "assign-groups";
-
-export type ResetPasswordOtp = {
-  otpSessionId: string;
-  otp: string;
-};
+export type UserCommand = "lock" | "unlock" | "assign-groups";
 
 type UserCommandInput =
   | { command: "lock"; reason: string }
-  | { command: "reset-password"; otp: ResetPasswordOtp }
   | { command: "assign-groups"; groupIds: string[] };
-
-const userRoot = "/v1/merchant/merchant-users";
-
-function userPath(id: string, action: string): string {
-  return `${userRoot}/${encodeURIComponent(id)}${action}`;
-}
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -98,25 +85,13 @@ export function useUserCommandActions(onDone: () => void) {
   const unlock = useUnlockUser();
   const resetPassword = useResetUserPassword();
   const assignGroups = useAssignUserGroups();
-  const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
-  const approveScope = useMutation({
-    mutationFn: (id: string) => apiClient.post<ScopeProposal>(userPath(id, "/scope-proposal/approve")),
-    onSuccess: (_proposal, id) => queryClient.invalidateQueries({ queryKey: ["users", "scope-proposal", id] }),
-  });
-  const rejectScope = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      apiClient.post<ScopeProposal>(userPath(id, "/scope-proposal/reject"), { reason }),
-    onSuccess: (_proposal, { id }) => queryClient.invalidateQueries({ queryKey: ["users", "scope-proposal", id] }),
-  });
+  const proposal = useScopeProposalActions(setError);
   const confirm = async (command: UserCommand, id: string, input?: UserCommandInput) => {
     setError(undefined);
     try {
       if (command === "lock" && input?.command === "lock") await lock.mutateAsync({ id, reason: input.reason });
       if (command === "unlock") await unlock.mutateAsync({ id });
-      if (command === "reset-password" && input?.command === "reset-password") {
-        await resetPassword.mutateAsync({ id, otp: input.otp });
-      }
       if (command === "assign-groups" && input?.command === "assign-groups") {
         await assignGroups.mutateAsync({ id, groupIds: input.groupIds });
       }
@@ -125,38 +100,32 @@ export function useUserCommandActions(onDone: () => void) {
       setError(messageOf(failure, "Thao tác thất bại"));
     }
   };
-  const getScopeProposal = (id: string) => apiClient.get<ScopeProposal>(userPath(id, "/scope-proposal"));
-  const approveScopeProposal = async (id: string) => {
+  /** Stays open on success so the dialog can show the result; the caller closes it with "Xong". */
+  const requestPasswordReset = async (id: string) => {
     setError(undefined);
     try {
-      await approveScope.mutateAsync(id);
+      await resetPassword.mutateAsync({ id });
     } catch (failure) {
-      setError(messageOf(failure, "Không duyệt được đề xuất phạm vi"));
+      setError(messageOf(failure, "Không gửi được yêu cầu đặt lại mật khẩu"));
     }
   };
-  const rejectScopeProposal = async (id: string, reason: string) => {
-    setError(undefined);
-    try {
-      await rejectScope.mutateAsync({ id, reason });
-    } catch (failure) {
-      setError(messageOf(failure, "Không từ chối được đề xuất phạm vi"));
-    }
-  };
-  const pending = {
-    lock: lock.isPending,
-    unlock: unlock.isPending,
-    resetPassword: resetPassword.isPending,
-    assignGroups: assignGroups.isPending,
-  };
+
   return {
     confirm,
+    requestPasswordReset,
     error,
-    clearError: () => setError(undefined),
-    pending,
-    getScopeProposal,
-    approveScopeProposal,
-    rejectScopeProposal,
-    isScopePending: approveScope.isPending || rejectScope.isPending,
+    clearError: () => {
+      setError(undefined);
+      resetPassword.reset();
+    },
+    pending: {
+      lock: lock.isPending,
+      unlock: unlock.isPending,
+      resetPassword: resetPassword.isPending,
+      assignGroups: assignGroups.isPending,
+    },
+    isPasswordResetDone: resetPassword.isSuccess,
+    ...proposal,
     assignGroups,
   };
 }
@@ -164,10 +133,10 @@ export function useUserCommandActions(onDone: () => void) {
 export function useUserActions(closeDialogs: () => void) {
   const commandAction = useUserCommandActions(closeDialogs);
   const saveAction = useUserSaveAction(closeDialogs, commandAction.assignGroups);
-  const closeAndClear = () => {
+  /** Feedback stays visible while a dialog fades out, so it is cleared when the next one opens. */
+  const clearFeedback = () => {
     saveAction.clearErrors();
     commandAction.clearError();
-    closeDialogs();
   };
-  return { saveAction, commandAction, closeAndClear };
+  return { saveAction, commandAction, clearFeedback, closeDialogs };
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { getRouteTitle } from '@/app/(cms)/_layout/constants/route.constants';
+import { PageHeader } from '@/components/page/PageHeader';
 import { Button } from '@/components/ui/button/Button';
 import { usePermissionGroupActions } from '../hooks/use-permission-group-actions';
 import { usePermissionGroupDialogs } from '../hooks/use-permission-group-dialogs';
@@ -17,8 +19,9 @@ export function PermissionGroupContainer({ filter }: { filter: PermissionGroupFi
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Quản lý nhóm quyền</h1>
+      <PageHeader
+        title={getRouteTitle('/permissions')}
+        action={
         <Button
           type="button"
           variant="solid"
@@ -27,25 +30,20 @@ export function PermissionGroupContainer({ filter }: { filter: PermissionGroupFi
         >
           Thêm nhóm quyền
         </Button>
-      </header>
+        }
+      />
       <PermissionGroupFilters
         key={`${filter.query ?? ''}:${filter.systemOnly ?? ''}`}
         filter={filter}
         onSearch={navigation.search}
       />
-      <section
-        className="rounded-xl border border-border bg-background p-4"
-        aria-label="Danh sách nhóm quyền"
-      >
-        <h2 className="mb-4 font-semibold text-foreground">Danh sách nhóm quyền</h2>
-        <PermissionGroupList
-          filter={filter}
-          onPageChange={navigation.changePage}
-          onView={(group) => dialogs.openFor('detail', group)}
-          onEdit={(group) => dialogs.openFor('edit', group)}
-          onDelete={(group) => dialogs.openFor('delete', group)}
-        />
-      </section>
+      <PermissionGroupList
+        filter={filter}
+        onPageChange={navigation.changePage}
+        onView={(group) => dialogs.openFor('detail', group)}
+        onEdit={(group) => dialogs.openFor('edit', group)}
+        onDelete={(group) => dialogs.openFor('delete', group)}
+      />
       <PermissionGroupDialogs dialogs={dialogs} actions={actions} />
     </div>
   );

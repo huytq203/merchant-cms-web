@@ -1,9 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
+import { DateTimeCell } from "@/components/page/DateTimeCell";
+import { createIndexColumn } from "@/components/page/IndexColumn";
+import { RowActions } from "@/components/page/RowActions";
 import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
-import { formatAmount, formatDate } from "@/lib/utils/helper";
+import { formatAmount } from "@/lib/utils/helper";
 import { EMPTY_VALUE } from "../constants/Withdrawal.constants";
 import { WithdrawalStatusBadge } from "../components/WithdrawalStatusBadge";
 import type { Withdrawal } from "../types/types";
@@ -14,23 +15,6 @@ export type WithdrawalColumnActions = {
 };
 
 const money = (value: number | null) => (value === null ? EMPTY_VALUE : formatAmount(value));
-
-type ViewActionProps = { withdrawal: Withdrawal; onView: (withdrawal: Withdrawal) => void };
-
-function ViewAction({ withdrawal, onView }: ViewActionProps) {
-  const label = `Xem chi tiết yêu cầu rút tiền ${withdrawalTitle(withdrawal)}`;
-  const trigger = (
-    <Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={() => onView(withdrawal)} />
-  );
-  return (
-    <Tooltip>
-      <TooltipTrigger render={trigger}>
-        <Eye size={16} />
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 function BankCell({ withdrawal }: { withdrawal: Withdrawal }) {
   return (
@@ -44,16 +28,9 @@ function BankCell({ withdrawal }: { withdrawal: Withdrawal }) {
   );
 }
 
-function TimeCell({ withdrawal }: { withdrawal: Withdrawal }) {
-  return (
-    <div className="space-y-0.5 text-xs">
-      <p className="font-mono">{formatDate(withdrawal.createdAt)}</p>
-    </div>
-  );
-}
-
-export function getWithdrawalColumns(actions: WithdrawalColumnActions): ColumnDef<Withdrawal>[] {
+export function getWithdrawalColumns(actions: WithdrawalColumnActions, page: number, pageSize: number): ColumnDef<Withdrawal>[] {
   return [
+    createIndexColumn<Withdrawal>({ page, pageSize }),
     {
       id: "transactionCode",
       header: "Mã giao dịch",
@@ -65,22 +42,22 @@ export function getWithdrawalColumns(actions: WithdrawalColumnActions): ColumnDe
       id: "amount",
       header: "Số tiền rút",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-mono font-semibold">{formatAmount(row.original.amount)}</span>,
+      cell: ({ row }) => <span className="font-mono font-semibold tabular-nums">{formatAmount(row.original.amount)}</span>,
     },
     {
       id: "fee",
       header: "Phí rút",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-mono text-danger">{money(row.original.fee)}</span>,
+      cell: ({ row }) => <span className="font-mono tabular-nums text-danger">{money(row.original.fee)}</span>,
     },
     {
       id: "totalDebit",
       header: "Tổng trừ ví",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-mono">{money(withdrawalTotalDebit(row.original))}</span>,
+      cell: ({ row }) => <span className="font-mono tabular-nums">{money(withdrawalTotalDebit(row.original))}</span>,
     },
     { id: "bank", header: "Tài khoản nhận", cell: ({ row }) => <BankCell withdrawal={row.original} /> },
-    { id: "createdAt", header: "Ngày yêu cầu", cell: ({ row }) => <TimeCell withdrawal={row.original} /> },
+    { id: "createdAt", header: "Ngày yêu cầu", cell: ({ row }) => <DateTimeCell value={row.original.createdAt} /> },
     {
       id: "status",
       header: "Trạng thái",
@@ -88,13 +65,11 @@ export function getWithdrawalColumns(actions: WithdrawalColumnActions): ColumnDe
     },
     {
       id: "actions",
-      header: "Thao tác",
+      header: () => <span className="w-px whitespace-nowrap">Thao tác</span>,
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <ViewAction withdrawal={row.original} onView={actions.onView} />
-        </div>
-      ),
+      cell: ({ row }) => <RowActions subject={withdrawalTitle(row.original)} actions={[
+        { label: "Xem chi tiết yêu cầu rút tiền", icon: <Eye size={16} />, onClick: () => actions.onView(row.original) },
+      ]} />,
     },
   ];
 }

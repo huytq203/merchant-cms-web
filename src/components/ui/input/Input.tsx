@@ -7,12 +7,12 @@ import { Toggle } from '@/components/ui/toggle/Toggle';
 import { Eye, EyeOff } from 'lucide-react';
 
 const inputVariants = tv({
-  base: 'flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-shadow',
+  base: 'flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-shadow',
   variants: {
     variant: {
       default: '',
-      filled: 'bg-accent border-transparent focus:border-primary',
-      flushed: 'border-b-2 border-transparent border-b-border rounded-none px-0 focus:outline-none focus:ring-0 focus:border-transparent focus:border-b-primary bg-transparent',
+      filled: 'bg-accent border-transparent',
+      flushed: 'border-b-2 border-transparent border-b-border rounded-none px-0 focus:outline-none focus-visible:ring-0 bg-transparent',
     }
   },
   defaultVariants: {
@@ -68,7 +68,7 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
               inputVariants({ variant }),
               icon && 'pl-9',
               (isPassword || endIcon) && 'pr-10',
-              error && 'border-danger focus:border-danger',
+              error && 'border-danger focus-visible:ring-danger',
               className
             )}
             {...props}
@@ -81,7 +81,7 @@ const Input = React.forwardRef<React.ElementRef<typeof BaseInput>, InputProps>(
               className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
               pressed={showPassword}
               onPressedChange={setShowPassword}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Toggle>

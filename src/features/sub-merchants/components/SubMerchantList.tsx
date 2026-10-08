@@ -1,11 +1,11 @@
 'use client';
 
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button/Button';
+import { ResultCard } from '@/components/page/ResultCard';
+import { ResultState } from '@/components/page/ResultState';
 import type { SubMerchantListFilter, SubMerchantListResult } from '../types';
 import { subMerchantQueries } from '../sub-merchant-queries';
 import type { SubMerchantRowHandlers } from './SubMerchantRowActions';
-import { SubMerchantListSkeleton } from './SubMerchantListSkeleton';
 import { SubMerchantTable } from './SubMerchantTable';
 
 type Props = SubMerchantRowHandlers & {
@@ -16,18 +16,9 @@ type Props = SubMerchantRowHandlers & {
 type ListBodyProps = Props & { list: UseQueryResult<SubMerchantListResult, Error> };
 
 function SubMerchantListBody({ list, filter, onPageChange, ...handlers }: ListBodyProps) {
-  if (list.isPending) return <SubMerchantListSkeleton />;
-  if (list.isError) {
-    return (
-      <div role="alert">
-        <p>{list.error.message}</p>
-        <Button type="button" variant="ghost" onClick={() => void list.refetch()}>
-          Thử lại
-        </Button>
-      </div>
-    );
-  }
-  if (list.data.rows.length === 0) return <p role="status">Không có điểm bán</p>;
+  if (list.isPending) return <ResultState state="loading" />;
+  if (list.isError) return <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} />;
+  if (list.data.rows.length === 0) return <ResultState state="empty" emptyMessage="Chưa có điểm bán phù hợp." />;
   return (
     <SubMerchantTable
       data={list.data.rows}
@@ -44,11 +35,8 @@ export function SubMerchantList(props: Props) {
   const list = useQuery(subMerchantQueries.list(props.filter));
 
   return (
-    <section className="rounded-xl border bg-card p-4" aria-label="Danh sách điểm bán">
-      <h2 className="mb-3 font-semibold">
-        Danh sách điểm bán {list.data ? `(${list.data.total})` : ''}
-      </h2>
+    <ResultCard subject="điểm bán" total={list.data?.total ?? 0}>
       <SubMerchantListBody list={list} {...props} />
-    </section>
+    </ResultCard>
   );
 }

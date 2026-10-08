@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Button } from "@/components/ui/button/Button";
+import { useState } from "react";
+import { FilterCard } from "@/components/page/FilterCard";
 import { Select } from "@/components/ui/select/Select";
 import type { BankAccountFilter } from "../types";
 
@@ -22,8 +22,7 @@ export function BankAccountFilters({ initial, onSearch }: Props) {
   const [linkStatus, setLinkStatus] = useState(initial.linkStatus ?? "");
   const [status, setStatus] = useState(initial.status ?? "");
 
-  const search = (event: FormEvent) => {
-    event.preventDefault();
+  const search = () => {
     onSearch({
       ...(linkStatus ? { linkStatus: linkStatus as Values["linkStatus"] } : {}),
       ...(status ? { status: status as Values["status"] } : {}),
@@ -36,8 +35,7 @@ export function BankAccountFilters({ initial, onSearch }: Props) {
   };
 
   return (
-    <form onSubmit={search} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+    <FilterCard fieldCount={2} onSubmit={search} onClear={clear}>
         <Select
           label="Trạng thái liên kết"
           placeholder="Tất cả trạng thái"
@@ -52,15 +50,6 @@ export function BankAccountFilters({ initial, onSearch }: Props) {
           options={usageOptions}
           onChange={setStatus}
         />
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={clear}>
-          Xóa lọc
-        </Button>
-        <Button type="submit" variant="solid">
-          Tìm kiếm
-        </Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

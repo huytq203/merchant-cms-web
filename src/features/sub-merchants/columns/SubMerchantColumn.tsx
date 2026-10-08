@@ -1,5 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge/Badge';
+import { createIndexColumn } from '@/components/page/IndexColumn';
+import { StatusBadge } from '@/components/page/StatusBadge';
 import {
   SubMerchantRowActions,
   type SubMerchantRowHandlers,
@@ -7,14 +9,15 @@ import {
 import type { SubMerchantRow } from '../types';
 
 export function statusBadge(row: Pick<SubMerchantRow, 'status' | 'lockSource'>) {
-  if (row.status === 'ACTIVE') return <Badge variant="soft-success">Đang hoạt động</Badge>;
+  if (row.status === 'ACTIVE') return <StatusBadge label="Đang hoạt động" tone="success" />;
   if (row.status === 'TERMINATED') return <Badge variant="outline">Đã đóng</Badge>;
-  if (row.lockSource === 'CASCADE') return <Badge variant="soft-warning">Khóa theo Master</Badge>;
-  return <Badge variant="secondary">Đã khóa</Badge>;
+  if (row.lockSource === 'CASCADE') return <StatusBadge label="Khóa theo Master" tone="warning" />;
+  return <StatusBadge label="Đã khóa" tone="neutral" />;
 }
 
-export function getColumn(handlers: SubMerchantRowHandlers): ColumnDef<SubMerchantRow>[] {
+export function getColumn(handlers: SubMerchantRowHandlers, page: number, pageSize: number): ColumnDef<SubMerchantRow>[] {
   return [
+    createIndexColumn<SubMerchantRow>({ page, pageSize }),
     { accessorKey: 'code', header: 'Mã' },
     { accessorKey: 'name', header: 'Tên' },
     {
@@ -29,7 +32,7 @@ export function getColumn(handlers: SubMerchantRowHandlers): ColumnDef<SubMercha
     },
     {
       id: 'actions',
-      header: 'Thao tác',
+      header: () => <span className="w-px whitespace-nowrap">Thao tác</span>,
       enableSorting: false,
       cell: ({ row }) => <SubMerchantRowActions item={row.original} {...handlers} />,
     },

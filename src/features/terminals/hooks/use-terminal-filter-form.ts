@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import type { TerminalListFilter } from "../types";
 
 export type TerminalFilterValues = Pick<TerminalListFilter, "name" | "status" | "subMerchantId">;
@@ -11,8 +11,7 @@ export function useTerminalFilterForm(
   const [status, setStatus] = useState(initial.status ?? "");
   const [subMerchantId, setSubMerchantId] = useState(initial.subMerchantId ?? "");
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = () => {
     onSearch({
       ...(name.trim() ? { name: name.trim() } : {}),
       ...(status ? { status: status as TerminalFilterValues["status"] } : {}),

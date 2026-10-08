@@ -12,32 +12,35 @@ interface Props {
   onSelectAll: (codes: string[]) => void;
 }
 
+/** Permissions of one category: title, select-all and one plain row per permission. */
 export function PermissionCategoryGroup({ label, permissions, selected, onToggle, onSelectAll }: Props) {
   const codes = permissions.map((permission) => permission.code);
   const selectedCount = codes.filter((code) => selected.includes(code)).length;
+  const allSelected = selectedCount === codes.length;
 
   return (
-    <section className="space-y-3 border-t border-border pt-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-foreground">{label}</h3>
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-border pb-2.5">
+        <h4 className="text-sm font-semibold text-foreground">{label}</h4>
         <Checkbox
-          label="Chọn tất cả"
-          checked={selectedCount === codes.length}
-          indeterminate={selectedCount > 0 && selectedCount < codes.length}
+          size="sm"
+          label={allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
+          checked={allSelected}
+          indeterminate={selectedCount > 0 && !allSelected}
           onCheckedChange={() => onSelectAll(codes)}
         />
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1">
         {permissions.map((permission) => (
-          <div key={permission.code} className="rounded-lg border border-border p-2">
+          <li key={permission.code} className="py-1.5">
             <Checkbox
               label={permissionLabel(permission.code)}
               checked={selected.includes(permission.code)}
               onCheckedChange={() => onToggle(permission.code)}
             />
-          </div>
+          </li>
         ))}
-      </div>
-    </section>
+      </ul>
+    </div>
   );
 }

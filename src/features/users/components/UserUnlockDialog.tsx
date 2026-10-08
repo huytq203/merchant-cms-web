@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog/Dialog";
-import { Button } from "@/components/ui/button/Button";
+import { ConfirmModal } from "@/components/modal/ConfirmModal";
+import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import type { MerchantUser } from "../schemas/user.schema";
+import { UserIdentity } from "./UserIdentity";
 
 interface Props {
   open: boolean;
@@ -21,23 +15,22 @@ interface Props {
 }
 
 export function UserUnlockDialog({ open, onOpenChange, user, isPending, error, onConfirm }: Props) {
+  const shown = usePreservedValue(user);
+  if (!shown) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Mở khoá người dùng</DialogTitle>
-          <DialogDescription>Bạn sắp mở khoá {user?.fullName}.</DialogDescription>
-        </DialogHeader>
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Huỷ
-          </Button>
-          <Button type="button" variant="solid" disabled={isPending} onClick={onConfirm}>
-            Xác nhận
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Mở khóa người dùng"
+      description="Người dùng sẽ đăng nhập lại được sau khi mở khóa."
+      confirmVariant="solid"
+      confirmLabel="Mở khóa"
+      isLoading={isPending}
+      onConfirm={onConfirm}
+    >
+      <UserIdentity name={shown.fullName} email={shown.email} />
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    </ConfirmModal>
   );
 }

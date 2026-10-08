@@ -45,7 +45,7 @@ function LayoutBody({ children }: { children?: React.ReactNode }) {
   const content = (
     <SidebarInset className="h-full">
       <Header />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-page">
         <div className="p-6 h-full">
             {children}
         </div>

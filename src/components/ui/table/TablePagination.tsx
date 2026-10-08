@@ -38,12 +38,12 @@ export function TablePagination<TData extends RowData>({
     if (totalPageCount <= 0) return null;
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between px-3 py-2.5 border-t border-border bg-muted/50 gap-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between px-3 py-2.5 border-t border-border bg-background gap-2">
             {/* showTotal info */}
             <div className="text-xs text-muted-foreground shrink-0 order-2 sm:order-1">
                 {cfg.showTotal
                     ? cfg.showTotal(totalRows, [from, to])
-                    : <>Show <b>{from}</b>–<b>{to}</b> of <b>{totalRows}</b> results</>
+                    : <>Hiển thị <b>{from}</b>–<b>{to}</b> / <b>{totalRows}</b> kết quả</>
                 }
             </div>
 
@@ -54,10 +54,10 @@ export function TablePagination<TData extends RowData>({
                     <select
                         value={currentPageSize}
                         onChange={e => table.setPageSize(Number(e.target.value))}
-                        className="shrink-0 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
+                        className="shrink-0 px-2 py-1 text-xs border border-border rounded-md bg-background text-foreground outline-none focus-visible:border-primary cursor-pointer"
                     >
                         {pageSizeOptions.map(s => (
-                            <option key={s} value={s}>{s}{labels?.perPage ?? ' / page'}</option>
+                            <option key={s} value={s}>{s}{labels?.perPage ?? ' / trang'}</option>
                         ))}
                     </select>
                 )}
@@ -65,18 +65,18 @@ export function TablePagination<TData extends RowData>({
                 {/* Nav buttons */}
                 <div className="flex items-center gap-1 shrink-0">
                     <button
-                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted focus-visible:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         onClick={() => table.setPageIndex(0)}
                         disabled={!table.getCanPreviousPage()}
-                        aria-label="First page"
+                        aria-label="Trang đầu"
                     >
                         <ChevronsLeft className="w-3.5 h-3.5" />
                     </button>
                     <button
-                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted focus-visible:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
-                        aria-label="Previous page"
+                        aria-label="Trang trước"
                     >
                         <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
@@ -86,18 +86,18 @@ export function TablePagination<TData extends RowData>({
                     </span>
 
                     <button
-                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted focus-visible:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
-                        aria-label="Next page"
+                        aria-label="Trang sau"
                     >
                         <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                     <button
-                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        className="p-1 rounded border border-border text-muted-foreground bg-background hover:bg-muted focus-visible:border-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         onClick={() => table.setPageIndex(totalPageCount - 1)}
                         disabled={!table.getCanNextPage()}
-                        aria-label="Last page"
+                        aria-label="Trang cuối"
                     >
                         <ChevronsRight className="w-3.5 h-3.5" />
                     </button>
@@ -120,7 +120,7 @@ export function TablePagination<TData extends RowData>({
                             }
                         }}
                         onBlur={() => setInputValue(currentPageIndex + 1)}
-                        className="w-10 px-1 py-1 text-xs border border-border rounded bg-background text-foreground text-center outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        className="w-10 px-1 py-1 text-xs border border-border rounded bg-background text-foreground text-center outline-none focus-visible:border-primary"
                     />
                 </div>
             </div>

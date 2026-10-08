@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { auditFilterSchema } from '../schemas';
 import type { AuditFilter } from '../types';
 
@@ -9,8 +9,7 @@ export function useAuditFilterForm(filter: AuditFilter, onSearch: (filter: Audit
   const [occurredToDate, setOccurredToDate] = useState(filter.occurredTo?.slice(0, 10) ?? '');
   const [error, setError] = useState('');
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = () => {
     const parsed = auditFilterSchema.safeParse({
       ...filter,
       page: 1,

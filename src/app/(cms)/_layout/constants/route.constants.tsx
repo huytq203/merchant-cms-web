@@ -45,6 +45,8 @@ export interface BreadcrumbSegment {
   href?: string;
 }
 
+export const homeRoute = { title: "Trang chủ", href: "/" };
+
 function matchesPattern(pathname: string, pattern: string): boolean {
   const patternParts = pattern.split("/");
   const pathParts = pathname.split("/");
@@ -98,19 +100,19 @@ export const routesConfig: SidebarSection[] = [
     collapsible: false,
     items: [
       {
-        title: "Quản lý quyền hạn",
+        title: "Danh sách nhóm quyền",
         permission: "MANAGE_PERMISSION_GROUP",
         href: "/permissions",
         icon: <ShieldCheck className="w-4 h-4" />,
       },
       {
-        title: "Quản lý nhân sự",
+        title: "Danh sách người dùng",
         permission: "MANAGE_USER",
         href: "/users",
         icon: <Users className="w-4 h-4" />,
       },
       {
-        title: "Danh sách Sub Merchant",
+        title: "Danh sách Sub-merchant",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/sub-merchants",
         icon: <Store className="w-4 h-4" />,
@@ -122,13 +124,13 @@ export const routesConfig: SidebarSection[] = [
         icon: <MonitorSmartphone className="w-4 h-4" />,
       },
       {
-        title: "Tài khoản ngân hàng",
+        title: "Danh sách tài khoản ngân hàng",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/bank-accounts",
         icon: <Landmark className="w-4 h-4" />,
       },
       {
-        title: "Hồ sơ KYB / ĐVCNTT",
+        title: "Hồ sơ KYB và ĐVCNTT",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/merchants",
         icon: <BadgeCheck className="w-4 h-4" />,
@@ -146,25 +148,25 @@ export const routesConfig: SidebarSection[] = [
         icon: <ArrowLeftRight className="w-4 h-4" />,
       },
       {
-        title: "Quản lý Đơn hàng",
+        title: "Danh sách đơn hàng",
         permission: "VIEW_ORDER",
         href: "/order",
         icon: <ShoppingBag className="w-4 h-4" />,
       },
       {
-        title: "Hoàn tiền",
+        title: "Danh sách yêu cầu hoàn tiền",
         permission: "VIEW_REFUND",
         href: "/refund",
         icon: <RotateCcw className="w-4 h-4" />,
       },
       {
-        title: "Khiếu nại",
+        title: "Danh sách khiếu nại",
         permission: "VIEW_DISPUTE",
         href: "/complaint",
         icon: <MessageSquareWarning className="w-4 h-4" />,
       },
       {
-        title: "Lịch sử Rút Tiền",
+        title: "Danh sách giao dịch rút tiền",
         permission: "VIEW_WITHDRAWAL",
         href: "/withdrawal",
         icon: <Wallet className="w-4 h-4" />,
@@ -176,7 +178,7 @@ export const routesConfig: SidebarSection[] = [
     collapsible: false,
     items: [
       {
-        title: "Audit Log",
+        title: "Nhật ký hệ thống",
         permission: "VIEW_AUDIT_LOG",
         href: "/audit-logs",
         icon: <ScrollText className="w-4 h-4" />,
@@ -184,6 +186,14 @@ export const routesConfig: SidebarSection[] = [
     ],
   },
 ];
+
+export const routeSearchOptions = routesConfig.flatMap((section) =>
+  section.items.map((item) => ({ label: item.title, value: item.href })),
+);
+
+export function getRouteTitle(href: string): string {
+  return routeSearchOptions.find((option) => option.value === href)?.label ?? href;
+}
 
 export function filterRoutesByPermissions(
   sections: SidebarSection[],

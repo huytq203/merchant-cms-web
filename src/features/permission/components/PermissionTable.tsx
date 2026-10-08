@@ -3,6 +3,7 @@
 import { Table } from '@/components/ui/table/Table';
 import type { PermissionGroup } from '../schemas/permission-group.schema';
 import { buildPermissionColumns } from '../columns/Permission.column';
+import { Card } from '@/components/ui';
 
 interface Props {
   rows: PermissionGroup[];
@@ -16,21 +17,24 @@ interface Props {
 }
 
 export function PermissionTable({ rows, total, page, pageSize, onPageChange, onView, onEdit, onDelete }: Props) {
-  const columns = buildPermissionColumns({ onView, onEdit, onDelete });
+  const columns = buildPermissionColumns({ onView, onEdit, onDelete }, page, pageSize);
   return (
-    <Table
-      data={rows}
-      columns={columns}
-      enableSorting={false}
-      labels={{ empty: 'Chưa có nhóm quyền', page: 'Trang', perPage: ' / trang' }}
-      pagination={{
-        total,
-        current: page,
-        pageSize,
-        pageSizeOptions: [10, 20, 50],
-        showTotal: (count) => `${count} nhóm quyền`,
-        onChange: onPageChange,
-      }}
-    />
+    <Card>
+      <Table
+        data={rows}
+        columns={columns}
+        enableSorting={false}
+        columnBorders={true}
+        labels={{ empty: 'Chưa có nhóm quyền', page: 'Trang', perPage: ' / trang' }}
+        pagination={{
+          total,
+          current: page,
+          pageSize,
+          pageSizeOptions: [10, 20, 50],
+          showTotal: (count) => `${count} nhóm quyền`,
+          onChange: onPageChange,
+        }}
+      />
+    </Card>
   );
 }

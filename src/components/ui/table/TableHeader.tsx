@@ -12,15 +12,17 @@ export interface TableHeaderProps<TData extends RowData> {
     headerGroups: HeaderGroup<TData>[];
     enableSorting: boolean;
     enableColumnResizing: boolean;
+    columnBorders?: boolean;
 }
 
 export function TableHeader<TData extends RowData>({
     headerGroups,
     enableSorting,
     enableColumnResizing,
+    columnBorders = false,
 }: TableHeaderProps<TData>) {
     return (
-        <thead className="text-xs text-muted-foreground bg-muted/50 border-b border-border">
+        <thead className="text-xs text-muted-foreground bg-muted/50">
             {headerGroups.map(headerGroup => (
                 <tr key={headerGroup.id} className="border-b border-border">
                     {headerGroup.headers.map((header, index) => {
@@ -28,13 +30,16 @@ export function TableHeader<TData extends RowData>({
                         const align = meta?.align || 'left';
                         const canSort = header.column.getCanSort() && enableSorting && header.column.id !== 'select';
                         const isLastColumn = index === headerGroup.headers.length - 1;
+                        const isCompactColumn = header.column.id === 'index' || header.column.id === 'actions';
+                        const isAutoWidthColumn = header.column.id === 'actions';
 
                         return (
                             <th
                                 key={header.id}
                                 colSpan={header.colSpan}
                                 style={{
-                                    width: enableColumnResizing ? header.getSize() : header.column.columnDef.size,
+                                    width: enableColumnResizing ? header.getSize() : isAutoWidthColumn ? '1%' : header.column.columnDef.size,
+                                    whiteSpace: isCompactColumn ? 'nowrap' : undefined,
                                     position: 'relative'
                                 }}
                                 aria-sort={
@@ -48,10 +53,10 @@ export function TableHeader<TData extends RowData>({
                                 }
                                 className={cn(
                                     header.column.id === 'select' || header.column.id === 'expander' ? "px-1" : "px-2",
-                                    "py-3 font-semibold tracking-wide  transition-colors group/header",
+                                    "py-2.5 font-semibold tracking-wide  transition-colors group/header",
                                     canSort ? "cursor-pointer select-none hover:bg-muted" : "",
                                     align === 'center' ? "text-center" : align === 'right' ? "text-right" : "text-left",
-                                    !isLastColumn && "border-r border-border"
+                                    columnBorders && !isLastColumn && "border-r border-border/60"
                                 )}
                             >
                                 <div

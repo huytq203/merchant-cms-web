@@ -1,5 +1,6 @@
 import "server-only";
 
+import { z } from "zod";
 import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
@@ -32,8 +33,12 @@ export function createUser(values: UserFormValues, merchantId: string): Promise<
   return merchantClient().post({ path: userPaths.create, schema: merchantUserSchema, body: toCreateUserRequest(values, merchantId) });
 }
 
-export function updateUser(id: string, values: { fullName: string; phone?: string }): Promise<BeResult<MerchantUser>> {
-  return merchantClient().put({ path: userPaths.detail(id), schema: merchantUserSchema, body: toUpdateUserRequest(values) });
+/** The BE PUT returns a slimmer shape than GET (no active/locked/groups/rolesText), so only the id is checked and the full detail is re-read. */
+const updatedUserSchema = z.object({ id: z.uuid() });
+
+export async function updateUser(id: string, values: { fullName: string; phone?: string }): Promise<BeResult<MerchantUser>> {
+  const result = await merchantClient().put({ path: userPaths.detail(id), schema: updatedUserSchema, body: toUpdateUserRequest(values) });
+  return result.success ? getUser(id) : result;
 }
 
 export function lockUser(id: string, reason: string): Promise<BeResult<MerchantUser>> {
@@ -44,15 +49,9 @@ export function unlockUser(id: string): Promise<BeResult<MerchantUser>> {
   return merchantClient().post({ path: userPaths.unlock(id), schema: merchantUserSchema });
 }
 
-export async function resetUserPassword(
-  id: string,
-  otp: { otpSessionId: string; otp: string },
-): Promise<BeResult<{ success: true }>> {
-  const result = await merchantClient().post({
-    path: userPaths.resetPassword(id),
-    schema: merchantUserSchema,
-    body: { otp },
-  });
+/** The BE queues the reset itself and takes no body; whatever it returns is dropped so no secret reaches the browser. */
+export async function resetUserPassword(id: string): Promise<BeResult<{ success: true }>> {
+  const result = await merchantClient().post({ path: userPaths.resetPassword(id), schema: z.unknown() });
   return result.success ? ok({ success: true }) : result;
 }
 

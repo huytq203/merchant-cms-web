@@ -22,9 +22,6 @@ const badgeVariants = tv({
 
       // Glass variant
       glass: 'border border-white/20 bg-white/10 text-foreground backdrop-blur-md shadow-sm',
-
-      // Gradient variant
-      gradient: 'border-transparent bg-gradient-to-r from-primary to-violet-500 text-white shadow-sm',
     },
     size: {
       sm: 'text-[10px] px-2 py-0.5 leading-4',

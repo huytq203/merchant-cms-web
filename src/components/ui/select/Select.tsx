@@ -7,7 +7,7 @@ import { ChevronDown, Check, X } from 'lucide-react';
 
 const selectVariants = tv({
     slots: {
-        trigger: 'flex h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-shadow group cursor-pointer',
+        trigger: 'flex h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 transition-shadow group cursor-pointer',
         content: 'relative z-50 max-h-[300px] min-w-[var(--anchor-width)] overflow-hidden rounded-lg border border-border bg-background text-foreground shadow-[rgba(0,0,0,0.08)_0px_4px_16px] data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2',
         viewport: 'p-1',
         item: 'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-muted focus:text-foreground data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-muted data-highlighted:text-foreground',
@@ -46,7 +46,9 @@ export interface SelectProps extends Omit<React.ComponentPropsWithoutRef<typeof 
 }
 
 const Select = React.forwardRef<React.ElementRef<typeof BaseSelect.Trigger>, SelectProps>(
-    ({ label, description, error, placeholder = 'Select...', options, id, className, clearable = true, onChange, value, defaultValue, emptyText = 'No results found.', clearLabel = 'Clear selection', ...props }, ref) => {
+    ({ label, description, error, placeholder = 'Chọn...', options, id, className, clearable = true, onChange, value, defaultValue, emptyText = 'Không tìm thấy', clearLabel = 'Bỏ chọn', ...props }, ref) => {
+        const defaultId = React.useId();
+        const selectId = id ?? defaultId;
         const triggerRef = React.useRef<HTMLButtonElement>(null);
 
         const [selectedValue, setSelectedValue] = React.useState<string>(value ?? defaultValue ?? '');
@@ -72,7 +74,7 @@ const Select = React.forwardRef<React.ElementRef<typeof BaseSelect.Trigger>, Sel
         return (
             <div className="flex flex-col gap-1.5">
                 {label && (
-                    <label className="text-sm font-medium text-foreground">
+                    <label htmlFor={selectId} className="text-sm font-medium text-foreground">
                         {label}
                     </label>
                 )}
@@ -94,7 +96,7 @@ const Select = React.forwardRef<React.ElementRef<typeof BaseSelect.Trigger>, Sel
                                 else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
                             }}
                             className={trigger({ className: cn(className, error ? 'border-danger focus:border-danger' : '') })}
-                            id={id}
+                            id={selectId}
                         >
                             <span className={cn('truncate', selectedLabel ? 'text-foreground' : 'text-muted-foreground')}>
                                 {selectedLabel ?? placeholder}

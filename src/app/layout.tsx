@@ -1,20 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import { publicEnv } from "@/lib/env/public";
 import { siteConfig } from "@/config/site";
 import "@/styles/index.css";
 import { Toaster } from '@/components/ui/toast/Toaster';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// Be Vietnam Pro là phông duy nhất của ứng dụng (hỗ trợ đầy đủ dấu tiếng Việt).
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-be-vietnam-pro",
   display: "swap",
 });
 
@@ -42,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={beVietnamPro.variable}
       suppressHydrationWarning
     >
       <body className="min-h-dvh">

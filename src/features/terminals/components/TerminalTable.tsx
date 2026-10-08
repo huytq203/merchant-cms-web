@@ -18,7 +18,10 @@ type Props = {
 };
 
 export function TerminalTable(props: Props) {
-  const columns = useMemo(() => getTerminalColumns(props), [props]);
+  const columns = useMemo(
+    () => getTerminalColumns(props, props.page, props.pageSize),
+    [props],
+  );
   return (
     <Table
       data={props.rows}

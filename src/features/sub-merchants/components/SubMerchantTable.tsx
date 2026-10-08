@@ -21,7 +21,7 @@ export function SubMerchantTable({
   onPageChange,
   ...handlers
 }: Props) {
-  const columns = getColumn(handlers);
+  const columns = getColumn(handlers, page, pageSize);
   const pagination = total === undefined
     ? false
     : { total, current: page, pageSize, onChange: onPageChange };

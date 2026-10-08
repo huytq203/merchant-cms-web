@@ -2,15 +2,18 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, KeyRound, LockKeyhole, LockKeyholeOpen, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button/Button";
-import { Badge } from "@/components/ui/badge/Badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
+import { createIndexColumn } from "@/components/page/IndexColumn";
+import { RowActions, type RowAction } from "@/components/page/RowActions";
+import { StatusBadge } from "@/components/page/StatusBadge";
+import { UserGroupChips } from "../components/UserGroupChips";
+import { UserIdentity } from "../components/UserIdentity";
 import { userStatusLabels } from "../constants/user.constants";
 import type { MerchantUser } from "../schemas/user.schema";
-import { canLockUser, canUnlockUser } from "../utils/user-mapper";
+import { getLockBlock, getResetPasswordBlock } from "../utils/user-restrictions";
 
 interface Actions {
   actorId: string;
+  groupNamesOf: (groupIds: string[]) => string[];
   onView: (user: MerchantUser) => void;
   onEdit: (user: MerchantUser) => void;
   onLock: (user: MerchantUser) => void;
@@ -18,72 +21,84 @@ interface Actions {
   onReset: (user: MerchantUser) => void;
 }
 
-function ActionButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={<Button type="button" variant="ghost" size="icon-sm" aria-label={label} onClick={onClick} />}
-      >
-        {children}
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
+const iconClass = "h-4 w-4";
 
-function LockAction({ user, actions }: { user: MerchantUser; actions: Actions }) {
-  if (canLockUser(user, actions.actorId)) {
-    return (
-      <ActionButton label={`Khoá ${user.fullName}`} onClick={() => actions.onLock(user)}>
-        <LockKeyhole className="h-4 w-4" />
-      </ActionButton>
-    );
+function lockAction(user: MerchantUser, actions: Actions): RowAction {
+  const blocked = getLockBlock(user, actions.actorId);
+  if (user.status === "LOCKED") {
+    return { label: "Mở khóa", icon: <LockKeyholeOpen className={iconClass} />, onClick: () => actions.onUnlock(user) };
   }
-  if (canUnlockUser(user)) {
-    return (
-      <ActionButton label={`Mở khoá ${user.fullName}`} onClick={() => actions.onUnlock(user)}>
-        <LockKeyholeOpen className="h-4 w-4" />
-      </ActionButton>
-    );
-  }
-  return <span className="h-8 w-8" aria-hidden="true" />;
+  return {
+    label: "Khóa",
+    icon: <LockKeyhole className={iconClass} />,
+    disabled: Boolean(blocked),
+    disabledReason: blocked,
+    onClick: () => actions.onLock(user),
+  };
 }
 
 function UserActions({ user, actions }: { user: MerchantUser; actions: Actions }) {
+  const resetBlock = getResetPasswordBlock(user, actions.actorId);
+
   return (
-    <div className="flex min-w-44 justify-center gap-1">
-      <ActionButton label={`Xem chi tiết ${user.fullName}`} onClick={() => actions.onView(user)}>
-        <Eye className="h-4 w-4" />
-      </ActionButton>
-      <ActionButton label={`Sửa ${user.fullName}`} onClick={() => actions.onEdit(user)}>
-        <Pencil className="h-4 w-4" />
-      </ActionButton>
-      <LockAction user={user} actions={actions} />
-      <ActionButton label={`Đặt lại mật khẩu ${user.fullName}`} onClick={() => actions.onReset(user)}>
-        <KeyRound className="h-4 w-4" />
-      </ActionButton>
-    </div>
+    <RowActions
+      subject={user.fullName}
+      actions={[
+        { label: "Xem chi tiết", icon: <Eye className={iconClass} />, onClick: () => actions.onView(user) },
+        { label: "Sửa", icon: <Pencil className={iconClass} />, onClick: () => actions.onEdit(user) },
+        lockAction(user, actions),
+        {
+          label: "Đặt lại mật khẩu",
+          icon: <KeyRound className={iconClass} />,
+          disabled: Boolean(resetBlock),
+          disabledReason: resetBlock,
+          onClick: () => actions.onReset(user),
+        },
+      ]}
+    />
   );
 }
 
-const statusVariant = { PENDING: "soft-warning", ACTIVE: "soft-success", LOCKED: "soft-danger" } as const;
+const statusTone = { PENDING: "warning", ACTIVE: "success", LOCKED: "danger" } as const;
 
-function StatusBadge({ status }: { status: MerchantUser["status"] }) {
+/** The three labels differ in length, so the badge gets one shared minimum width to line up in the column. */
+function UserStatusBadge({ status }: { status: MerchantUser["status"] }) {
   return (
-    <Badge className="min-w-28 justify-center" variant={statusVariant[status]}>
-      {userStatusLabels[status]}
-    </Badge>
+    <span className="inline-flex [&>span]:min-w-[7.5rem]">
+      <StatusBadge label={userStatusLabels[status]} tone={statusTone[status]} />
+    </span>
   );
 }
 
-export function buildUserColumns(actions: Actions): ColumnDef<MerchantUser>[] {
+export function buildUserColumns(actions: Actions, page: number, pageSize: number): ColumnDef<MerchantUser>[] {
   return [
-    { accessorKey: "email", header: "Email" },
-    { accessorKey: "fullName", header: "Họ và tên" },
-    { id: "status", header: "Trạng thái", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+    createIndexColumn<MerchantUser>({ page, pageSize }),
+    {
+      id: "user",
+      header: "Người dùng",
+      cell: ({ row }) => <UserIdentity name={row.original.fullName} email={row.original.email} />,
+    },
+    {
+      id: "phone",
+      header: "Số điện thoại",
+      cell: ({ row }) => row.original.phone
+        ? <span className="tabular-nums">{row.original.phone}</span>
+        : <span className="text-muted-foreground">Chưa có</span>,
+    },
+    {
+      id: "groups",
+      header: "Nhóm quyền",
+      cell: ({ row }) => <UserGroupChips names={actions.groupNamesOf(row.original.groupIds)} limit={2} />,
+    },
+    {
+      id: "status",
+      meta: { align: "center" },
+      header: "Trạng thái",
+      cell: ({ row }) => <UserStatusBadge status={row.original.status} />,
+    },
     {
       id: "actions",
-      header: "Thao tác",
+      header: () => <span className="w-px whitespace-nowrap">Thao tác</span>,
       meta: { align: "center" },
       cell: ({ row }) => <UserActions user={row.original} actions={actions} />,
     },

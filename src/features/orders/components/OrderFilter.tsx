@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Button } from "@/components/ui/button/Button";
+import { useState } from "react";
+import { FilterCard } from "@/components/page/FilterCard";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { orderStatusSchema } from "../schemas/order.schema";
@@ -17,8 +17,7 @@ export function OrderFilter({ initial, onSearch }: Props) {
   const [orderCode, setOrderCode] = useState(initial.orderCode ?? "");
   const [status, setStatus] = useState<string>(initial.status ?? "");
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = () => {
     const parsedStatus = orderStatusSchema.safeParse(status);
     onSearch({
       ...(orderCode.trim() ? { orderCode: orderCode.trim() } : {}),
@@ -32,8 +31,7 @@ export function OrderFilter({ initial, onSearch }: Props) {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
+    <FilterCard fieldCount={2} onSubmit={submit} onClear={clear}>
         <Input
           label="Mã đơn hàng"
           placeholder="Nhập mã đơn hàng cần tìm"
@@ -48,15 +46,6 @@ export function OrderFilter({ initial, onSearch }: Props) {
           options={statusOptions}
           placeholder="Tất cả trạng thái"
         />
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={clear}>
-          Xóa lọc
-        </Button>
-        <Button type="submit" variant="solid">
-          Tìm kiếm
-        </Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

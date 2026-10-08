@@ -1,101 +1,60 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog/Dialog';
-import { Button } from '@/components/ui/button/Button';
-import { Skeleton } from '@/components/ui/skeleton/Skeleton';
-import { permissionLabel } from '../constants/permission-labels';
-import { useListGroupUsers } from '../permission-group-queries';
-import type { PermissionGroup } from '../schemas/permission-group.schema';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { Info, ShieldCheck } from 'lucide-react';
+import { Badge, DetailModal, DetailSection } from '@/components/modal/DetailModal';
+import { usePreservedValue } from '@/lib/hooks/use-preserved-value';
+import type { PermissionCatalogItem, PermissionGroup } from '../schemas/permission-group.schema';
+import { formatGroupDate, getInitials } from '../utils/permission-coverage';
+import { PermissionGroupPermissions } from './PermissionGroupPermissions';
+import { PermissionGroupUsersSection } from './PermissionGroupUsers';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   group: PermissionGroup | null;
+  catalog: UseQueryResult<PermissionCatalogItem[]>;
+  /** Only passed when the viewer may edit this group (merchant groups). */
+  onEdit?: () => void;
 }
 
-function GroupUserList({ users }: { users: ReturnType<typeof useListGroupUsers> }) {
-  if (users.isPending) return <Skeleton className="h-16 w-full" />;
-  if (users.isError) return <p role="alert">{users.error.message}</p>;
-  if (users.data.rows.length === 0) return <p>Chưa có người dùng trong nhóm.</p>;
+function GroupSections({ group, catalog }: { group: PermissionGroup; catalog: Props['catalog'] }) {
+  const grantedLabel = catalog.data ? `${group.permissions.length}/${catalog.data.length} quyền` : undefined;
   return (
-    <ul className="space-y-2">
-      {users.data.rows.map((user) => (
-        <li key={user.id} className="rounded-lg border border-border p-3">
-          <span className="font-medium">{user.fullName}</span>
-          <span className="ml-2 text-muted-foreground">{user.email}</span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <DetailSection title="Tổng quan" icon={<Info className="h-4 w-4" />}>
+        <p className={group.description ? 'text-sm text-muted-foreground' : 'text-sm text-muted-foreground/70'}>
+          {group.description || 'Chưa có mô tả'}
+        </p>
+      </DetailSection>
+      <DetailSection title="Quyền trong nhóm" icon={<ShieldCheck className="h-4 w-4" />} aside={grantedLabel}>
+        <PermissionGroupPermissions catalog={catalog} grantedCodes={group.permissions} />
+      </DetailSection>
+      <PermissionGroupUsersSection key={group.id} groupId={group.id} />
+    </>
   );
 }
 
-function GroupUsers({ groupId }: { groupId: string }) {
-  const [page, setPage] = useState(1);
-  const users = useListGroupUsers(groupId, page);
-  return (
-    <section className="space-y-3">
-      <h3 className="font-semibold">Người dùng trong nhóm</h3>
-      <GroupUserList users={users} />
-      {users.data && users.data.total > 10 ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Trang trước
-          </Button>
-          <span>{page}</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page * 10 >= users.data.total}
-            onClick={() => setPage(page + 1)}
-          >
-            Trang sau
-          </Button>
-        </div>
-      ) : null}
-    </section>
-  );
-}
+export function PermissionGroupDetailModal({ open, onOpenChange, group, catalog, onEdit }: Props) {
+  const shown = usePreservedValue(group);
+  if (!shown) return null;
+  const created = formatGroupDate(shown.createdAt);
 
-function Field({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
   return (
-    <div className={wide ? 'col-span-2' : undefined}>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{children}</dd>
-    </div>
-  );
-}
-
-function GroupInfo({ group }: { group: PermissionGroup }) {
-  return (
-    <dl className="grid grid-cols-2 gap-3 text-sm">
-      <Field label="Mã nhóm">{group.code}</Field>
-      <Field label="Tên nhóm">{group.name}</Field>
-      <Field label="Mô tả" wide>{group.description || 'Không có mô tả'}</Field>
-      <Field label="Quyền" wide>{group.permissions.map(permissionLabel).join(', ')}</Field>
-    </dl>
-  );
-}
-
-export function PermissionGroupDetailModal({ open, onOpenChange, group }: Props) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Chi tiết nhóm quyền</DialogTitle>
-        </DialogHeader>
-        {group ? (
-          <div className="space-y-4">
-            <GroupInfo group={group} />
-            <GroupUsers key={group.id} groupId={group.id} />
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <DetailModal
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      header={{
+        monogramInitials: getInitials(shown.name),
+        title: shown.name,
+        code: shown.code || undefined,
+        statusBadge: <Badge tone={shown.system ? 'info' : 'success'}>{shown.system ? 'Hệ thống' : 'Merchant'}</Badge>,
+      }}
+      sections={<GroupSections group={shown} catalog={catalog} />}
+      createdAt={created ?? undefined}
+      editLabel="Sửa"
+      onEdit={onEdit}
+    />
   );
 }

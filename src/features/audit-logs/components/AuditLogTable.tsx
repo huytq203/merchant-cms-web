@@ -18,7 +18,7 @@ export function AuditLogTable({ rows, total, page, pageSize, onPageChange, onVie
     <div className="max-w-full overflow-x-auto">
       <Table
         data={rows}
-        columns={auditLogColumns(onView)}
+        columns={auditLogColumns(onView, page, pageSize)}
         labels={{ empty: 'Không có nhật ký' }}
         pagination={{ total, current: page, pageSize, onChange: onPageChange }}
       />

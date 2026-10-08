@@ -30,6 +30,32 @@ export interface BeClientOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+const SENSITIVE_RESPONSE_FIELD = /token|password|secret|otp|^authorization$/i;
+
+function redactResponseForLog(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactResponseForLog);
+  if (typeof value !== "object" || value === null) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      key,
+      SENSITIVE_RESPONSE_FIELD.test(key) ? "[REDACTED]" : redactResponseForLog(nestedValue),
+    ]),
+  );
+}
+
+function logUpstreamResponse(method: string, req: BeRequest<z.ZodType>, response: Response, body: unknown) {
+  if (process.env.NODE_ENV !== "development") return;
+
+  console.dir({
+    event: "[be] upstream response",
+    method,
+    path: req.path,
+    query: req.query,
+    status: response.status,
+    body: redactResponseForLog(body),
+  }, { depth: null, colors: false });
+}
 
 function buildUrl(baseUrl: string, path: string, query?: Query): string {
   const params = new URLSearchParams();
@@ -82,6 +108,7 @@ export function createBeClient(options: BeClientOptions) {
     }
 
     const json = await readJson(response);
+    logUpstreamResponse(method, req, response, json);
     if (!response.ok) {
       const error = toBeError(response.status, json);
       return fail(error, error.code);

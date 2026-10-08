@@ -68,6 +68,10 @@ export interface TableProps<TData, TValue = unknown> {
     virtualize?: boolean;
     virtualHeight?: number;
     estimatedRowHeight?: number;
+    /** Vẽ khung ngoài (viền + bo). Mặc định theo vùng chứa: có khung khi đứng một mình, không khung trong ResultCard. */
+    framed?: boolean;
+    /** Bật kẻ dọc giữa các cột. Mặc định tắt: chỉ kẻ ngang giữa các dòng. */
+    columnBorders?: boolean;
 }
 
 export function Table<TData>({
@@ -88,9 +92,12 @@ export function Table<TData>({
     labels,
     virtualize = false,
     virtualHeight = 400,
-    estimatedRowHeight = 45,
+    estimatedRowHeight = 30,
+    framed: framedProp,
+    columnBorders = true,
 }: TableProps<TData>) {
-    const resolvedEmptyText = emptyText ?? labels?.empty ?? 'No data';
+    const framed = framedProp ??true;
+    const resolvedEmptyText = emptyText ?? labels?.empty ?? 'Không có dữ liệu';
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const paginationEnabled = paginationProp !== false;
     const cfg = paginationEnabled ? (paginationProp as PaginationConfig) : {};
@@ -226,7 +233,14 @@ export function Table<TData>({
     });
 
     return (
-        <div className={cn("relative w-full rounded-md border border-border bg-background flex flex-col overflow-hidden", className)}>
+        <div
+            data-framed={framed}
+            className={cn(
+                "relative w-full bg-background flex flex-col",
+                framed && "rounded-xl border border-border overflow-hidden",
+                className,
+            )}
+        >
             {isLoading && (
                 <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center backdrop-blur-[0.5px]">
                     <Spinner size="lg" variant="primary" />
@@ -239,6 +253,7 @@ export function Table<TData>({
                 style={virtualize ? { overflowY: 'auto', maxHeight: virtualHeight } : undefined}
             >
                 <table
+                    data-column-borders={columnBorders ? true : undefined}
                     className="w-full text-sm text-left text-foreground whitespace-nowrap"
                     style={{
                         width: enableColumnResizing ? table.getCenterTotalSize() : undefined,
@@ -249,8 +264,9 @@ export function Table<TData>({
                         headerGroups={table.getHeaderGroups()}
                         enableSorting={enableSorting}
                         enableColumnResizing={enableColumnResizing}
+                        columnBorders={columnBorders}
                     />
-                    <tbody>
+                    <tbody className="[&>tr:last-child]:border-b-0">
                         {!isLoading && data.length === 0 ? (
                             <TableEmpty colSpan={finalColumns.length} text={resolvedEmptyText} />
                         ) : virtualize ? (
@@ -258,12 +274,14 @@ export function Table<TData>({
                                 allRows={allRows}
                                 rowVirtualizer={rowVirtualizer}
                                 enableColumnResizing={enableColumnResizing}
+                                columnBorders={columnBorders}
                                 colSpan={finalColumns.length}
                             />
                         ) : (
                             <TableNormalRows
                                 rows={table.getRowModel().rows}
                                 enableColumnResizing={enableColumnResizing}
+                                columnBorders={columnBorders}
                                 renderSubComponent={renderSubComponent}
                             />
                         )}

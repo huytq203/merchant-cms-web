@@ -13,7 +13,7 @@ interface TableEmptyProps {
 
 export function TableEmpty({ colSpan, text }: TableEmptyProps) {
     return (
-        <tr className="border-b border-border">
+        <tr className="border-b border-border/60">
             <td colSpan={colSpan} className="px-4 py-16 text-center text-muted-foreground">
                 <div className="flex flex-col items-center justify-center space-y-2">
                     <span className="text-muted-foreground/50">
@@ -33,9 +33,10 @@ export function TableEmpty({ colSpan, text }: TableEmptyProps) {
 interface TableRowCellsProps<TData extends RowData> {
     row: Row<TData>;
     enableColumnResizing: boolean;
+    columnBorders: boolean;
 }
 
-function TableRowCells<TData extends RowData>({ row, enableColumnResizing }: TableRowCellsProps<TData>) {
+function TableRowCells<TData extends RowData>({ row, enableColumnResizing, columnBorders }: TableRowCellsProps<TData>) {
     const visibleCells = row.getVisibleCells();
     return (
         <>
@@ -43,15 +44,20 @@ function TableRowCells<TData extends RowData>({ row, enableColumnResizing }: Tab
                 const meta = cell.column.columnDef.meta;
                 const align = meta?.align || 'left';
                 const isLastColumn = index === visibleCells.length - 1;
+                const isCompactColumn = cell.column.id === 'index' || cell.column.id === 'actions';
+                const isAutoWidthColumn = cell.column.id === 'actions';
                 return (
                     <td
                         key={cell.id}
-                        style={{ width: enableColumnResizing ? cell.column.getSize() : cell.column.columnDef.size }}
+                        style={{
+                            width: enableColumnResizing ? cell.column.getSize() : isAutoWidthColumn ? '1%' : cell.column.columnDef.size,
+                            whiteSpace: isCompactColumn ? 'nowrap' : undefined,
+                        }}
                         className={cn(
                             cell.column.id === 'select' || cell.column.id === 'expander' ? "px-1" : "px-2",
-                            "py-3 align-middle",
+                            "py-2.5 align-middle",
                             align === 'center' ? "text-center" : align === 'right' ? "text-right" : "text-left",
-                            !isLastColumn && "border-r border-border"
+                            columnBorders && !isLastColumn && "border-r border-border/60"
                         )}
                     >
                         <div className={cn(
@@ -72,12 +78,14 @@ function TableRowCells<TData extends RowData>({ row, enableColumnResizing }: Tab
 interface TableNormalRowsProps<TData extends RowData> {
     rows: Row<TData>[];
     enableColumnResizing: boolean;
+    columnBorders: boolean;
     renderSubComponent?: (props: { row: TData }) => React.ReactNode;
 }
 
 export function TableNormalRows<TData extends RowData>({
     rows,
     enableColumnResizing,
+    columnBorders,
     renderSubComponent,
 }: TableNormalRowsProps<TData>) {
     return (
@@ -86,17 +94,17 @@ export function TableNormalRows<TData extends RowData>({
                 <React.Fragment key={row.id}>
                     <tr
                         className={cn(
-                            "border-b border-border hover:bg-muted/50 transition-colors group",
+                            "border-b border-border/60 hover:bg-muted/50 transition-colors group",
                             row.getIsSelected() ? "bg-primary/5 hover:bg-primary/10" : "",
                             row.getIsExpanded() ? "bg-primary/5" : ""
                         )}
                     >
-                        <TableRowCells row={row} enableColumnResizing={enableColumnResizing} />
+                        <TableRowCells row={row} enableColumnResizing={enableColumnResizing} columnBorders={columnBorders} />
                     </tr>
                     {row.getIsExpanded() && renderSubComponent && (
-                        <tr className="border-b border-border">
+                        <tr className="border-b border-border/60">
                             <td colSpan={row.getVisibleCells().length} className="p-0 whitespace-normal">
-                                <div className="bg-muted/50 px-4 py-5 shadow-inner w-full border-l-4 border-l-primary/40 wrap-break-word">
+                                <div className="bg-muted/50 px-4 py-5 shadow-inner w-full wrap-break-word">
                                     {renderSubComponent({ row: row.original })}
                                 </div>
                             </td>
@@ -114,6 +122,7 @@ interface TableVirtualRowsProps<TData extends RowData> {
     allRows: Row<TData>[];
     rowVirtualizer: Virtualizer<HTMLDivElement, Element>;
     enableColumnResizing: boolean;
+    columnBorders: boolean;
     colSpan: number;
 }
 
@@ -121,6 +130,7 @@ export function TableVirtualRows<TData extends RowData>({
     allRows,
     rowVirtualizer,
     enableColumnResizing,
+    columnBorders,
     colSpan,
 }: TableVirtualRowsProps<TData>) {
     const virtualItems = rowVirtualizer.getVirtualItems();
@@ -141,11 +151,11 @@ export function TableVirtualRows<TData extends RowData>({
                         data-index={virtualRow.index}
                         ref={rowVirtualizer.measureElement}
                         className={cn(
-                            "border-b border-border hover:bg-muted/50 transition-colors",
+                            "border-b border-border/60 hover:bg-muted/50 transition-colors",
                             row.getIsSelected() ? "bg-primary/5 hover:bg-primary/10" : ""
                         )}
                     >
-                        <TableRowCells row={row} enableColumnResizing={enableColumnResizing} />
+                        <TableRowCells row={row} enableColumnResizing={enableColumnResizing} columnBorders={columnBorders} />
                     </tr>
                 );
             })}

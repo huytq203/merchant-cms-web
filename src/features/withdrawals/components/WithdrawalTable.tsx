@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function WithdrawalTable({ rows, total, page, pageSize, onPageChange, onView }: Props) {
-  const columns = getWithdrawalColumns({ onView });
+  const columns = getWithdrawalColumns({ onView }, page, pageSize);
   return (
     <Table
       data={rows}

@@ -8,14 +8,17 @@ const dialogVariants = tv({
   slots: {
     overlay:
       'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
-   content: [
+    content: [
       'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 p-6',
-      'w-full max-w-lg rounded-xl border border-border bg-background shadow-2xl',
+      'flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col overflow-y-auto',
+      'rounded-2xl border border-border bg-background shadow-2xl',
       'data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 ',
       'data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
     ].join(' '),
-    header: 'flex flex-col space-y-1.5 text-center sm:text-left',
-    footer: 'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-auto',
+    header: 'mb-4 flex shrink-0 flex-col space-y-1.5 text-left',
+    body: 'min-h-0 flex-1 overflow-y-auto',
+    footer:
+      'sticky bottom-0 mt-auto flex shrink-0 flex-col-reverse gap-2 bg-background sm:flex-row sm:items-center sm:justify-end',
     title: 'text-lg font-semibold leading-none tracking-tight',
     description: 'text-sm text-muted-foreground',
     close:
@@ -23,17 +26,17 @@ const dialogVariants = tv({
   },
   variants: {
     size: {
-      default: {
-        content: 'max-w-lg sm:rounded-lg',
-      },
+      sm: { content: 'max-w-md' },
+      md: { content: 'max-w-xl' },
+      lg: { content: 'max-w-3xl' },
       fullScreen: {
         content:
-          'inset-0 left-0 top-0 translate-x-0 translate-y-0 max-w-none h-full rounded-none border-none',
+          'inset-0 left-0 top-0 h-full max-h-none w-full max-w-none translate-x-0 translate-y-0 rounded-none border-none',
       },
     },
   },
   defaultVariants: {
-    size: 'default',
+    size: 'md',
   },
 });
 
@@ -105,7 +108,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
           {children}
           <BaseDialog.Close className={slots.close()}>
             <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">Đóng</span>
           </BaseDialog.Close>
         </BaseDialog.Popup>
       </BaseDialog.Portal>
@@ -122,6 +125,15 @@ const DialogHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
   },
 );
 DialogHeader.displayName = 'DialogHeader';
+
+/* ─── Body (scrolls on its own so Header and Footer stay in view) ─── */
+const DialogBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => {
+    const slots = dialogVariants();
+    return <div ref={ref} className={slots.body({ className })} {...props} />;
+  },
+);
+DialogBody.displayName = 'DialogBody';
 
 /* ─── Footer ─── */
 const DialogFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -159,6 +171,7 @@ export {
   DialogTrigger,
   DialogContent,
   DialogHeader,
+  DialogBody,
   DialogFooter,
   DialogTitle,
   DialogDescription,

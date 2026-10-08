@@ -4,11 +4,12 @@ import { Autocomplete } from '@/components/ui/autocomplete/Autocomplete'
 import { Home, Search } from 'lucide-react'
 import React from 'react'
 import Link from 'next/link'
-import { getBreadcrumbs } from './constants/route.constants';
-import { usePathname } from 'next/navigation';
+import { getBreadcrumbs, homeRoute, routeSearchOptions } from './constants/route.constants';
+import { usePathname, useRouter } from 'next/navigation';
 
 const Header = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const breadcrumbs = getBreadcrumbs(pathname);
 
   return (
@@ -18,10 +19,10 @@ const Header = () => {
 
       <nav className="flex items-center w-full gap-1.5 text-sm min-w-0">
         <Link
-          href="/"
+          href={homeRoute.href}
           className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 shrink-0"
         >
-          <Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">Home</span>
+          <Home className="h-3.5 w-3.5" /><span className="hidden sm:inline">{homeRoute.title}</span>
         </Link>
 
         {breadcrumbs.map((segment, index) => (
@@ -43,15 +44,14 @@ const Header = () => {
         ))}
 
         <Autocomplete
-          options={[]}
+          options={routeSearchOptions}
           placeholder="Tìm kiếm trang..."
           leftIcon={<Search className="h-4 w-4" />}
           clearOnSelect
           emptyText="Không tìm thấy trang"
+          onValueChange={router.push}
           className="ml-auto hidden md:flex md:w-[200px] lg:w-[240px]"
         />
-
-        
       </nav>
     </header>
   )

@@ -1,6 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/button/Button';
+import { format, parseISO } from 'date-fns';
+import { FilterCard } from '@/components/page/FilterCard';
+import { DatePicker } from '@/components/ui/datepicker/DatePicker';
 import { Input } from '@/components/ui/input/Input';
 import { Select } from '@/components/ui/select/Select';
 import { useAuditFilterForm } from '../hooks/use-audit-filter-form';
@@ -13,14 +15,16 @@ interface Props {
   onClear: () => void;
 }
 
-const entityOptions = [{ value: '', label: 'Tất cả' }, ...auditEntityOptions];
+const entityOptions = auditEntityOptions;
 
 export function AuditLogFilters({ filter, onSearch, onClear }: Props) {
   const form = useAuditFilterForm(filter, onSearch);
 
+  const toDate = (value: string) => value ? parseISO(value) : undefined;
+  const toValue = (value: Date | undefined) => value ? format(value, 'yyyy-MM-dd') : '';
+
   return (
-    <form onSubmit={form.submit} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <FilterCard fieldCount={4} onSubmit={form.submit} onClear={onClear}>
         <Input
           label="Người thực hiện"
           value={form.actorUsername}
@@ -29,30 +33,27 @@ export function AuditLogFilters({ filter, onSearch, onClear }: Props) {
         />
         <Select
           label="Phân hệ"
-          placeholder="Chọn phân hệ"
+          placeholder="Tất cả phân hệ"
           value={form.entityName}
           onChange={form.setEntityName}
           options={entityOptions}
           clearable={false}
         />
-        <Input
+        <DatePicker
           label="Từ ngày"
-          type="date"
-          value={form.occurredFromDate}
-          onChange={(event) => form.setOccurredFromDate(event.target.value)}
+          value={toDate(form.occurredFromDate)}
+          onChange={(value) => form.setOccurredFromDate(toValue(value instanceof Date ? value : undefined))}
+          placeholder="Chọn ngày"
+          presets={false}
         />
-        <Input
+        <DatePicker
           label="Đến ngày"
-          type="date"
-          value={form.occurredToDate}
-          onChange={(event) => form.setOccurredToDate(event.target.value)}
+          value={toDate(form.occurredToDate)}
+          onChange={(value) => form.setOccurredToDate(toValue(value instanceof Date ? value : undefined))}
+          placeholder="Chọn ngày"
+          presets={false}
         />
-      </div>
       {form.error && <p role="alert" className="text-sm text-danger">{form.error}</p>}
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onClear}>Xóa lọc</Button>
-        <Button type="submit" variant="solid">Tìm kiếm</Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

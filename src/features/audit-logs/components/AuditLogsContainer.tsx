@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { getRouteTitle } from '@/app/(cms)/_layout/constants/route.constants';
+import { PageHeader } from '@/components/page/PageHeader';
 import { useAuditLogNavigation } from '../hooks/use-audit-log-navigation';
 import type { AuditFilter, AuditLog } from '../types';
 import { AuditLogDetailModal } from './AuditLogDetailModal';
@@ -21,17 +23,15 @@ export function AuditLogsContainer({ filter }: Props) {
 
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-bold">Nhật ký hệ thống (Audit Log)</h1>
-      </header>
-      <section className="rounded-xl border bg-card p-4" aria-label="Bộ lọc nhật ký">
+      <PageHeader title={getRouteTitle('/audit-logs')} />
+      <div>
         <AuditLogFilters
           key={filterKey(filter)}
           filter={filter}
           onSearch={navigation.search}
           onClear={navigation.clear}
         />
-      </section>
+      </div>
       <AuditLogResults filter={filter} onPageChange={navigation.changePage} onView={setSelected} />
       <AuditLogDetailModal row={selected} onClose={() => setSelected(null)} />
     </div>

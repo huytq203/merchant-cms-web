@@ -1,9 +1,11 @@
 "use client";
 
+import { Plus } from "lucide-react";
+import { ResultCard } from "@/components/page/ResultCard";
+import { ResultState } from "@/components/page/ResultState";
 import { Button } from "@/components/ui/button/Button";
 import { useUsers, type UserFilter } from "../user-queries";
 import type { UserDialogsState } from "../hooks/use-user-dialogs";
-import { UserResultsSkeleton } from "./UserResultsSkeleton";
 import { UserTable } from "./UserTable";
 
 type Props = {
@@ -11,38 +13,43 @@ type Props = {
   actorId: string;
   openFor: UserDialogsState["openFor"];
   onPageChange: (page: number, pageSize: number) => void;
+  onAdd: () => void;
 };
 
-export function UserResults({ filter, actorId, openFor, onPageChange }: Props) {
+export function UserResults({ filter, actorId, openFor, onPageChange, onAdd }: Props) {
   const list = useUsers(filter);
 
-  if (list.isPending) return <UserResultsSkeleton />;
-  if (list.isError) {
-    return (
-      <div role="alert">
-        <p>{list.error.message}</p>
-        <Button type="button" variant="outline" onClick={() => void list.refetch()}>
-          Thử lại
-        </Button>
-      </div>
-    );
-  }
-  if (list.data.rows.length === 0) {
-    return <p className="py-12 text-center text-muted-foreground">Chưa có người dùng</p>;
-  }
   return (
-    <UserTable
-      rows={list.data.rows}
-      total={list.data.total}
-      page={filter.page}
-      pageSize={filter.pageSize}
-      actorId={actorId}
-      onPageChange={onPageChange}
-      onView={(user) => openFor("detail", user)}
-      onEdit={(user) => openFor("edit", user)}
-      onLock={(user) => openFor("lock", user)}
-      onUnlock={(user) => openFor("unlock", user)}
-      onReset={(user) => openFor("reset", user)}
-    />
+    <ResultCard subject="Người dùng" total={list.data?.total ?? 0}>
+      {list.isPending ? (
+        <ResultState state="loading" />
+      ) : list.isError ? (
+        <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} />
+      ) : list.data.rows.length === 0 ? (
+        <ResultState
+          state="empty"
+          emptyMessage="Không có người dùng phù hợp. Đổi bộ lọc hoặc thêm người dùng mới."
+          action={
+            <Button type="button" variant="solid" leftIcon={<Plus size={16} aria-hidden="true" />} onClick={onAdd}>
+              Thêm người dùng
+            </Button>
+          }
+        />
+      ) : (
+        <UserTable
+          rows={list.data.rows}
+          total={list.data.total}
+          page={filter.page}
+          pageSize={filter.pageSize}
+          actorId={actorId}
+          onPageChange={onPageChange}
+          onView={(user) => openFor("detail", user)}
+          onEdit={(user) => openFor("edit", user)}
+          onLock={(user) => openFor("lock", user)}
+          onUnlock={(user) => openFor("unlock", user)}
+          onReset={(user) => openFor("reset", user)}
+        />
+      )}
+    </ResultCard>
   );
 }

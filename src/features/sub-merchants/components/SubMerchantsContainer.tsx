@@ -1,6 +1,8 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { getRouteTitle } from '@/app/(cms)/_layout/constants/route.constants';
+import { PageHeader } from '@/components/page/PageHeader';
 import { Button } from '@/components/ui/button/Button';
 import { useSubMerchantActions } from '../hooks/use-sub-merchant-actions';
 import { useSubMerchantDialogs } from '../hooks/use-sub-merchant-dialogs';
@@ -18,12 +20,14 @@ export function SubMerchantsContainer({ filter }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Danh sách Sub-merchant</h1>
+      <PageHeader
+        title={getRouteTitle('/sub-merchants')}
+        action={
         <Button type="button" variant="solid" onClick={dialogs.openCreate}>
           <Plus size={16} aria-hidden="true" /> Thêm mới
         </Button>
-      </header>
+        }
+      />
       <SubMerchantList
         filter={filter}
         onPageChange={navigation.changePage}

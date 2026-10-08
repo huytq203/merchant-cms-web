@@ -1,18 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog/Dialog";
-import { Button } from "@/components/ui/button/Button";
+import { ConfirmModal } from "@/components/modal/ConfirmModal";
+import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import { REASON_LENGTH_MESSAGE, reasonSchema } from "@/lib/schemas/reason";
-import { Input } from "@/components/ui/input/Input";
 import type { MerchantUser } from "../schemas/user.schema";
+import { UserIdentity } from "./UserIdentity";
 
 interface Props {
   open: boolean;
@@ -24,36 +17,34 @@ interface Props {
 }
 
 export function UserLockDialog({ open, onOpenChange, user, isPending, error, onConfirm }: Props) {
+  const shown = usePreservedValue(user);
   const [reason, setReason] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setReason("");
+  }
   const valid = reasonSchema.safeParse(reason).success;
+  if (!shown) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Khoá người dùng</DialogTitle>
-          <DialogDescription>Bạn sắp khoá {user?.fullName}. Người dùng sẽ không thể đăng nhập.</DialogDescription>
-        </DialogHeader>
-        <Input
-          label="Lý do"
-          placeholder="Nhập lý do (10–500 ký tự)"
-          value={reason}
-          maxLength={500}
-          onChange={(event) => setReason(event.target.value)}
-          error={reason && !valid ? REASON_LENGTH_MESSAGE : undefined}
-        />
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Huỷ</Button>
-          <Button
-            type="button"
-            variant="danger"
-            disabled={!valid || isPending}
-            onClick={() => onConfirm(reason.trim())}
-          >
-            Xác nhận
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Khóa người dùng"
+      description="Người dùng sẽ không thể đăng nhập cho đến khi được mở khóa."
+      reasonLabel="Lý do khóa"
+      reasonPlaceholder="Nhập lý do (10 đến 500 ký tự)"
+      reasonValue={reason}
+      onReasonChange={setReason}
+      reasonError={reason && !valid ? REASON_LENGTH_MESSAGE : undefined}
+      confirmLabel="Khóa tài khoản"
+      confirmDisabled={!valid}
+      isLoading={isPending}
+      onConfirm={() => onConfirm(reason.trim())}
+    >
+      <UserIdentity name={shown.fullName} email={shown.email} />
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    </ConfirmModal>
   );
 }

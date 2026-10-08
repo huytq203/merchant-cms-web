@@ -1,122 +1,99 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button/Button";
-import { Badge } from "@/components/ui/badge/Badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
-import { Input } from "@/components/ui/input/Input";
+import { Mail, ShieldCheck, Store } from "lucide-react";
+import { DetailItem, DetailList, DetailModal, DetailSection, StatusBadge } from "@/components/modal/DetailModal";
 import { usePermissionGroups } from "@/features/permission/permission-group-queries";
-import { proposalStatusLabels, userStatusLabels } from "../constants/user.constants";
+import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
+import { userStatusLabels } from "../constants/user.constants";
 import type { MerchantUser, ScopeProposal } from "../schemas/user.schema";
+import { formatCreatedAt } from "../utils/user-format";
 import { groupNames } from "../utils/user-mapper";
+import { getInitials } from "../utils/user-restrictions";
+import { UserGroupChips } from "./UserGroupChips";
+import { UserQuickActions } from "./UserQuickActions";
+import { UserScopeItems } from "./UserScopeItems";
+import { UserScopeProposalSection } from "./UserScopeProposalSection";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: MerchantUser | null;
+  actorId: string;
+  /** Every merchant id in the session. */
+  merchantIds: string[];
   proposal: ScopeProposal | null;
-  isProposalLoading: boolean;
   proposalError?: string;
   isPending: boolean;
   onApprove: () => void;
   onReject: (reason: string) => void;
+  onReset: () => void;
+  onToggleLock: () => void;
+  /** Omitted when the viewer may not edit; the Edit button then disappears. */
+  onEdit?: () => void;
 }
 
-function Field({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
-  return (
-    <div className={wide ? "sm:col-span-2" : undefined}>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
+const statusTone = { PENDING: "warning", ACTIVE: "success", LOCKED: "danger" } as const;
 
-function UserSummary({ user }: { user: MerchantUser }) {
+function GroupsSection({ user }: { user: MerchantUser }) {
   const groups = usePermissionGroups({ page: 1, pageSize: 100 });
   const names = groupNames(user.groupIds, groups.data?.rows ?? []);
-  const groupText = user.groupIds.length === 0 ? "Chưa có nhóm quyền" : names.join(", ") || "—";
 
   return (
-    <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-      <Field label="Email">{user.email}</Field>
-      <Field label="Họ và tên">{user.fullName}</Field>
-      <Field label="Số điện thoại">{user.phone || "Chưa có"}</Field>
-      <Field label="Trạng thái">{userStatusLabels[user.status]}</Field>
-      <Field label="Nhóm quyền" wide>{groupText}</Field>
-    </dl>
+    <DetailSection title="Nhóm quyền" icon={<ShieldCheck className="h-4 w-4" />} aside={`${user.groupIds.length} nhóm`}>
+      {user.groupIds.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có nhóm quyền</p> : <UserGroupChips names={names} />}
+    </DetailSection>
   );
 }
 
-function ProposalNotice({ proposal, isPending, onApprove, onReject }: {
-  proposal: ScopeProposal;
-  isPending: boolean;
-  onApprove: () => void;
-  onReject: (reason: string) => void;
-}) {
-  const [reason, setReason] = useState("");
-  const canReject = reason.trim().length > 0 && !isPending;
-  const isPendingApproval = proposal.status === "PENDING_APPROVAL";
-
+function Sections({ user, ...props }: Omit<Props, "open" | "onOpenChange" | "onEdit" | "user"> & { user: MerchantUser }) {
   return (
-    <section className="space-y-2 border-t border-border pt-4" aria-label="Yêu cầu đổi phạm vi gần nhất">
-      <p className="text-sm font-medium">Đề xuất đổi phạm vi</p>
-      <Badge variant="soft-warning">{proposalStatusLabels[proposal.status]}</Badge>
-      <p className="text-sm">{proposal.requestReason}</p>
-      <p className="text-sm text-muted-foreground">
-        Phạm vi đề xuất: {proposal.merchantIds.length} merchant, {proposal.subMerchantIds.length} sub-merchant.
-      </p>
-      {proposal.decisionReason && <p className="text-sm text-muted-foreground">{proposal.decisionReason}</p>}
-      {isPendingApproval && (
-        <div className="space-y-3">
-          <Input
-            label="Lý do từ chối"
-            placeholder="Nhập lý do nếu từ chối đề xuất"
-            value={reason}
-            maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
-          />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" disabled={!canReject} onClick={() => onReject(reason.trim())}>
-              Từ chối đề xuất
-            </Button>
-            <Button type="button" variant="solid" disabled={isPending} onClick={onApprove}>
-              Duyệt đề xuất
-            </Button>
-          </div>
-        </div>
-      )}
-    </section>
+    <>
+      <UserQuickActions user={user} actorId={props.actorId} onReset={props.onReset} onToggleLock={props.onToggleLock} />
+      <DetailSection title="Thông tin liên hệ" icon={<Mail className="h-4 w-4" />}>
+        <DetailList>
+          <DetailItem label="Email">{user.email}</DetailItem>
+          <DetailItem label="Số điện thoại">
+            {user.phone ? <span className="tabular-nums">{user.phone}</span> : <span className="text-muted-foreground">Chưa có</span>}
+          </DetailItem>
+        </DetailList>
+      </DetailSection>
+      <GroupsSection user={user} />
+      <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />}>
+        <UserScopeItems user={user} merchantIds={props.merchantIds} />
+      </DetailSection>
+      <UserScopeProposalSection
+        proposal={props.proposal}
+        error={props.proposalError}
+        isPending={props.isPending}
+        onApprove={props.onApprove}
+        onReject={props.onReject}
+      />
+    </>
   );
 }
 
-function ProposalState({ proposal, isProposalLoading, proposalError, isPending, onApprove, onReject }: Omit<Props, "open" | "onOpenChange" | "user">) {
-  if (isProposalLoading) return <p role="status" className="text-sm text-muted-foreground">Đang tải đề xuất phạm vi...</p>;
-  if (proposalError) return <p role="alert" className="text-sm text-danger">{proposalError}</p>;
-  if (!proposal) return <p className="text-sm text-muted-foreground">Chưa có đề xuất đổi phạm vi.</p>;
-  return <ProposalNotice proposal={proposal} isPending={isPending} onApprove={onApprove} onReject={onReject} />;
-}
+export function UserDetailModal({ open, onOpenChange, user, onEdit, ...sectionProps }: Props) {
+  const shown = usePreservedValue(user);
+  if (!shown) return null;
 
-export function UserDetailModal({ open, onOpenChange, user, proposal, isProposalLoading, proposalError, isPending, onApprove, onReject }: Props) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Chi tiết người dùng</DialogTitle>
-        </DialogHeader>
-        {user && (
-          <div className="space-y-5">
-            <UserSummary user={user} />
-            <ProposalState
-              proposal={proposal}
-              isProposalLoading={isProposalLoading}
-              proposalError={proposalError}
-              isPending={isPending}
-              onApprove={onApprove}
-              onReject={onReject}
-            />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+    <DetailModal
+      open={open}
+      onOpenChange={onOpenChange}
+      header={{
+        monogramInitials: getInitials(shown.fullName),
+        title: shown.fullName,
+        statusBadge: (
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">{shown.email}</span>
+            <StatusBadge tone={statusTone[shown.status]}>{userStatusLabels[shown.status]}</StatusBadge>
+          </span>
+        ),
+      }}
+      sections={<Sections user={shown} {...sectionProps} />}
+      createdAt={formatCreatedAt(shown.createdAt)}
+      editLabel="Sửa"
+      onEdit={onEdit}
+    />
   );
 }

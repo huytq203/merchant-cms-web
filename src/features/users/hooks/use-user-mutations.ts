@@ -43,8 +43,8 @@ export function useUnlockUser() {
 }
 
 export function useResetUserPassword() {
-  return useUserMutation(async ({ id, otp }: { id: string; otp: { otpSessionId: string; otp: string } }) => {
-    await apiClient.post<unknown>(itemPath(id, "/reset-password"), { otp });
+  return useUserMutation(async ({ id }: { id: string }) => {
+    await apiClient.post<unknown>(itemPath(id, "/reset-password"));
     return { success: true as const };
   });
 }

@@ -7,18 +7,23 @@ const merchantUserPortalSchema = z.object({
   id: z.uuid(),
   keycloakUserId: z.string(),
   email: z.email(),
+  // Older BE builds do not return the full name yet, so it stays optional.
+  fullName: z.string().nullish(),
   phone: z.string().nullable(),
-  isActive: z.boolean(),
-  isLocked: z.boolean(),
+  // Jackson serializes the BE `isActive` and `isLocked` booleans as `active` and `locked`.
+  active: z.boolean(),
+  locked: z.boolean(),
   groups: z.array(z.uuid()),
   merchantIds: z.array(z.uuid()),
   subMerchantIds: z.array(z.uuid()),
   rolesText: z.string(),
   createdAt: z.string(),
-}).transform((user) => ({
+}).transform(({ active, locked, fullName, ...user }) => ({
   ...user,
-  fullName: user.email,
-  status: user.isLocked ? "LOCKED" as const : user.isActive ? "ACTIVE" as const : "PENDING" as const,
+  isActive: active,
+  isLocked: locked,
+  fullName: fullName?.trim() || user.email,
+  status: locked ? "LOCKED" as const : active ? "ACTIVE" as const : "PENDING" as const,
   groupIds: user.groups,
 }));
 

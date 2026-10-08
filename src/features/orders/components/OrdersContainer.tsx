@@ -1,6 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
+import { PageHeader } from "@/components/page/PageHeader";
+import { ResultCard } from "@/components/page/ResultCard";
+import { ResultState } from "@/components/page/ResultState";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { useOrderActions } from "../hooks/use-order-actions";
@@ -33,35 +37,26 @@ export function OrdersContainer({ filter, abilities }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Danh sách đơn hàng</h1>
-        {abilities.canCreate && (
+      <PageHeader
+        title={getRouteTitle("/order")}
+        action={abilities.canCreate ? (
           <Button type="button" variant="solid" onClick={dialogs.openCreate}>
             <Plus size={16} aria-hidden="true" /> Tạo đơn hàng
           </Button>
-        )}
-      </header>
-      <section className="rounded-xl border bg-card p-4" aria-label="Bộ lọc tìm kiếm">
+        ) : undefined}
+      />
+      <div>
         <OrderFilter
           key={`${filter.orderCode ?? ""}:${filter.status ?? ""}`}
           initial={filter}
           onSearch={navigation.search}
         />
-      </section>
-      <section className="rounded-xl border bg-card p-4" aria-label="Kết quả tìm kiếm">
-        <h2 className="mb-3 font-semibold">Kết quả tìm kiếm {list.data ? `(${list.data.total})` : ""}</h2>
-        {list.isPending ? (
-          <p>Đang tải danh sách đơn hàng...</p>
-        ) : list.isError ? (
-          <div role="alert">
-            <p>{list.error.message}</p>
-            <Button type="button" variant="ghost" onClick={() => void list.refetch()}>
-              Thử lại
-            </Button>
-          </div>
-        ) : list.data.rows.length === 0 ? (
-          <p>Không có đơn hàng</p>
-        ) : (
+      </div>
+      <ResultCard subject="đơn hàng" total={list.data?.total ?? 0}>
+        {list.isPending ? <ResultState state="loading" /> : null}
+        {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}
+        {list.data?.rows.length === 0 ? <ResultState state="empty" emptyMessage="Không có đơn hàng" /> : null}
+        {list.data?.rows.length ? (
           <OrderTable
             rows={list.data.rows}
             total={list.data.total}
@@ -71,8 +66,8 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onView={(order) => dialogs.openFor("detail", order)}
             onViewQr={(order) => dialogs.openFor("qr", order)}
           />
-        )}
-      </section>
+        ) : null}
+      </ResultCard>
       {activeDialog === "create" && (
         <OrderForm
           open

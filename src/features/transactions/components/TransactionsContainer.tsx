@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button/Button";
@@ -40,7 +41,7 @@ export function TransactionsContainer({ filter, abilities, showSubMerchantFilter
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Danh sách giao dịch</h1>
+          <h1 className="text-2xl font-bold text-foreground">{getRouteTitle("/transaction")}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Theo dõi và quản lý tất cả giao dịch của merchant</p>
         </div>
       </header>

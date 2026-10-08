@@ -1,6 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
+import { PageHeader } from "@/components/page/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
@@ -39,40 +41,32 @@ export function BankAccountsContainer({ filter }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Tài khoản ngân hàng</h1>
-          <p className="text-sm text-muted-foreground">Tài khoản dùng để nhận quyết toán và rút tiền</p>
-        </div>
-        {BANK_ACCOUNT_WRITES_ENABLED ? (
+      <PageHeader
+        title={getRouteTitle("/bank-accounts")}
+        description="Tài khoản dùng để nhận quyết toán và rút tiền"
+        action={BANK_ACCOUNT_WRITES_ENABLED ? (
           <Button type="button" variant="solid" onClick={dialogs.openCreate}>
             <Plus size={16} aria-hidden="true" /> Thêm tài khoản mới
           </Button>
-        ) : (
-          <p role="note" className="text-sm text-muted-foreground">
-            Thêm hoặc đổi tài khoản ngân hàng hiện chưa mở trên cổng này
-          </p>
-        )}
-      </header>
-      <section className="rounded-xl border bg-card p-4" aria-label="Bộ lọc tìm kiếm">
+        ) : undefined}
+      />
+      {!BANK_ACCOUNT_WRITES_ENABLED ? <p role="note" className="text-sm text-muted-foreground">Thêm hoặc đổi tài khoản ngân hàng hiện chưa mở trên cổng này</p> : null}
+      <div>
         <BankAccountFilters
           key={`${filter.linkStatus ?? ""}:${filter.status ?? ""}`}
           initial={filter}
           onSearch={(values) => navigate({ page: 1, pageSize: filter.pageSize, ...values })}
         />
-      </section>
-      <section className="rounded-xl border bg-card p-4" aria-label="Danh sách tài khoản">
-        <h2 className="mb-3 font-semibold">Danh sách tài khoản {list.data ? `(${list.data.total})` : ""}</h2>
-        <BankAccountResults
-          list={list}
-          page={filter.page}
-          pageSize={filter.pageSize}
-          pendingChanges={pending.byAccountId}
-          onPageChange={(page, pageSize) => navigate({ ...filter, page, pageSize })}
-          onView={(account) => dialogs.openFor("detail", account)}
-          {...writeActions}
-        />
-      </section>
+      </div>
+      <BankAccountResults
+        list={list}
+        page={filter.page}
+        pageSize={filter.pageSize}
+        pendingChanges={pending.byAccountId}
+        onPageChange={(page, pageSize) => navigate({ ...filter, page, pageSize })}
+        onView={(account) => dialogs.openFor("detail", account)}
+        {...writeActions}
+      />
       <BankAccountDialogs dialogs={dialogs} onPendingChange={pending.remember} />
     </div>
   );

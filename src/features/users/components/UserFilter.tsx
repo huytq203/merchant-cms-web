@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button/Button";
+import { FilterCard } from "@/components/page/FilterCard";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { userStatusOptions } from "../constants/user.constants";
@@ -18,8 +18,7 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
   const [query, setQuery] = useState(filter.query ?? "");
   const [status, setStatus] = useState(filter.status ?? "");
   const [merchantId, setMerchantId] = useState(filter.merchantId ?? "");
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const submit = () => {
     onSearch({
       ...(query.trim() ? { query: query.trim() } : {}),
       ...(status ? { status: status as UserFilterValues["status"] } : {}),
@@ -33,8 +32,7 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
     onSearch({});
   };
   return (
-    <form onSubmit={submit} className="rounded-xl border border-border bg-background p-4" aria-label="Bộ lọc người dùng">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <FilterCard fieldCount={merchantIds.length > 1 ? 3 : 2} onSubmit={submit} onClear={clear}>
         <Input
           label="Tên hoặc email"
           placeholder="Nhập tên hoặc email cần tìm"
@@ -44,7 +42,7 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
         />
         <Select
           label="Trạng thái"
-          placeholder="Chọn trạng thái"
+          placeholder="Tất cả trạng thái"
           value={status}
           onChange={setStatus}
           clearable={false}
@@ -53,7 +51,7 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
         {merchantIds.length > 1 && (
           <Select
             label="Merchant"
-            placeholder="Chọn merchant"
+            placeholder="Tất cả merchant"
             value={merchantId}
             onChange={setMerchantId}
             clearable={false}
@@ -63,11 +61,6 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
             ]}
           />
         )}
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={clear}>Xoá lọc</Button>
-        <Button type="submit" variant="solid">Tìm kiếm</Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

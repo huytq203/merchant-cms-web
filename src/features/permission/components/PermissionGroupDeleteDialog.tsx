@@ -1,7 +1,6 @@
 'use client';
 
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog/AlertDialog';
-import { Button } from '@/components/ui/button/Button';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import type { PermissionGroup } from '../schemas/permission-group.schema';
 
 interface Props {
@@ -15,20 +14,17 @@ interface Props {
 
 export function PermissionGroupDeleteDialog({ open, onOpenChange, group, isDeleting, error, onConfirm }: Props) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Xoá nhóm quyền</AlertDialogTitle>
-          <AlertDialogDescription>
-            Xoá nhóm {group?.name}? Nhóm đang có người dùng sẽ không thể xoá.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
-        <AlertDialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Huỷ</Button>
-          <Button type="button" variant="danger" disabled={isDeleting} onClick={onConfirm}>Xác nhận xoá</Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Xóa nhóm ${group?.name ?? ''}?`}
+      description="Nhóm đang có người dùng sẽ không thể xóa. Hành động này không thể hoàn tác."
+      confirmLabel="Xóa nhóm"
+      cancelLabel="Hủy"
+      isLoading={isDeleting}
+      onConfirm={onConfirm}
+    >
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    </ConfirmModal>
   );
 }

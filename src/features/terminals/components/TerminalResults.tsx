@@ -1,11 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button/Button";
+import { ResultCard } from "@/components/page/ResultCard";
+import { ResultState } from "@/components/page/ResultState";
 import { terminalQueries } from "../terminal-queries";
 import type { TerminalDialogs } from "../hooks/use-terminal-dialogs";
 import type { TerminalListFilter } from "../types";
-import { TerminalResultsSkeleton } from "./TerminalResultsSkeleton";
 import { TerminalTable } from "./TerminalTable";
 
 type Props = {
@@ -18,19 +18,13 @@ export function TerminalResults({ filter, dialogs, onPageChange }: Props) {
   const list = useQuery(terminalQueries.list(filter));
 
   return (
-    <section className="rounded-xl border bg-card p-4" aria-label="Kết quả tìm kiếm">
-      <h2 className="mb-3 font-semibold">Kết quả tìm kiếm {list.data ? `(${list.data.total})` : ""}</h2>
+    <ResultCard subject="Terminal" total={list.data?.total ?? 0}>
       {list.isPending ? (
-        <TerminalResultsSkeleton />
+        <ResultState state="loading" />
       ) : list.isError ? (
-        <div role="alert">
-          <p>{list.error.message}</p>
-          <Button type="button" variant="ghost" onClick={() => void list.refetch()}>
-            Thử lại
-          </Button>
-        </div>
+        <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} />
       ) : list.data.rows.length === 0 ? (
-        <p>Không có Terminal</p>
+        <ResultState state="empty" emptyMessage="Chưa có Terminal phù hợp." />
       ) : (
         <TerminalTable
           rows={list.data.rows}
@@ -44,6 +38,6 @@ export function TerminalResults({ filter, dialogs, onPageChange }: Props) {
           onUnlock={(row) => dialogs.openFor("unlock", row)}
         />
       )}
-    </section>
+    </ResultCard>
   );
 }

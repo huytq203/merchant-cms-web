@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button/Button';
+import { FilterCard } from '@/components/page/FilterCard';
 import { Input } from '@/components/ui/input/Input';
 import { Select } from '@/components/ui/select/Select';
 import type { PermissionGroupFilter } from '../permission-group-queries';
@@ -26,8 +26,7 @@ export function PermissionGroupFilters({ filter, onSearch }: Props) {
   const [query, setQuery] = useState(filter.query ?? '');
   const [scope, setScope] = useState(toScope(filter.systemOnly));
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = () => {
     onSearch(query, scope);
   };
   const reset = () => {
@@ -37,12 +36,7 @@ export function PermissionGroupFilters({ filter, onSearch }: Props) {
   };
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-xl border border-border bg-background p-4"
-      aria-label="Bộ lọc nhóm quyền"
-    >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <FilterCard fieldCount={2} onSubmit={submit} onClear={reset}>
         <Input
           label="Tên nhóm quyền"
           placeholder="Nhập tên nhóm quyền"
@@ -51,21 +45,12 @@ export function PermissionGroupFilters({ filter, onSearch }: Props) {
         />
         <Select
           label="Cấp quản lý"
-          placeholder="Chọn cấp quản lý"
+          placeholder="Tất cả cấp quản lý"
           value={scope}
           onChange={setScope}
           options={scopeOptions}
           clearable={false}
         />
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={reset}>
-          Xoá lọc
-        </Button>
-        <Button type="submit" variant="solid">
-          Tìm kiếm
-        </Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

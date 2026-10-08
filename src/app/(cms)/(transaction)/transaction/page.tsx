@@ -4,13 +4,18 @@ import { AccessDenied } from "@/features/auth/components/access-denied";
 import { hasPermission } from "@/features/auth/permissions";
 import { SampleDataBanner } from "@/features/sample-data/components/SampleDataBanner";
 import { TransactionsContainer } from "@/features/transactions/components/TransactionsContainer";
-import { parseTransactionSearchParams, transactionQueries } from "@/features/transactions/transaction-queries";
+import {
+  parseTransactionSearchParams,
+  transactionQueries,
+} from "@/features/transactions/transaction-queries";
 import { resolveModuleSource } from "@/lib/be/api-mode";
 import { getServerSession } from "@/lib/auth/session";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { listTransactions } from "@/server/modules/transactions/transaction.service";
 
-type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export default async function TransactionsPage({ searchParams }: Props) {
   const user = await getServerSession();
@@ -23,7 +28,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...transactionQueries.list(filter),
-      queryFn: async () => unwrapOrRedirect(await listTransactions({ ...filter, merchantId })),
+      queryFn: async () =>
+        unwrapOrRedirect(await listTransactions({ ...filter, merchantId })),
     });
   });
   const abilities = {
@@ -36,7 +42,11 @@ export default async function TransactionsPage({ searchParams }: Props) {
     <div className="space-y-5">
       {isFixture && <SampleDataBanner />}
       <HydrationBoundary state={state}>
-        <TransactionsContainer filter={filter} abilities={abilities} showSubMerchantFilter={!isFixture} />
+        <TransactionsContainer
+          filter={filter}
+          abilities={abilities}
+          showSubMerchantFilter={!isFixture}
+        />
       </HydrationBoundary>
     </div>
   );

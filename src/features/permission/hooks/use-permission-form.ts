@@ -1,60 +1,52 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
+import type { ZodIssue } from 'zod';
 import {
   permissionGroupFormSchema,
   type PermissionGroup,
   type PermissionGroupFormValues,
 } from '../schemas/permission-group.schema';
+import { toPermissionGroupCode } from '../utils/permission-group-code';
+import { useSelectedPermissions } from './use-selected-permissions';
 
+const INVALID_NAME_FOR_CODE =
+  'Tên nhóm cần bắt đầu bằng chữ cái và có ít nhất 2 ký tự chữ hoặc số.';
+
+/** The code is derived from the name, so a code problem is shown on the name field. */
+function toFieldErrors(issues: ZodIssue[]): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of issues) {
+    const field = String(issue.path[0]);
+    if (field === 'code') errors.name ??= INVALID_NAME_FOR_CODE;
+    else errors[field] = issue.message;
+  }
+  return errors;
+}
+
+/** Form state for creating or editing a group. An existing group keeps its stored code. */
 export function usePermissionForm(
   group: PermissionGroup | null | undefined,
   onSubmit: (values: PermissionGroupFormValues) => void,
 ) {
-  const [code, setCode] = useState(group?.code ?? '');
   const [name, setName] = useState(group?.name ?? '');
   const [description, setDescription] = useState(group?.description ?? '');
-  const [selected, setSelected] = useState(group?.permissions ?? []);
-  const [validation, setValidation] = useState<Record<string, string>>({});
+  const [attempted, setAttempted] = useState(false);
+  const permissions = useSelectedPermissions(group?.permissions ?? []);
 
-  const toggle = (permission: string) => {
-    setSelected((current) => current.includes(permission)
-      ? current.filter((value) => value !== permission)
-      : [...current, permission]);
-  };
-  const selectAll = (codes: string[]) => {
-    setSelected((current) => codes.every((value) => current.includes(value))
-      ? current.filter((value) => !codes.includes(value))
-      : [...new Set([...current, ...codes])]);
-  };
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const result = permissionGroupFormSchema.safeParse({
-      code,
-      name,
-      description,
-      permissions: selected,
-    });
-    if (!result.success) {
-      setValidation(Object.fromEntries(
-        result.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
-      ));
-      return;
-    }
-    setValidation({});
-    onSubmit(result.data);
-  };
-
-  return {
+  const code = group?.code ?? toPermissionGroupCode(name);
+  const result = permissionGroupFormSchema.safeParse({
     code,
     name,
     description,
-    selected,
-    validation,
-    setCode,
-    setName,
-    setDescription,
-    toggle,
-    selectAll,
-    submit,
+    permissions: permissions.selected,
+  });
+  const validation = attempted && !result.success ? toFieldErrors(result.error.issues) : {};
+
+  const submit = () => {
+    setAttempted(true);
+    if (result.success) onSubmit(result.data);
   };
+
+  return { code, name, description, validation, setName, setDescription, submit, ...permissions };
 }
+
+export type PermissionFormState = ReturnType<typeof usePermissionForm>;

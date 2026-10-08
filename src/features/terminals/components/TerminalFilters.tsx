@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button/Button";
+import { FilterCard } from "@/components/page/FilterCard";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
@@ -14,12 +14,11 @@ export function TerminalFilters({ initial, onSearch }: Props) {
   const subMerchants = useSubMerchantOptions();
   const options = (subMerchants.data ?? []).map((item) => ({
     value: item.id,
-    label: `${item.code} — ${item.name}`,
+    label: `${item.code} - ${item.name}`,
   }));
 
   return (
-    <form onSubmit={form.submit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+    <FilterCard fieldCount={3} onSubmit={form.submit} onClear={form.clear}>
         <Input
           label="Tên Terminal"
           placeholder="Nhập tên Terminal cần tìm"
@@ -40,11 +39,6 @@ export function TerminalFilters({ initial, onSearch }: Props) {
           options={terminalStatusOptions}
           placeholder="Tất cả trạng thái"
         />
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={form.clear}>Xóa lọc</Button>
-        <Button type="submit" variant="solid">Tìm kiếm</Button>
-      </div>
-    </form>
+    </FilterCard>
   );
 }

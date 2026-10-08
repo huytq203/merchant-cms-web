@@ -6,7 +6,7 @@ import { Spinner } from '../spinner/Spinner';
 import { cn } from '@/lib/utils/cn';
 
 const buttonVariants = tv({
-  base: 'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-30 disabled:hover:bg-transparent data-open:bg-muted cursor-pointer disabled:cursor-not-allowed data-loading:opacity-50 data-loading:cursor-not-allowed data-loading:pointer-events-none',
+  base: 'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:hover:bg-transparent data-open:bg-muted cursor-pointer disabled:cursor-not-allowed data-loading:opacity-50 data-loading:cursor-not-allowed data-loading:pointer-events-none',
   variants: {
     variant: {
       // Kraken Primary Purple
@@ -35,8 +35,6 @@ const buttonVariants = tv({
         "bg-gradient-to-br from-white/70 to-amber-300/40 backdrop-blur-sm border border-amber-100/80 text-amber-700 hover:from-white/85 hover:to-amber-300/60 shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] transition-all",
       "glass-green":
         "bg-gradient-to-br from-white/70 to-emerald-300/40 backdrop-blur-sm border border-emerald-100/80 text-emerald-700 hover:from-white/85 hover:to-emerald-300/60 shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] transition-all",
-      "glass-purple":
-        "bg-gradient-to-br from-white/70 to-violet-300/40 backdrop-blur-sm border border-violet-100/80 text-violet-700 hover:from-white/85 hover:to-violet-300/60 shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] transition-all",
       "glass-pink":
         "bg-gradient-to-br from-white/70 to-pink-300/40 backdrop-blur-sm border border-pink-100/80 text-pink-700 hover:from-white/85 hover:to-pink-300/60 shadow-[0_4px_12px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)] transition-all",
 
@@ -51,7 +49,7 @@ const buttonVariants = tv({
     size: {
       xs: "h-7 px-2.5 py-1.5 text-xs",
       sm: "h-8 px-3 text-sm",
-      md: "h-10 px-4 py-2",
+      md: "h-10 px-3.5 py-1.5",
       lg: "h-11 px-8",
       icon: "h-10 w-10",
       "icon-sm": "h-8 w-8",
@@ -76,6 +74,7 @@ export interface ButtonProps
   isLoading?: boolean;
   className?: string;
   children?: React.ReactNode;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 }
 
 const Button = React.forwardRef<React.ElementRef<typeof BaseButton>, ButtonProps>(
@@ -83,7 +82,7 @@ const Button = React.forwardRef<React.ElementRef<typeof BaseButton>, ButtonProps
     return (
       <BaseButton
         ref={ref}
-        className={buttonVariants({ variant, size, className: className || '' })}
+        className={buttonVariants({ variant, size: size ?? 'md', className: className || '' })}
         disabled={isLoading || props.disabled}
         data-loading={isLoading || undefined}
         {...props}

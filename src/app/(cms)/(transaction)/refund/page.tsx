@@ -3,14 +3,19 @@ import { redirect } from "next/navigation";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { hasPermission } from "@/features/auth/permissions";
 import { RefundsContainer } from "@/features/refund/components/RefundsContainer";
-import { parseRefundSearchParams, refundQueries } from "@/features/refund/refund-queries";
+import {
+  parseRefundSearchParams,
+  refundQueries,
+} from "@/features/refund/refund-queries";
 import { SampleDataBanner } from "@/features/sample-data/components/SampleDataBanner";
 import { resolveModuleSource } from "@/lib/be/api-mode";
 import { getServerSession } from "@/lib/auth/session";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { listRefunds } from "@/server/modules/refund/refund.service";
 
-type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export default async function RefundPage({ searchParams }: Props) {
   const user = await getServerSession();
@@ -23,16 +28,23 @@ export default async function RefundPage({ searchParams }: Props) {
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...refundQueries.list(filter),
-      queryFn: async () => unwrapOrRedirect(await listRefunds({ ...filter, merchantId })),
+      queryFn: async () =>
+        unwrapOrRedirect(await listRefunds({ ...filter, merchantId })),
     });
   });
-  const abilities = { canCancel: hasPermission(user.permissions, "CANCEL_REFUND") };
+  const abilities = {
+    canCancel: hasPermission(user.permissions, "CANCEL_REFUND"),
+  };
   const isFixture = resolveModuleSource("refund") === "fixture";
   return (
     <div className="space-y-5">
       {isFixture && <SampleDataBanner />}
       <HydrationBoundary state={state}>
-        <RefundsContainer filter={filter} abilities={abilities} showSubMerchantFilter={!isFixture} />
+        <RefundsContainer
+          filter={filter}
+          abilities={abilities}
+          showSubMerchantFilter={!isFixture}
+        />
       </HydrationBoundary>
     </div>
   );

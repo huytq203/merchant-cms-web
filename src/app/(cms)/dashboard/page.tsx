@@ -9,7 +9,10 @@ import { SampleDataBanner } from "@/features/sample-data/components/SampleDataBa
 import { resolveModuleSource } from "@/lib/be/api-mode";
 import { getServerSession } from "@/lib/auth/session";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
-import { getDashboardOverview, getRevenueChart } from "@/server/modules/dashboard/dashboard.service";
+import {
+  getDashboardOverview,
+  getRevenueChart,
+} from "@/server/modules/dashboard/dashboard.service";
 
 function getVietnameseGreeting(): string {
   const vnHour = (new Date().getUTCHours() + 7) % 24;
@@ -33,7 +36,8 @@ const DashboardPage = async () => {
       }),
       client.prefetchQuery({
         ...dashboardQueries.revenueChart(DEFAULT_PERIOD),
-        queryFn: async () => unwrapOrRedirect(await getRevenueChart(DEFAULT_PERIOD)),
+        queryFn: async () =>
+          unwrapOrRedirect(await getRevenueChart(DEFAULT_PERIOD)),
       }),
     ]);
   });

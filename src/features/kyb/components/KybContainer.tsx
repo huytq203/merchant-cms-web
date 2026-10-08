@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button/Button";
-import { Skeleton } from "@/components/ui/skeleton/Skeleton";
+import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
+import { PageHeader } from "@/components/page/PageHeader";
+import { ResultState } from "@/components/page/ResultState";
 import { useKybDialogs } from "../hooks/use-kyb-dialogs";
 import { kybQueries } from "../kyb-queries";
 import { KybProgressCard } from "./KybProgressCard";
@@ -20,26 +21,12 @@ export function KybContainer({ merchantId }: Props) {
   const wallet = merchant?.enterpriseWallet;
   return (
     <div className="space-y-5">
-      <header className="grid gap-1">
-        <h1 className="text-2xl font-bold">Hồ sơ KYB và ĐVCNTT</h1>
-        <p className="text-sm text-muted-foreground">
-          Gửi yêu cầu xác thực doanh nghiệp, đăng ký đơn vị chấp nhận thanh toán và theo dõi tiến trình duyệt.
-        </p>
-      </header>
-      {profile.isPending && (
-        <div className="space-y-4" role="status" aria-label="Đang tải hồ sơ">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      )}
-      {profile.isError && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-danger">
-          <span>{profile.error.message}</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => void profile.refetch()}>
-            Thử lại
-          </Button>
-        </div>
-      )}
+      <PageHeader
+        title={getRouteTitle("/merchants")}
+        description="Gửi yêu cầu xác thực doanh nghiệp, đăng ký đơn vị chấp nhận thanh toán và theo dõi tiến trình duyệt."
+      />
+      {profile.isPending ? <ResultState state="loading" loadingLabel="Đang tải hồ sơ" /> : null}
+      {profile.isError ? <ResultState state="error" errorMessage={profile.error.message} onRetry={() => void profile.refetch()} /> : null}
       {merchant && !wallet && (
         <p className="text-sm text-muted-foreground">
           Merchant này chưa gắn với ví doanh nghiệp nên chưa có hồ sơ KYB.

@@ -36,7 +36,7 @@ Dark mode suy ra từ brand-ink: nền `#0B1413`, primary là teal `#02CCBB`, v�
 - Lưới form luôn đều cột (2 cột, 3 cột khi đúng 3 trường); mục lẻ cuối hàng trải hết hàng; badge trạng thái trong bảng cùng chiều rộng.
 
 ## Typography
-Display: IBM Plex Sans. UI/Body: Inter. Heading 700 với letter-spacing âm nhẹ; body 14–16px, 400–500.
+Một họ chữ duy nhất: Be Vietnam Pro cho cả display và UI/Body (đầy đủ dấu tiếng Việt), tải bằng `next/font/google` với subset `latin` và `vietnamese`, độ đậm 400/500/600/700. Heading 700 với letter-spacing âm nhẹ; body 14–16px, 400–500.
 
 ## Responsive
 Breakpoints: 375, 425, 640, 768, 1024, 1280, 1536px.

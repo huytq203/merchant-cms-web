@@ -78,8 +78,6 @@ export interface TextProps
   underline?: boolean;
   /** Strikethrough */
   strikethrough?: boolean;
-  /** Gradient text (primary → indigo) */
-  gradient?: boolean;
   /** Highlighted mark background */
   mark?: boolean;
   /** Single-line truncate with ellipsis */
@@ -118,7 +116,6 @@ const Text = React.forwardRef<HTMLElement, TextProps>(
       italic,
       underline,
       strikethrough,
-      gradient,
       mark,
       truncate,
       lines,
@@ -156,7 +153,6 @@ const Text = React.forwardRef<HTMLElement, TextProps>(
           italic       && 'italic',
           underline    && 'underline underline-offset-2',
           strikethrough && 'line-through',
-          gradient     && 'bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent',
           mark         && 'bg-warning/20 text-warning-foreground rounded px-0.5',
           truncate     && 'block max-w-full truncate',
           lines        && cn('block', LINES_MAP[lines]),
@@ -306,7 +302,7 @@ const Blockquote = React.forwardRef<HTMLQuoteElement, BlockquoteProps>(
       <blockquote
         ref={ref}
         className={cn(
-          'border-l-4 border-primary pl-4 py-1 italic text-muted-foreground leading-relaxed',
+          'border-l border-border pl-4 py-1 italic text-muted-foreground leading-relaxed',
           className,
         )}
         {...props}
