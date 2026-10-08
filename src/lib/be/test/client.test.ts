@@ -28,7 +28,16 @@ describe("createBeClient", () => {
       http.get(`${BASE}/u`, () => HttpResponse.json(envelope({ id: "1", name: "An", extra: 1 }))),
     );
     const result = await client.get({ path: "/u", schema: userSchema });
-    expect(result).toEqual({ success: true, data: { id: "1", name: "An" } });
+    expect(result).toMatchObject({ success: true, data: { id: "1", name: "An" } });
+  });
+
+  it("keeps the envelope detail, then message, so the browser can toast it", async () => {
+    mswServer.use(
+      http.post(`${BASE}/detail`, () => HttpResponse.json({ success: true, message: "success", detail: "Update success", data: { id: "1", name: "An" } })),
+      http.post(`${BASE}/message`, () => HttpResponse.json({ success: true, message: "Saved", data: { id: "1", name: "An" } })),
+    );
+    expect(await client.post({ path: "/detail", schema: userSchema })).toMatchObject({ message: "Update success" });
+    expect(await client.post({ path: "/message", schema: userSchema })).toMatchObject({ message: "Saved" });
   });
 
   it("logs the upstream response body in development without secrets", async () => {
@@ -126,7 +135,7 @@ describe("createBeClient", () => {
       http.post(`${BASE}/forgot`, () => HttpResponse.json({ success: true, message: "success", detail: "ok" })),
     );
     const result = await client.post({ path: "/forgot", schema: emptySchema, body: {} });
-    expect(result).toEqual({ success: true, data: undefined });
+    expect(result).toEqual({ success: true, data: undefined, message: "ok" });
   });
   it("accepts an empty 204 body for emptySchema", async () => {
     mswServer.use(http.post(`${BASE}/logout`, () => new HttpResponse(null, { status: 204 })));

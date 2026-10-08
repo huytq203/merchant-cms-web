@@ -147,7 +147,7 @@ export function createBeClient(options: BeClientOptions) {
       const error = invalidResponseError(response.status);
       return fail(error, error.code);
     }
-    return ok(data.data as z.infer<S>);
+    return ok(data.data as z.infer<S>, envelope.data.detail || envelope.data.message || undefined);
   }
 
   return {

@@ -42,7 +42,7 @@ function SubMerchantList({ form }: { form: UserForm }) {
 
 export function UserScopePicker({ form, merchantName }: Props) {
   return (
-    <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />}>
+    <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />} bare>
       <p className="text-sm text-muted-foreground">Merchant: <span className="font-medium text-foreground">{merchantName}</span></p>
       <RadioGroup
         aria-label="Phạm vi sub-merchant"

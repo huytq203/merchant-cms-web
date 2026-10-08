@@ -1,11 +1,12 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
-import { KeyRound, LockKeyhole, LockKeyholeOpen } from "lucide-react";
+import { KeyRound, LockKeyhole, LockKeyholeOpen, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip/Tooltip";
 import type { MerchantUser } from "../schemas/user.schema";
 import { getLockBlock, getResetPasswordBlock } from "../utils/user-restrictions";
+import { userStatusOf } from "../utils/user-view";
 
 interface QuickButtonProps {
   label: string;
@@ -55,15 +56,17 @@ interface Props {
 }
 
 export function UserQuickActions({ user, actorId, onReset, onToggleLock }: Props) {
-  const isLocked = user.status === "LOCKED";
+  const status = userStatusOf(user);
+  const isLocked = status === "LOCKED";
+  const isPending = status === "PENDING";
 
   return (
     <TooltipProvider>
       <div className="flex flex-wrap gap-2">
         <QuickButton
-          label="Đặt lại mật khẩu"
-          icon={<KeyRound className="h-4 w-4" aria-hidden="true" />}
-          reason={getResetPasswordBlock(user, actorId)}
+          label={isPending ? "Gửi lại kích hoạt" : "Đặt lại mật khẩu"}
+          icon={isPending ? <Mail className="h-4 w-4" aria-hidden="true" /> : <KeyRound className="h-4 w-4" aria-hidden="true" />}
+          reason={isPending ? undefined : getResetPasswordBlock(user, actorId)}
           onClick={onReset}
         />
         <QuickButton

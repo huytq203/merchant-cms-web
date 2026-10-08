@@ -1,7 +1,6 @@
 "use client";
 
-import { Info, Store } from "lucide-react";
-import { DetailSection } from "@/components/modal/DetailModal";
+import { Info } from "lucide-react";
 import { FormModal } from "@/components/modal/FormModal";
 import { usePermissionGroups } from "@/features/permission/permission-group-queries";
 import { useUserForm } from "../hooks/use-user-form";
@@ -9,7 +8,7 @@ import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
 import { merchantLabel } from "../utils/user-mapper";
 import { UserBasicFields } from "./UserFormFields";
 import { UserGroupPicker } from "./UserGroupPicker";
-import { UserScopeItems } from "./UserScopeItems";
+import { UserScopeSection } from "./UserScopeSection";
 import { UserScopePicker } from "./UserScopePicker";
 
 interface Props {
@@ -37,15 +36,6 @@ function SelfEditBanner() {
   );
 }
 
-function ExistingScope({ user, merchantIds }: { user: MerchantUser; merchantIds: string[] }) {
-  return (
-    <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />}>
-      <UserScopeItems user={user} merchantIds={merchantIds} />
-      <p className="text-xs text-muted-foreground">Phạm vi chỉ được xem tại đây và không thể tạo mới.</p>
-    </DetailSection>
-  );
-}
-
 function UserFormModal({ onOpenChange, merchantId, merchantIds, actorId, user, isSubmitting, emailError, error, onSubmit }: Omit<Props, "open">) {
   const form = useUserForm(user, merchantId, onSubmit);
   const groups = usePermissionGroups({ page: 1, pageSize: 100 });
@@ -65,13 +55,15 @@ function UserFormModal({ onOpenChange, merchantId, merchantIds, actorId, user, i
       onSubmit={form.submit}
     >
       {isSelf ? <SelfEditBanner /> : null}
-      <UserBasicFields form={form} isEdit={Boolean(user)} readOnly={isSelf} emailError={emailError} />
-      <UserGroupPicker form={form} groups={groups} locked={isSelf} />
-      {user ? (
-        <ExistingScope user={user} merchantIds={merchantIds} />
-      ) : (
-        <UserScopePicker form={form} merchantName={merchantLabel(merchantIds, merchantId)} />
-      )}
+      <div className="flex flex-col gap-6">
+        <UserBasicFields form={form} isEdit={Boolean(user)} readOnly={isSelf} emailError={emailError} />
+        <UserGroupPicker form={form} groups={groups} locked={isSelf} />
+        {user ? (
+          <UserScopeSection user={user} merchantIds={merchantIds} canPropose={!isSelf} />
+        ) : (
+          <UserScopePicker form={form} merchantName={merchantLabel(merchantIds, merchantId)} />
+        )}
+      </div>
     </FormModal>
   );
 }

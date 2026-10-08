@@ -20,14 +20,14 @@ describe("user mapper", () => {
   });
 
   it("prevents self lock and locks only active users", () => {
-    expect(canLockUser({ id: "actor", status: "ACTIVE" }, "actor")).toBe(false);
-    expect(canLockUser({ id: "other", status: "PENDING" }, "actor")).toBe(false);
-    expect(canLockUser({ id: "other", status: "ACTIVE" }, "actor")).toBe(true);
+    expect(canLockUser({ id: "actor", active: true, locked: false }, "actor")).toBe(false);
+    expect(canLockUser({ id: "other", active: false, locked: false }, "actor")).toBe(false);
+    expect(canLockUser({ id: "other", active: true, locked: false }, "actor")).toBe(true);
   });
 
   it("unlocks only locked users", () => {
-    expect(canUnlockUser({ status: "LOCKED" })).toBe(true);
-    expect(canUnlockUser({ status: "ACTIVE" })).toBe(false);
+    expect(canUnlockUser({ active: false, locked: true })).toBe(true);
+    expect(canUnlockUser({ active: true, locked: false })).toBe(false);
   });
 
   it("compares id lists regardless of order", () => {

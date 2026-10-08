@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
-export interface DetailSectionProps { icon?: ReactNode; title: string; aside?: ReactNode; children: ReactNode; }
+export interface DetailSectionProps { icon?: ReactNode; title: string; aside?: ReactNode; /** Drops the divider and bottom padding when the parent spaces sections itself. */ bare?: boolean; children: ReactNode; }
 
-export function DetailSection({ icon, title, aside, children }: DetailSectionProps) {
-  return <section className="space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0"><h3 className="flex items-center gap-2 text-sm font-bold text-brand-ink">{icon ? <span className="h-4 w-4 text-primary">{icon}</span> : null}{title}{aside ? <span className="ml-auto text-xs font-medium tabular-nums text-muted-foreground">{aside}</span> : null}</h3>{children}</section>;
+export function DetailSection({ icon, title, aside, bare, children }: DetailSectionProps) {
+  return <section className={bare ? 'space-y-3' : 'space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0'}><h3 className="flex items-center gap-2 text-sm font-bold text-brand-ink">{icon ? <span className="h-4 w-4 text-primary">{icon}</span> : null}{title}{aside ? <span className="ml-auto text-xs font-medium tabular-nums text-muted-foreground">{aside}</span> : null}</h3>{children}</section>;
 }
 
 export interface DetailListProps { children: ReactNode; }

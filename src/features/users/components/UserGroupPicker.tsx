@@ -30,7 +30,7 @@ export function UserGroupPicker({ form, groups, locked }: Props) {
   const selected = form.values.groupIds;
 
   return (
-    <DetailSection title="Nhóm quyền" icon={<ShieldCheck className="h-4 w-4" />} aside={selectedLabel(selected.length)}>
+    <DetailSection title="Nhóm quyền" icon={<ShieldCheck className="h-4 w-4" />} aside={selectedLabel(selected.length)} bare>
       <fieldset
         aria-label="Nhóm quyền"
         aria-describedby={error ? "user-groups-error" : undefined}

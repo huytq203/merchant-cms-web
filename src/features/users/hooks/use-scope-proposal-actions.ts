@@ -14,7 +14,7 @@ function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** Reads, approves and rejects the scope proposal that already exists for a user. */
+/** Approves and rejects the scope proposal that already exists for a user. */
 export function useScopeProposalActions(reportError: (message: string | undefined) => void) {
   const queryClient = useQueryClient();
   const refresh = (id: string) => queryClient.invalidateQueries({ queryKey: ["users", "scope-proposal", id] });
@@ -37,7 +37,6 @@ export function useScopeProposalActions(reportError: (message: string | undefine
   };
 
   return {
-    getScopeProposal: (id: string) => apiClient.get<ScopeProposal>(proposalPath(id)),
     approveScopeProposal: (id: string) => run(() => approve.mutateAsync(id), "Không duyệt được đề xuất phạm vi"),
     rejectScopeProposal: (id: string, reason: string) =>
       run(() => reject.mutateAsync({ id, reason }), "Không từ chối được đề xuất phạm vi"),

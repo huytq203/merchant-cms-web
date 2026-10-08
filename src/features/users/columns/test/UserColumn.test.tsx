@@ -13,16 +13,15 @@ const base: MerchantUser = {
   email: "kien@example.com",
   fullName: "Nguyễn Văn Kiên",
   phone: "0912345678",
-  isActive: true,
-  isLocked: false,
+  active: true,
+  locked: false,
   groups: ["g1", "g2", "g3"],
-  status: "ACTIVE",
-  groupIds: ["g1", "g2", "g3"],
   merchantIds: [],
   subMerchantIds: [],
   rolesText: "",
   createdAt: "",
 };
+const flagsOf = { ACTIVE: { active: true, locked: false }, PENDING: { active: false, locked: false }, LOCKED: { active: false, locked: true } } as const;
 const names: Record<string, string> = { g1: "CSKH", g2: "Kế toán", g3: "Sale" };
 
 function renderTable(user: MerchantUser, onReset = vi.fn()) {
@@ -65,12 +64,21 @@ describe("user columns", () => {
     expect(onReset).toHaveBeenCalledWith(base);
   });
 
-  it.each(["PENDING", "LOCKED"] as const)("disables reset password for a %s user and explains why", async (status) => {
-    renderTable({ ...base, status });
+  it("disables reset password for a locked user and explains why", async () => {
+    renderTable({ ...base, ...flagsOf.LOCKED });
     const button = screen.getByRole("button", { name: /Đặt lại mật khẩu/ });
     expect(button).toBeDisabled();
     await userEvent.hover(button.parentElement as HTMLElement);
     expect(await screen.findByRole("tooltip")).toHaveTextContent(/\S/);
+  });
+
+  it("offers resend activation instead of reset password for a pending user", async () => {
+    const onReset = renderTable({ ...base, ...flagsOf.PENDING });
+    expect(screen.queryByRole("button", { name: /Đặt lại mật khẩu/ })).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: /Gửi lại kích hoạt Nguyễn Văn Kiên/ });
+    expect(button).toBeEnabled();
+    await userEvent.click(button);
+    expect(onReset).toHaveBeenCalledWith({ ...base, ...flagsOf.PENDING });
   });
 
   it("disables reset password and lock when the row is the actor", () => {
@@ -80,7 +88,7 @@ describe("user columns", () => {
   });
 
   it("offers unlock instead of lock for a locked user", () => {
-    renderTable({ ...base, status: "LOCKED" });
+    renderTable({ ...base, ...flagsOf.LOCKED });
     expect(screen.getByRole("button", { name: /Mở khóa/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /^Khóa/ })).not.toBeInTheDocument();
   });

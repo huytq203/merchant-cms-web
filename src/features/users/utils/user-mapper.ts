@@ -1,5 +1,6 @@
 import { singleMerchantLabel } from "../constants/user.constants";
-import type { MerchantUserStatus, UserFormValues } from "../schemas/user.schema";
+import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
+import { userStatusOf } from "./user-view";
 
 export interface MerchantUserCreateRequest {
   email: string;
@@ -30,12 +31,12 @@ export function toUpdateUserRequest(values: { fullName: string; phone?: string }
   return { fullName: values.fullName, phone: values.phone || undefined };
 }
 
-export function canLockUser(user: { id: string; status: MerchantUserStatus }, actorId: string): boolean {
-  return user.id !== actorId && user.status === "ACTIVE";
+export function canLockUser(user: Pick<MerchantUser, "id" | "active" | "locked">, actorId: string): boolean {
+  return user.id !== actorId && userStatusOf(user) === "ACTIVE";
 }
 
-export function canUnlockUser(user: { status: MerchantUserStatus }): boolean {
-  return user.status === "LOCKED";
+export function canUnlockUser(user: Pick<MerchantUser, "active" | "locked">): boolean {
+  return userStatusOf(user) === "LOCKED";
 }
 
 export function hasSameIds(left: readonly string[] = [], right: readonly string[] = []): boolean {

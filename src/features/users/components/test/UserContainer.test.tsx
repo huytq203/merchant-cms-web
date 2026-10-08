@@ -19,8 +19,9 @@ const row = {
   email: "user@example.com",
   fullName: "Test User",
   phone: null,
-  status: "ACTIVE",
-  groupIds: [groupId],
+  active: true,
+  locked: false,
+  groups: [groupId],
   merchantIds: [merchantId],
   subMerchantIds: [],
   createdAt: "2026-10-05T10:00:00",
@@ -38,7 +39,7 @@ function renderWithClient(actorId = "actor") {
 }
 
 function renderContainer(status: "ACTIVE" | "LOCKED" = "ACTIVE", actorId = "actor") {
-  mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...row, status }], total: 1 })));
+  mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...row, ...(status === "LOCKED" ? { active: false, locked: true } : {}) }], total: 1 })));
   return renderWithClient(actorId);
 }
 
@@ -125,7 +126,7 @@ describe("user container", () => {
     let lockBody: unknown;
     mswServer.use(http.post(`${base}/${userId}/lock`, async ({ request }) => {
       lockBody = await request.json();
-      return HttpResponse.json({ ...row, status: "LOCKED" });
+      return HttpResponse.json({ ...row, active: false, locked: true });
     }));
     await renderReadyContainer();
     const lock = await screen.findByRole("button", { name: /Khóa Test User/ });
@@ -143,7 +144,7 @@ describe("user container", () => {
     let unlockBody: string | undefined;
     mswServer.use(http.post(`${base}/${userId}/unlock`, async ({ request }) => {
       unlockBody = await request.text();
-      return HttpResponse.json({ ...row, status: "ACTIVE" });
+      return HttpResponse.json(row);
     }));
     await renderReadyContainer("LOCKED");
     await userEvent.click(await screen.findByRole("button", { name: /Mở khóa Test User/ }));
@@ -182,6 +183,23 @@ describe("user container", () => {
     await userEvent.click(screen.getByRole("button", { name: "Duyệt đề xuất" }));
     await waitFor(() => expect(approved).toBe(true));
     expect(await screen.findByText("Đã duyệt")).toBeInTheDocument();
+  });
+
+  it("resends the activation mail for a pending user after confirming", async () => {
+    let called = false;
+    mswServer.use(http.post(`${base}/${userId}/resend-activation`, () => {
+      called = true;
+      return HttpResponse.json({ id: userId });
+    }));
+    mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...row, active: false, locked: false }], total: 1 })));
+    renderWithClient();
+    await screen.findByText("Vận hành");
+    await userEvent.click(await screen.findByRole("button", { name: /Gửi lại kích hoạt Test User/ }));
+    const dialog = await openDialog();
+    expect(dialog.getByText("user@example.com")).toBeInTheDocument();
+    await userEvent.click(dialog.getByRole("button", { name: "Gửi lại email" }));
+    await waitFor(() => expect(called).toBe(true));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("resets a password with no OTP and no request body, then confirms without showing secrets", async () => {

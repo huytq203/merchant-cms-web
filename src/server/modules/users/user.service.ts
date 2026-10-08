@@ -5,7 +5,7 @@ import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
 import type { BeResult } from "@/lib/be/client";
-import { merchantUserSchema, scopeProposalSchema, type MerchantUser, type ScopeProposal, type UserFormValues } from "@/features/users/schemas/user.schema";
+import { merchantUserSchema, scopeProposalSchema, type MerchantUser, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
 import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils/user-mapper";
 import { userPaths } from "./user.paths";
 
@@ -29,24 +29,29 @@ export function getUser(id: string): Promise<BeResult<MerchantUser>> {
   return merchantClient().get({ path: userPaths.detail(id), schema: merchantUserSchema });
 }
 
-export function createUser(values: UserFormValues, merchantId: string): Promise<BeResult<MerchantUser>> {
-  return merchantClient().post({ path: userPaths.create, schema: merchantUserSchema, body: toCreateUserRequest(values, merchantId) });
+/** Write endpoints return a slimmer shape than GET (no active/locked/groups/rolesText), so only the id is checked and the full detail is re-read. */
+const writtenUserSchema = z.object({ id: z.uuid() });
+
+async function readAfterWrite(result: BeResult<z.infer<typeof writtenUserSchema>>): Promise<BeResult<MerchantUser>> {
+  if (!result.success) return result;
+  const detail = await getUser(result.data.id);
+  return detail.success ? ok(detail.data, result.message) : detail;
 }
 
-/** The BE PUT returns a slimmer shape than GET (no active/locked/groups/rolesText), so only the id is checked and the full detail is re-read. */
-const updatedUserSchema = z.object({ id: z.uuid() });
+export async function createUser(values: UserFormValues, merchantId: string): Promise<BeResult<MerchantUser>> {
+  return readAfterWrite(await merchantClient().post({ path: userPaths.create, schema: writtenUserSchema, body: toCreateUserRequest(values, merchantId) }));
+}
 
 export async function updateUser(id: string, values: { fullName: string; phone?: string }): Promise<BeResult<MerchantUser>> {
-  const result = await merchantClient().put({ path: userPaths.detail(id), schema: updatedUserSchema, body: toUpdateUserRequest(values) });
-  return result.success ? getUser(id) : result;
+  return readAfterWrite(await merchantClient().put({ path: userPaths.detail(id), schema: writtenUserSchema, body: toUpdateUserRequest(values) }));
 }
 
-export function lockUser(id: string, reason: string): Promise<BeResult<MerchantUser>> {
-  return merchantClient().post({ path: userPaths.lock(id), schema: merchantUserSchema, body: { reason } });
+export async function lockUser(id: string, reason: string): Promise<BeResult<MerchantUser>> {
+  return readAfterWrite(await merchantClient().post({ path: userPaths.lock(id), schema: writtenUserSchema, body: { reason } }));
 }
 
-export function unlockUser(id: string): Promise<BeResult<MerchantUser>> {
-  return merchantClient().post({ path: userPaths.unlock(id), schema: merchantUserSchema });
+export async function unlockUser(id: string): Promise<BeResult<MerchantUser>> {
+  return readAfterWrite(await merchantClient().post({ path: userPaths.unlock(id), schema: writtenUserSchema }));
 }
 
 /** The BE queues the reset itself and takes no body; whatever it returns is dropped so no secret reaches the browser. */
@@ -55,8 +60,22 @@ export async function resetUserPassword(id: string): Promise<BeResult<{ success:
   return result.success ? ok({ success: true }) : result;
 }
 
-export function assignUserGroups(id: string, groupIds: string[]): Promise<BeResult<MerchantUser>> {
-  return merchantClient().post({ path: userPaths.assignGroups(id), schema: merchantUserSchema, body: { ids: groupIds } });
+export async function assignUserGroups(id: string, groupIds: string[]): Promise<BeResult<MerchantUser>> {
+  return readAfterWrite(await merchantClient().post({ path: userPaths.assignGroups(id), schema: writtenUserSchema, body: { ids: groupIds } }));
+}
+
+/** The BE queues the mail and answers with the user; only the id is checked, the page refetches the rest. */
+export function resendUserActivation(id: string): Promise<BeResult<{ id: string }>> {
+  return merchantClient().post({ path: userPaths.resendActivation(id), schema: z.object({ id: z.uuid() }) });
+}
+
+/** The BE answers with a portal-shaped proposal, so only the id is checked; the page refetches the proposal itself. */
+export async function createScopeProposal(id: string, values: ScopeProposalFormValues): Promise<BeResult<{ id: string }>> {
+  return merchantClient().post({
+    path: userPaths.createScopeProposal(id),
+    schema: z.object({ id: z.uuid() }),
+    body: { subMerchantIds: values.subMerchantIds, reason: values.reason },
+  });
 }
 
 export function getScopeProposal(id: string): Promise<BeResult<ScopeProposal>> {

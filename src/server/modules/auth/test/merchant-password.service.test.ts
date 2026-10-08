@@ -28,7 +28,7 @@ describe("merchant password service", () => {
       }),
     );
     const input = { currentPassword: "Old-pass1!", newPassword: "NewPass12!x", confirmPassword: "NewPass12!x" };
-    expect(await changePassword(input, client)).toEqual({ success: true, data: undefined });
+    expect(await changePassword(input, client)).toMatchObject({ success: true, data: undefined });
     expect(auth).toBe("Bearer tok-1");
     expect(body).toEqual(input);
   });
@@ -57,7 +57,7 @@ describe("merchant password service", () => {
         return HttpResponse.json({ success: true, message: "success", detail: "If the email exists..." });
       }),
     );
-    expect(await forgotPassword("a@shop.vn", client)).toEqual({ success: true, data: undefined });
+    expect(await forgotPassword("a@shop.vn", client)).toMatchObject({ success: true, data: undefined });
     expect(auth).toBeNull();
   });
 
@@ -71,7 +71,7 @@ describe("merchant password service", () => {
     );
     const result = await validateResetToken("tkn 1", client);
     expect(token).toBe("tkn 1");
-    expect(result).toEqual({ success: true, data: { valid: true, maskedEmail: "a***@shop.vn" } });
+    expect(result).toMatchObject({ success: true, data: { valid: true, maskedEmail: "a***@shop.vn" } });
   });
 
   it("starts a reset and confirms it with the OTP", async () => {
@@ -84,7 +84,7 @@ describe("merchant password service", () => {
       { token: "t", newPassword: "NewPass12!x", confirmPassword: "NewPass12!x" },
       client,
     );
-    expect(started).toEqual({ success: true, data: challenge });
-    expect(await confirmResetOtp("r-9", "123456", client)).toEqual({ success: true, data: undefined });
+    expect(started).toMatchObject({ success: true, data: challenge });
+    expect(await confirmResetOtp("r-9", "123456", client)).toMatchObject({ success: true, data: undefined });
   });
 });

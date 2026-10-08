@@ -8,6 +8,7 @@ import {
   getUser,
   listUsers,
   lockUser,
+  createScopeProposal,
   getScopeProposal,
   rejectScopeProposal,
   resetUserPassword,
@@ -19,6 +20,7 @@ const path = "https://merchant.test/api/v1/merchant/merchant-users";
 const id = "22222222-2222-4222-8222-222222222222";
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const groupId = "33333333-3333-4333-8333-333333333333";
+const subMerchantId = "55555555-5555-4555-8555-555555555555";
 const user = {
   id,
   keycloakUserId: "keycloak-user",
@@ -103,11 +105,31 @@ describe("merchant user service", () => {
       http.put(`${path}/${id}`, () => HttpResponse.json(envelope(slim))),
       http.get(`${path}/${id}`, () => HttpResponse.json(envelope(user))),
     );
-    expect(await updateUser(id, values)).toMatchObject({ success: true, data: { id, isActive: true, rolesText: "Vận hành" } });
+    expect(await updateUser(id, values)).toMatchObject({ success: true, data: { id, active: true, groups: [groupId], rolesText: "Vận hành" } });
+  });
+
+  it("keeps the write's message when it re-reads the detail", async () => {
+    mswServer.use(
+      http.put(`${path}/${id}`, () => HttpResponse.json({ success: true, detail: "Update success", message: "success", data: { id } })),
+      http.get(`${path}/${id}`, () => HttpResponse.json({ success: true, detail: "Get success", data: user })),
+    );
+    expect(await updateUser(id, values)).toMatchObject({ success: true, message: "Update success" });
+  });
+
+  it("creates a scope proposal with only the id checked and the reason sent", async () => {
+    let body: unknown;
+    mswServer.use(http.post(`${path}/${id}/scope-proposals`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ success: true, detail: "Create scope proposal success", data: { id, status: "PENDING_APPROVAL", makerId: "x" } });
+    }));
+    const result = await createScopeProposal(id, { subMerchantIds: [subMerchantId], reason: "Phụ trách thêm cửa hàng" });
+    expect(result).toMatchObject({ success: true, data: { id }, message: "Create scope proposal success" });
+    expect(body).toEqual({ subMerchantIds: [subMerchantId], reason: "Phụ trách thêm cửa hàng" });
   });
 
   it("locks, unlocks and assigns groups through merchant actions", async () => {
     const bodies: unknown[] = [];
+    mswServer.use(http.get(`${path}/${id}`, () => HttpResponse.json(envelope(user))));
     recordBodies("post", `${path}/${id}/lock`, bodies);
     mswServer.use(http.post(`${path}/${id}/unlock`, () => HttpResponse.json(envelope(user))));
     recordBodies("post", `${path}/${id}/assign-groups`, bodies);

@@ -6,6 +6,7 @@ import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import { REASON_LENGTH_MESSAGE, reasonSchema } from "@/lib/schemas/reason";
 import type { MerchantUser } from "../schemas/user.schema";
 import { UserIdentity } from "./UserIdentity";
+import { nameOf } from "../utils/user-view";
 
 interface Props {
   open: boolean;
@@ -43,7 +44,7 @@ export function UserLockDialog({ open, onOpenChange, user, isPending, error, onC
       isLoading={isPending}
       onConfirm={() => onConfirm(reason.trim())}
     >
-      <UserIdentity name={shown.fullName} email={shown.email} />
+      <UserIdentity name={nameOf(shown)} email={shown.email} />
       {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
     </ConfirmModal>
   );

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { userPaths } from "../user.paths";
 
 describe("merchant-user portal paths", () => {
-  it("uses the merchant portal actions and does not expose resend activation", () => {
+  it("uses the merchant portal actions, including resend activation", () => {
     expect(userPaths.list).toBe("/api/v1/merchant/merchant-users");
     expect(userPaths.assignGroups("user id")).toBe(
       "/api/v1/merchant/merchant-users/user%20id/assign-groups",
@@ -10,6 +10,8 @@ describe("merchant-user portal paths", () => {
     expect(userPaths.scopeProposal("user id")).toBe(
       "/api/v1/merchant/merchant-users/user%20id/scope-proposal",
     );
-    expect("resendActivation" in userPaths).toBe(false);
+    expect(userPaths.resendActivation("user id")).toBe(
+      "/api/v1/merchant/merchant-users/user%20id/resend-activation",
+    );
   });
 });

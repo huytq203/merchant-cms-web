@@ -21,7 +21,7 @@ function initialValues(user: MerchantUser | null | undefined): UserFormState {
     email: user?.email ?? "",
     fullName: user?.fullName ?? "",
     phone: user?.phone ?? "",
-    groupIds: user?.groupIds ?? [],
+    groupIds: user?.groups ?? [],
     scope: "all",
     subMerchantIds: [],
   };

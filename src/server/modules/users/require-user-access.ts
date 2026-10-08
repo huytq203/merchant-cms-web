@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
+import { API_MESSAGE_HEADER } from "@/lib/http/api-message";
 import { merchantDomainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import type { SessionUser } from "@/types/auth";
 import type { MerchantUser } from "@/features/users/schemas/user.schema";
@@ -41,6 +42,12 @@ export async function requireOwnedUser(id: string, actor: SessionUser): Promise<
   return result.data;
 }
 
-export function serviceResponse<T>(result: { success: true; data: T } | { success: false; error: { message: string; status: number; code: string } }, status = 200): NextResponse {
-  return result.success ? NextResponse.json(result.data, { status }) : NextResponse.json({ message: merchantDomainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
+
+/** The BE text is Vietnamese or English, so it travels URI-encoded to stay a legal header value. */
+function messageHeaders(message?: string): HeadersInit | undefined {
+  return message ? { [API_MESSAGE_HEADER]: encodeURIComponent(message) } : undefined;
+}
+
+export function serviceResponse<T>(result: { success: true; data: T; message?: string } | { success: false; error: { message: string; status: number; code: string } }, status = 200): NextResponse {
+  return result.success ? NextResponse.json(result.data, { status, headers: messageHeaders(result.message) }) : NextResponse.json({ message: merchantDomainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
 }

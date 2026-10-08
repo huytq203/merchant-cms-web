@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import { mswServer } from "@/test/msw";
 import { userQueries } from "../../user-queries";
 import {
@@ -14,6 +15,8 @@ import {
   useUnlockUser,
   useUpdateUser,
 } from "../use-user-mutations";
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const base = "/api/v1/merchant/merchant-users";
 const id = "11111111-1111-4111-8111-111111111111";
@@ -28,6 +31,7 @@ const createValues = {
 let listCalls = 0;
 
 beforeEach(() => {
+  vi.mocked(toast.success).mockClear();
   listCalls = 0;
   mswServer.use(http.get(base, () => {
     listCalls += 1;
@@ -67,6 +71,23 @@ describe("user mutations", () => {
     });
     expect(JSON.parse(sent.body ?? "null")).toEqual(createValues);
     await waitFor(() => expect(listCalls).toBe(2));
+  });
+
+  it("toasts the FE fallback when the BE sent no message, and the BE message when it did", async () => {
+    mswServer.use(
+      http.put(`${base}/${id}`, () => HttpResponse.json({ id })),
+      http.post(`${base}/${id}/unlock`, () => HttpResponse.json({ id }, { headers: { "X-Api-Message": encodeURIComponent("Đã mở khóa") } })),
+    );
+    const update = await renderMutation(useUpdateUser);
+    await act(async () => {
+      await update.result.current.mutation.mutateAsync({ id, values: { fullName: "New Name" } });
+    });
+    expect(toast.success).toHaveBeenLastCalledWith("Cập nhật người dùng thành công");
+    const unlock = await renderMutation(useUnlockUser);
+    await act(async () => {
+      await unlock.result.current.mutation.mutateAsync({ id });
+    });
+    expect(toast.success).toHaveBeenLastCalledWith("Đã mở khóa");
   });
 
   it("updates only the editable fields", async () => {

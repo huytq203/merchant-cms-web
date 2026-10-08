@@ -12,11 +12,9 @@ const user: MerchantUser = {
   email: "kien@example.com",
   fullName: "Nguyễn Văn Kiên",
   phone: null,
-  isActive: true,
-  isLocked: false,
+  active: true,
+  locked: false,
   groups: [],
-  status: "ACTIVE",
-  groupIds: [],
   merchantIds: [],
   subMerchantIds: [],
   rolesText: "",
@@ -104,8 +102,8 @@ describe("user reset password dialog", () => {
   });
 
   it.each([
-    ["a locked user", { ...user, status: "LOCKED" as const }],
-    ["a pending user", { ...user, status: "PENDING" as const }],
+    ["a locked user", { ...user, active: false, locked: true }],
+    ["a pending user", { ...user, active: false }],
     ["the current user", { ...user, id: actorId }],
   ])("blocks %s with an explanation", async (_label, target) => {
     const { onConfirm } = renderDialog({ user: target });

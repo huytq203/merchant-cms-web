@@ -3,14 +3,17 @@ import { z } from "zod";
 export const merchantUserStatusSchema = z.enum(["PENDING", "ACTIVE", "LOCKED"]);
 export const scopeProposalStatusSchema = z.enum(["PENDING_APPROVAL", "APPROVED", "REJECTED"]);
 
-const merchantUserPortalSchema = z.object({
+/**
+ * The BE `MerchantUserPortalResponse`, field for field. Nothing is renamed, derived or filled in:
+ * the BE sends no `status` and no `groupIds`, and `fullName` only if it adds the field (kept optional).
+ * Jackson serializes the BE `isActive` and `isLocked` booleans as `active` and `locked`.
+ */
+export const merchantUserSchema = z.object({
   id: z.uuid(),
   keycloakUserId: z.string(),
   email: z.email(),
-  // Older BE builds do not return the full name yet, so it stays optional.
   fullName: z.string().nullish(),
   phone: z.string().nullable(),
-  // Jackson serializes the BE `isActive` and `isLocked` booleans as `active` and `locked`.
   active: z.boolean(),
   locked: z.boolean(),
   groups: z.array(z.uuid()),
@@ -18,16 +21,7 @@ const merchantUserPortalSchema = z.object({
   subMerchantIds: z.array(z.uuid()),
   rolesText: z.string(),
   createdAt: z.string(),
-}).transform(({ active, locked, fullName, ...user }) => ({
-  ...user,
-  isActive: active,
-  isLocked: locked,
-  fullName: fullName?.trim() || user.email,
-  status: locked ? "LOCKED" as const : active ? "ACTIVE" as const : "PENDING" as const,
-  groupIds: user.groups,
-}));
-
-export const merchantUserSchema = merchantUserPortalSchema;
+});
 
 export const scopeProposalSchema = z.object({
   id: z.uuid(),
@@ -39,6 +33,14 @@ export const scopeProposalSchema = z.object({
   decisionReason: z.string().nullable(),
   createdAt: z.string(),
   decidedAt: z.string().nullable(),
+});
+
+export const SCOPE_REASON_MIN_LENGTH = 10;
+
+/** Body of a request to change a user's sub-merchant scope; the BE queues it for approval. */
+export const scopeProposalFormSchema = z.object({
+  subMerchantIds: z.array(z.uuid()).default([]),
+  reason: z.string().trim().min(SCOPE_REASON_MIN_LENGTH, `Nhập tối thiểu ${SCOPE_REASON_MIN_LENGTH} ký tự`).max(500),
 });
 
 export const userFormSchema = z.object({
@@ -53,4 +55,5 @@ export const userFormSchema = z.object({
 export type MerchantUser = z.infer<typeof merchantUserSchema>;
 export type MerchantUserStatus = z.infer<typeof merchantUserStatusSchema>;
 export type ScopeProposal = z.infer<typeof scopeProposalSchema>;
+export type ScopeProposalFormValues = z.input<typeof scopeProposalFormSchema>;
 export type UserFormValues = z.input<typeof userFormSchema>;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Lock } from "lucide-react";
 import { FormModalField, FormModalGrid } from "@/components/modal/FormModalField";
 import { Input } from "@/components/ui/input/Input";
 import type { UserForm } from "../hooks/use-user-form";
@@ -30,7 +31,9 @@ export function UserBasicFields({ form, isEdit, readOnly, emailError }: Props) {
             type="email"
             placeholder="nguoidung@congty.vn"
             autoComplete="off"
-            disabled={isEdit}
+            readOnly={isEdit}
+            icon={isEdit ? <Lock className="h-4 w-4" aria-hidden="true" /> : undefined}
+            className={isEdit ? "border-divider bg-accent font-medium text-foreground" : undefined}
             value={values.email}
             onChange={(event) => setField("email", event.target.value)}
           />

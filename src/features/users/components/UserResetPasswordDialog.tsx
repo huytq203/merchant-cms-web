@@ -7,6 +7,7 @@ import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import type { MerchantUser } from "../schemas/user.schema";
 import { getResetPasswordBlock } from "../utils/user-restrictions";
 import { UserIdentity } from "./UserIdentity";
+import { nameOf } from "../utils/user-view";
 
 interface Props {
   open: boolean;
@@ -35,7 +36,7 @@ function ResetBody({ user, blocked, error }: { user: MerchantUser; blocked?: str
   return (
     <>
       <div className="rounded-xl border border-border bg-page px-3.5 py-3">
-        <UserIdentity name={user.fullName} email={user.email} />
+        <UserIdentity name={nameOf(user)} email={user.email} />
       </div>
       {blocked ? (
         <Banner tone="warn" role="alert"><Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><span>{blocked}</span></Banner>

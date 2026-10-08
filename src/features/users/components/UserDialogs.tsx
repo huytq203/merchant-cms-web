@@ -1,15 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
-import { ApiError } from "@/lib/http/api-client";
 import type { useUserActions } from "../hooks/use-user-actions";
+import { useScopeProposal } from "../hooks/use-scope-proposal";
 import type { UserDialogsState } from "../hooks/use-user-dialogs";
 import { UserDetailModal } from "./UserDetailModal";
 import { UserLockDialog } from "./UserLockDialog";
 import { UserModal } from "./UserModal";
+import { UserResendActivationDialog } from "./UserResendActivationDialog";
 import { UserResetPasswordDialog } from "./UserResetPasswordDialog";
 import { UserUnlockDialog } from "./UserUnlockDialog";
+import { userStatusOf } from "../utils/user-view";
 
 type Actions = ReturnType<typeof useUserActions>;
 
@@ -50,14 +51,8 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
   const { target } = dialogs;
   const { commandAction } = actions;
   const shown = usePreservedValue(target);
-  const proposal = useQuery({
-    queryKey: ["users", "scope-proposal", shown?.id],
-    queryFn: () => commandAction.getScopeProposal(shown?.id ?? ""),
-    enabled: dialogs.activeDialog === "detail" && shown !== null,
-    retry: false,
-  });
-  const hasNoProposal = proposal.error instanceof ApiError && proposal.error.status === 404;
-  const loadError = proposal.error && !hasNoProposal ? proposal.error.message : undefined;
+  const proposal = useScopeProposal(shown?.id, dialogs.activeDialog === "detail");
+  const loadError = proposal.error ? proposal.error.message : undefined;
   const reviewId = shown?.id;
 
   return (
@@ -77,10 +72,10 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
         if (reviewId) void commandAction.rejectScopeProposal(reviewId, reason);
       }}
       onReset={() => {
-        if (target) openFor("reset", target);
+        if (target) openFor(userStatusOf(target) === "PENDING" ? "resend" : "reset", target);
       }}
       onToggleLock={() => {
-        if (target) openFor(target.status === "LOCKED" ? "unlock" : "lock", target);
+        if (target) openFor(userStatusOf(target) === "LOCKED" ? "unlock" : "lock", target);
       }}
       onEdit={() => {
         if (target) openFor("edit", target);
@@ -113,6 +108,16 @@ function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: Section
         error={commandAction.error}
         onConfirm={() => {
           if (target) void commandAction.confirm("unlock", target.id);
+        }}
+      />
+      <UserResendActivationDialog
+        open={activeDialog === "resend"}
+        onOpenChange={onOpenChange}
+        user={target}
+        isPending={commandAction.pending.resendActivation}
+        error={commandAction.error}
+        onConfirm={() => {
+          if (target) void commandAction.confirm("resend-activation", target.id);
         }}
       />
       <UserResetPasswordDialog

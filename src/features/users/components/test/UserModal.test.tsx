@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
@@ -18,11 +18,9 @@ const existingUser: MerchantUser = {
   email: "user@example.com",
   fullName: "Test User",
   phone: null,
-  isActive: true,
-  isLocked: false,
+  active: true,
+  locked: false,
   groups: [groupId],
-  status: "ACTIVE",
-  groupIds: [groupId],
   merchantIds: [merchantId],
   subMerchantIds: [],
   rolesText: "Vận hành",
@@ -31,8 +29,10 @@ const existingUser: MerchantUser = {
 
 afterEach(cleanup);
 
-function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}) {
+function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}, proposal?: unknown) {
   mswServer.use(
+    http.get("/api/v1/merchant/merchant-users/:id/scope-proposal", () =>
+      proposal ? HttpResponse.json(proposal) : HttpResponse.json(null, { status: 404 })),
     http.get("/api/v1/merchant/permission-groups", () => HttpResponse.json({
       rows: [
         { id: groupId, name: "Vận hành", merchantId, permissions: ["A", "B", "C"] },
@@ -155,7 +155,7 @@ describe("user modal: create", () => {
 describe("user modal: update", () => {
   it("keeps the email read-only and ticks the user's groups", async () => {
     renderModal({ user: existingUser, actorId: "someone-else" });
-    expect(screen.getByRole("textbox", { name: /Email/ })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: /Email/ })).toHaveAttribute("readonly");
     expect(screen.getByRole("textbox", { name: /Email/ })).toHaveValue("user@example.com");
     expect(await screen.findByRole("checkbox", { name: "Vận hành" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Kế toán" })).not.toBeChecked();
@@ -182,3 +182,56 @@ describe("user modal: update", () => {
     expect(screen.getByRole("button", { name: "Lưu thay đổi" })).toBeDisabled();
   });
 });
+
+describe("user modal: update, name and scope", () => {
+  it("leaves the name empty when the BE returns none", async () => {
+    renderModal({ user: { ...existingUser, fullName: undefined }, actorId: "someone-else" });
+    expect(screen.getByRole("textbox", { name: /Họ và tên/ })).toHaveValue("");
+  });
+
+  it("offers a scope change request instead of calling the scope read-only", async () => {
+    renderModal({ user: existingUser, actorId: "someone-else" });
+    expect(await screen.findByRole("button", { name: "Đề xuất đổi phạm vi" })).toBeInTheDocument();
+    expect(screen.queryByText(/không thể tạo mới/)).not.toBeInTheDocument();
+  });
+
+  it("sends the chosen sub-merchants and reason, and needs a reason first", async () => {
+    let body: unknown;
+    mswServer.use(http.post("/api/v1/merchant/merchant-users/:id/scope-proposals", async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ id: existingUser.id }, { status: 201 });
+    }));
+    renderModal({ user: existingUser, actorId: "someone-else" });
+    await userEvent.click(await screen.findByRole("button", { name: "Đề xuất đổi phạm vi" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Gửi đề xuất" }));
+    expect(await screen.findByText(/tối thiểu 10 ký tự/)).toBeInTheDocument();
+    expect(body).toBeUndefined();
+    await userEvent.type(screen.getByRole("textbox", { name: /Lý do đề xuất/ }), "Phụ trách thêm cửa hàng mới");
+    await userEvent.click(screen.getByRole("button", { name: "Gửi đề xuất" }));
+    await waitFor(() => expect(body).toEqual({ subMerchantIds: [subMerchantId], reason: "Phụ trách thêm cửa hàng mới" }));
+  });
+
+  it("shows a pending proposal and blocks a second one", async () => {
+    renderModal({ user: existingUser, actorId: "someone-else" }, {
+      id: "77777777-7777-4777-8777-777777777777",
+      merchantUserId: existingUser.id,
+      status: "PENDING_APPROVAL",
+      merchantIds: [merchantId],
+      subMerchantIds: [subMerchantId],
+      requestReason: "Phụ trách thêm cửa hàng mới",
+      decisionReason: null,
+      createdAt: "2026-10-08T10:00:00",
+      decidedAt: null,
+    });
+    expect(await screen.findByText("Đang chờ duyệt")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Đề xuất đổi phạm vi" })).not.toBeInTheDocument();
+  });
+
+  it("hides the scope request when editing yourself", async () => {
+    renderModal({ actorId: existingUser.id, user: existingUser });
+    await screen.findByRole("checkbox", { name: "Vận hành" });
+    expect(screen.queryByRole("button", { name: "Đề xuất đổi phạm vi" })).not.toBeInTheDocument();
+  });
+});
+

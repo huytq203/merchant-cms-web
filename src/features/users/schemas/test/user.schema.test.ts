@@ -34,9 +34,8 @@ describe("merchantUserSchema", () => {
     expect(merchantUserSchema.parse(response)).toMatchObject({
       keycloakUserId: "keycloak-user",
       merchantIds: [],
-      isActive: true,
-      isLocked: false,
-      status: "ACTIVE",
+      active: true,
+      locked: false,
     });
   });
 
@@ -44,14 +43,17 @@ describe("merchantUserSchema", () => {
     expect(merchantUserSchema.parse({ ...user, fullName: "Nguyễn Văn Kiên" }).fullName).toBe("Nguyễn Văn Kiên");
   });
 
-  it("falls back to the email when the BE has no full name yet", () => {
-    expect(merchantUserSchema.parse(user).fullName).toBe(user.email);
-    expect(merchantUserSchema.parse({ ...user, fullName: null }).fullName).toBe(user.email);
-    expect(merchantUserSchema.parse({ ...user, fullName: "   " }).fullName).toBe(user.email);
+  it("keeps the BE name as sent and never fills a missing one", () => {
+    expect(merchantUserSchema.parse(user).fullName).toBeUndefined();
+    expect(merchantUserSchema.parse({ ...user, fullName: null }).fullName).toBeNull();
   });
 
-  it("derives a locked status from the serialized `locked` flag", () => {
-    expect(merchantUserSchema.parse({ ...user, locked: true, active: false }).status).toBe("LOCKED");
+  it("returns only the BE fields, with no derived status, groupIds or renamed flags", () => {
+    const parsed = merchantUserSchema.parse({ ...user, locked: true, active: false });
+    expect(parsed).toMatchObject({ locked: true, active: false, groups: user.groups });
+    expect(parsed).not.toHaveProperty("status");
+    expect(parsed).not.toHaveProperty("groupIds");
+    expect(parsed).not.toHaveProperty("isLocked");
   });
 
   it("accepts a user with no groups", () => {

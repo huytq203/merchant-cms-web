@@ -17,7 +17,7 @@ const request = () => new Request(`http://localhost/api/v1/admin/merchant-users/
 beforeEach(() => {
   vi.clearAllMocks();
   getServerSession.mockResolvedValue({ userId: "actor", permissions: ["MANAGE_USER"], merchantIds: [merchantId] });
-  getUser.mockResolvedValue({ success: true, data: { id, status: "ACTIVE", merchantIds: [merchantId] } });
+  getUser.mockResolvedValue({ success: true, data: { id, active: true, locked: false, merchantIds: [merchantId] } });
   resetUserPassword.mockResolvedValue({ success: true, data: { success: true } });
 });
 
@@ -35,8 +35,8 @@ describe("reset password route", () => {
     expect(resetUserPassword).not.toHaveBeenCalled();
   });
 
-  it.each(["PENDING", "LOCKED"])("rejects a %s user without contacting the BE", async (status) => {
-    getUser.mockResolvedValue({ success: true, data: { id, status, merchantIds: [merchantId] } });
+  it.each([["PENDING", { active: false, locked: false }], ["LOCKED", { active: false, locked: true }]])("rejects a %s user without contacting the BE", async (_label, flags) => {
+    getUser.mockResolvedValue({ success: true, data: { id, ...flags, merchantIds: [merchantId] } });
     expect((await POST(request(), context)).status).toBe(403);
     expect(resetUserPassword).not.toHaveBeenCalled();
   });

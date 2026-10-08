@@ -18,11 +18,9 @@ const user: MerchantUser = {
   email: "user@example.com",
   fullName: "Test User",
   phone: null,
-  isActive: true,
-  isLocked: false,
+  active: true,
+  locked: false,
   groups: [groupId],
-  status: "ACTIVE",
-  groupIds: [groupId],
   merchantIds: [merchantA],
   subMerchantIds: [],
   rolesText: "Vận hành",
@@ -102,16 +100,17 @@ describe("user detail modal", () => {
   });
 
   it("offers unlock for a locked user and disables reset password with the reason", () => {
-    renderModal({ user: { ...user, status: "LOCKED", isLocked: true, isActive: false } });
+    renderModal({ user: { ...user, locked: true, active: false } });
     expect(screen.getByRole("button", { name: "Mở khóa" })).toBeEnabled();
     const reset = screen.getByRole("button", { name: "Đặt lại mật khẩu" });
     expect(reset).toBeDisabled();
     expect(reset).toHaveAccessibleDescription(/\S/);
   });
 
-  it("disables reset password for a pending user", () => {
-    renderModal({ user: { ...user, status: "PENDING", isActive: false } });
-    expect(screen.getByRole("button", { name: "Đặt lại mật khẩu" })).toBeDisabled();
+  it("offers resend activation instead of reset password for a pending user", () => {
+    renderModal({ user: { ...user, active: false } });
+    expect(screen.queryByRole("button", { name: "Đặt lại mật khẩu" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gửi lại kích hoạt" })).toBeEnabled();
   });
 
   it("disables both quick actions on the current user's own account", () => {

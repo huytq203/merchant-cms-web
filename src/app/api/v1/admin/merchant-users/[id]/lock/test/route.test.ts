@@ -12,7 +12,7 @@ const request = () => new Request(`http://localhost/api/v1/admin/merchant-users/
 beforeEach(() => {
   vi.clearAllMocks();
   getServerSession.mockResolvedValue({ userId: id, permissions: ["MANAGE_USER"], merchantIds: [merchantId] });
-  getUser.mockResolvedValue({ success: true, data: { id, status: "ACTIVE", merchantIds: [merchantId] } });
+  getUser.mockResolvedValue({ success: true, data: { id, active: true, locked: false, merchantIds: [merchantId] } });
 });
 
 describe("lock route", () => {

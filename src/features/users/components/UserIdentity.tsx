@@ -13,7 +13,8 @@ export function UserAvatar({ name, className }: { name: string; className?: stri
 }
 
 interface Props {
-  name: string;
+  /** Omitted when the BE stored no name; the email then stands alone. */
+  name?: string;
   email: string;
   className?: string;
 }
@@ -22,10 +23,10 @@ interface Props {
 export function UserIdentity({ name, email, className }: Props) {
   return (
     <div className={cn("flex min-w-0 items-center gap-3", className)}>
-      <UserAvatar name={name} />
+      <UserAvatar name={name ?? email} />
       <div className="min-w-0 leading-tight">
-        <p className="truncate font-semibold text-foreground">{name}</p>
-        <p className="truncate text-xs text-muted-foreground">{email}</p>
+        <p className={cn("truncate", name ? "font-semibold text-foreground" : "font-medium text-foreground")}>{name ?? email}</p>
+        {name ? <p className="truncate text-xs text-muted-foreground">{email}</p> : null}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import type { MerchantUser, ScopeProposal } from "../schemas/user.schema";
 import { formatCreatedAt } from "../utils/user-format";
 import { groupNames } from "../utils/user-mapper";
 import { getInitials } from "../utils/user-restrictions";
+import { labelOf, nameOf, userStatusOf } from "../utils/user-view";
 import { UserGroupChips } from "./UserGroupChips";
 import { UserQuickActions } from "./UserQuickActions";
 import { UserScopeItems } from "./UserScopeItems";
@@ -36,11 +37,11 @@ const statusTone = { PENDING: "warning", ACTIVE: "success", LOCKED: "danger" } a
 
 function GroupsSection({ user }: { user: MerchantUser }) {
   const groups = usePermissionGroups({ page: 1, pageSize: 100 });
-  const names = groupNames(user.groupIds, groups.data?.rows ?? []);
+  const names = groupNames(user.groups, groups.data?.rows ?? []);
 
   return (
-    <DetailSection title="Nhóm quyền" icon={<ShieldCheck className="h-4 w-4" />} aside={`${user.groupIds.length} nhóm`}>
-      {user.groupIds.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có nhóm quyền</p> : <UserGroupChips names={names} />}
+    <DetailSection title="Nhóm quyền" icon={<ShieldCheck className="h-4 w-4" />} aside={`${user.groups.length} nhóm`}>
+      {user.groups.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có nhóm quyền</p> : <UserGroupChips names={names} />}
     </DetailSection>
   );
 }
@@ -75,18 +76,19 @@ function Sections({ user, ...props }: Omit<Props, "open" | "onOpenChange" | "onE
 export function UserDetailModal({ open, onOpenChange, user, onEdit, ...sectionProps }: Props) {
   const shown = usePreservedValue(user);
   if (!shown) return null;
+  const status = userStatusOf(shown);
 
   return (
     <DetailModal
       open={open}
       onOpenChange={onOpenChange}
       header={{
-        monogramInitials: getInitials(shown.fullName),
-        title: shown.fullName,
+        monogramInitials: getInitials(labelOf(shown)),
+        title: labelOf(shown),
         statusBadge: (
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">{shown.email}</span>
-            <StatusBadge tone={statusTone[shown.status]}>{userStatusLabels[shown.status]}</StatusBadge>
+            {nameOf(shown) ? <span className="text-sm text-muted-foreground">{shown.email}</span> : null}
+            <StatusBadge tone={statusTone[status]}>{userStatusLabels[status]}</StatusBadge>
           </span>
         ),
       }}

@@ -47,7 +47,7 @@ describe("merchant auth service", () => {
     );
     const result = await requestLoginOtp("a@shop.vn", "Secret123!", client);
     expect(body).toEqual({ email: "a@shop.vn", password: "Secret123!" });
-    expect(result).toEqual({ success: true, data: { otpRequired: true, ...challenge } });
+    expect(result).toMatchObject({ success: true, data: { otpRequired: true, ...challenge } });
   });
 
   it("surfaces the BE message for wrong credentials", async () => {
@@ -76,7 +76,7 @@ describe("merchant auth service", () => {
     );
     const result = await verifyLoginOtp("req-1", "123456", client);
     expect(body).toEqual({ requestId: "req-1", otp: "123456" });
-    expect(result).toEqual({ success: true, data: tokens });
+    expect(result).toMatchObject({ success: true, data: tokens });
   });
 
   it("rejects a token pair with an empty access token", async () => {
@@ -89,7 +89,7 @@ describe("merchant auth service", () => {
 
   it("resends an OTP for a request id", async () => {
     mswServer.use(http.post(`${AUTH}/otp/resend`, () => HttpResponse.json(envelope(challenge))));
-    expect(await resendOtp("req-1", client)).toEqual({ success: true, data: challenge });
+    expect(await resendOtp("req-1", client)).toMatchObject({ success: true, data: challenge });
   });
 
   it("refreshes with the refresh token in the body and never sends a bearer", async () => {
@@ -105,7 +105,7 @@ describe("merchant auth service", () => {
     const result = await refreshTokens("r-0", client);
     expect(body).toEqual({ refreshToken: "r-0" });
     expect(auth).toBeNull();
-    expect(result).toEqual({ success: true, data: tokens });
+    expect(result).toMatchObject({ success: true, data: tokens });
   });
 
   it("logs out with the refresh token", async () => {
@@ -116,7 +116,7 @@ describe("merchant auth service", () => {
         return HttpResponse.json(envelope(null));
       }),
     );
-    expect(await logoutSession("r-1", client)).toEqual({ success: true, data: undefined });
+    expect(await logoutSession("r-1", client)).toMatchObject({ success: true, data: undefined });
     expect(body).toEqual({ refreshToken: "r-1" });
   });
 });

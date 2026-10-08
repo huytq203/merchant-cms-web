@@ -5,7 +5,7 @@ import type { MerchantUser } from "../schemas/user.schema";
 
 export type UserDialogsState = ReturnType<typeof useUserDialogs>;
 
-export type UserDialog = "create" | "edit" | "detail" | "lock" | "unlock" | "reset" | "scope" | null;
+export type UserDialog = "create" | "edit" | "detail" | "lock" | "unlock" | "reset" | "resend" | "scope" | null;
 
 export function useUserDialogs() {
   const [activeDialog, setActiveDialog] = useState<UserDialog>(null);

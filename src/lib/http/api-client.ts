@@ -1,4 +1,5 @@
 import { publicEnv } from "@/lib/env/public";
+import { toastFailure, toastSuccess, type ApiToastOption } from "@/lib/http/api-toast";
 
 export class ApiError extends Error {
   constructor(
@@ -17,6 +18,8 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   query?: Record<string, string | number | boolean | undefined | null>;
   /** Gửi thêm cookie khi gọi từ Server Component (Next.js cookies()). */
   serverCookie?: string;
+  /** Toast control for write requests; see {@link ApiToastOption}. */
+  toast?: ApiToastOption;
 };
 
 function buildUrl(
@@ -101,8 +104,9 @@ function refreshSessionOnce(): Promise<RefreshOutcome> {
 }
 
 function buildInit(method: string, options: RequestOptions): RequestInit {
-  const { body, query: _query, serverCookie, headers, ...rest } = options;
+  const { body, query: _query, serverCookie, headers, toast: _toast, ...rest } = options;
   void _query;
+  void _toast;
   const finalHeaders = new Headers(headers);
   if (body !== undefined && !(body instanceof FormData)) {
     finalHeaders.set("Content-Type", "application/json");
@@ -140,7 +144,12 @@ async function request<T>(
     }
   }
 
-  if (!res.ok) throw await parseError(res);
+  if (!res.ok) {
+    const error = await parseError(res);
+    toastFailure(method, error.message, options.toast);
+    throw error;
+  }
+  toastSuccess(method, res, options.toast);
 
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("content-type") ?? "";

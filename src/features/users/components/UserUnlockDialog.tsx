@@ -4,6 +4,7 @@ import { ConfirmModal } from "@/components/modal/ConfirmModal";
 import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import type { MerchantUser } from "../schemas/user.schema";
 import { UserIdentity } from "./UserIdentity";
+import { nameOf } from "../utils/user-view";
 
 interface Props {
   open: boolean;
@@ -29,7 +30,7 @@ export function UserUnlockDialog({ open, onOpenChange, user, isPending, error, o
       isLoading={isPending}
       onConfirm={onConfirm}
     >
-      <UserIdentity name={shown.fullName} email={shown.email} />
+      <UserIdentity name={nameOf(shown)} email={shown.email} />
       {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
     </ConfirmModal>
   );

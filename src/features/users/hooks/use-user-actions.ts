@@ -8,13 +8,14 @@ import {
   useAssignUserGroups,
   useCreateUser,
   useLockUser,
+  useResendUserActivation,
   useResetUserPassword,
   useUnlockUser,
   useUpdateUser,
 } from "./use-user-mutations";
 import { useScopeProposalActions } from "./use-scope-proposal-actions";
 
-export type UserCommand = "lock" | "unlock" | "assign-groups";
+export type UserCommand = "lock" | "unlock" | "assign-groups" | "resend-activation";
 
 type UserCommandInput =
   | { command: "lock"; reason: string }
@@ -44,7 +45,7 @@ async function runEditSteps(
   try {
     await mutations.update.mutateAsync({ id: target.id, values: { fullName: values.fullName, phone: values.phone } });
     completed.push("thông tin");
-    if (!hasSameIds(values.groupIds, target.groupIds)) {
+    if (!hasSameIds(values.groupIds, target.groups)) {
       await mutations.assign.mutateAsync({ id: target.id, groupIds: values.groupIds });
       completed.push("nhóm quyền");
     }
@@ -84,6 +85,7 @@ export function useUserCommandActions(onDone: () => void) {
   const lock = useLockUser();
   const unlock = useUnlockUser();
   const resetPassword = useResetUserPassword();
+  const resendActivation = useResendUserActivation();
   const assignGroups = useAssignUserGroups();
   const [error, setError] = useState<string>();
   const proposal = useScopeProposalActions(setError);
@@ -92,6 +94,7 @@ export function useUserCommandActions(onDone: () => void) {
     try {
       if (command === "lock" && input?.command === "lock") await lock.mutateAsync({ id, reason: input.reason });
       if (command === "unlock") await unlock.mutateAsync({ id });
+      if (command === "resend-activation") await resendActivation.mutateAsync({ id });
       if (command === "assign-groups" && input?.command === "assign-groups") {
         await assignGroups.mutateAsync({ id, groupIds: input.groupIds });
       }
@@ -122,6 +125,7 @@ export function useUserCommandActions(onDone: () => void) {
       lock: lock.isPending,
       unlock: unlock.isPending,
       resetPassword: resetPassword.isPending,
+      resendActivation: resendActivation.isPending,
       assignGroups: assignGroups.isPending,
     },
     isPasswordResetDone: resetPassword.isSuccess,
