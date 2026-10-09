@@ -153,8 +153,8 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
             Đơn đã thanh toán thì không sửa được.
           </Notice>
         ) : null}
-        {error ? <Notice tone="danger">{error}</Notice> : null}
       </DialogBody>
+      {error ? <Notice tone="danger">{error}</Notice> : null}
       <DialogFooter className="items-center border-t border-border pt-4">
         <p className="mr-auto text-xs text-muted-foreground">
           Phương thức chưa bật cho Sub-merchant sẽ bị từ chối khi tạo.
