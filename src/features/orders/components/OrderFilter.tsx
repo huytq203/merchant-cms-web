@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker } from "@/components/ui/datepicker/DatePicker";
 import { Input } from "@/components/ui/input/Input";
@@ -14,7 +15,6 @@ import type { OrderFilterValues } from "../types/types";
 type Props = { initial: OrderFilterValues; onSearch: (values: OrderFilterValues) => void };
 
 const statusOptions = ORDER_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
-const toDate = (value: string) => (value ? parseISO(value) : undefined);
 const toDay = (value: Date | undefined) => (value ? format(value, "yyyy-MM-dd") : "");
 
 export function OrderFilter({ initial, onSearch }: Props) {
@@ -23,15 +23,9 @@ export function OrderFilter({ initial, onSearch }: Props) {
   const [subMerchantId, setSubMerchantId] = useState(initial.subMerchantId ?? "");
   const [createdFrom, setCreatedFrom] = useState(initial.createdFrom ?? "");
   const [createdTo, setCreatedTo] = useState(initial.createdTo ?? "");
-  const [error, setError] = useState<string>();
   const subMerchants = useSubMerchantOptions();
 
   const submit = () => {
-    if (createdFrom && createdTo && createdFrom > createdTo) {
-      setError("Từ ngày phải trước hoặc bằng đến ngày");
-      return;
-    }
-    setError(undefined);
     const parsedStatus = orderStatusSchema.safeParse(status);
     onSearch({
       ...(orderCode.trim() ? { orderCode: orderCode.trim() } : {}),
@@ -47,12 +41,11 @@ export function OrderFilter({ initial, onSearch }: Props) {
     setSubMerchantId("");
     setCreatedFrom("");
     setCreatedTo("");
-    setError(undefined);
     onSearch({});
   };
 
   return (
-    <FilterCard fieldCount={5} onSubmit={submit} onClear={clear}>
+    <FilterCard fieldCount={4} onSubmit={submit} onClear={clear}>
       <Input
         label="Mã đơn hàng"
         placeholder="Nhập mã đơn hàng cần tìm"
@@ -75,19 +68,15 @@ export function OrderFilter({ initial, onSearch }: Props) {
         placeholder="Tất cả Sub-merchant"
       />
       <DatePicker
-        label="Từ ngày"
-        value={toDate(createdFrom)}
-        onChange={(value) => setCreatedFrom(toDay(value instanceof Date ? value : undefined))}
-        placeholder="Chọn ngày"
-        presets={false}
-      />
-      <DatePicker
-        label="Đến ngày"
-        value={toDate(createdTo)}
-        onChange={(value) => setCreatedTo(toDay(value instanceof Date ? value : undefined))}
-        placeholder="Chọn ngày"
-        presets={false}
-        error={error}
+        mode="range"
+        label="Ngày tạo"
+        value={createdFrom ? { from: parseISO(createdFrom), to: createdTo ? parseISO(createdTo) : undefined } : undefined}
+        onChange={(value) => {
+          const range = value && !(value instanceof Date) ? (value as DateRange) : undefined;
+          setCreatedFrom(toDay(range?.from));
+          setCreatedTo(toDay(range?.to));
+        }}
+        placeholder="Từ ngày, đến ngày"
       />
     </FilterCard>
   );

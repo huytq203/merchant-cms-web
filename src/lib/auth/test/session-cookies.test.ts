@@ -7,7 +7,7 @@ const NOW_MS = 1_700_000_000_000;
 const nowSeconds = NOW_MS / 1000;
 
 describe("buildSessionCookies", () => {
-  it("expires the access cookie with the JWT exp and the refresh cookie with refreshExpiresIn", () => {
+  it("expires the access cookie a minute before the JWT exp so the proxy refreshes ahead of time", () => {
     const accessToken = fakeJwt({ exp: nowSeconds + 300 });
     const [access, refresh] = buildSessionCookies(
       { accessToken, expiresIn: 9999, refreshToken: "r-1", refreshExpiresIn: 86_400 },
@@ -16,7 +16,7 @@ describe("buildSessionCookies", () => {
     expect(access).toMatchObject({
       name: "access_token",
       value: accessToken,
-      options: { httpOnly: true, sameSite: "lax", path: "/", secure: true, maxAge: 300 },
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: true, maxAge: 240 },
     });
     expect(refresh).toMatchObject({
       name: "refresh_token",
@@ -38,6 +38,14 @@ describe("buildSessionCookies", () => {
       { accessToken: "opaque-token", expiresIn: 120, refreshToken: "r", refreshExpiresIn: 60 },
       { secure: false, nowMs: NOW_MS },
     );
-    expect(access?.options.maxAge).toBe(120);
+    expect(access?.options.maxAge).toBe(60);
+  });
+
+  it("keeps half the lifetime of a short-lived token instead of dropping the cookie", () => {
+    const [access] = buildSessionCookies(
+      { accessToken: fakeJwt({ exp: nowSeconds + 60 }), expiresIn: 60, refreshToken: "r", refreshExpiresIn: 60 },
+      { secure: false, nowMs: NOW_MS },
+    );
+    expect(access?.options.maxAge).toBe(30);
   });
 });

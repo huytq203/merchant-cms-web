@@ -1,4 +1,3 @@
-import { publicEnv } from "@/lib/env/public";
 import { toastFailure, toastSuccess, type ApiToastOption } from "@/lib/http/api-toast";
 
 export class ApiError extends Error {
@@ -16,34 +15,16 @@ export class ApiError extends Error {
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined | null>;
-  /** Gửi thêm cookie khi gọi từ Server Component (Next.js cookies()). */
-  serverCookie?: string;
   /** Toast control for write requests; see {@link ApiToastOption}. */
   toast?: ApiToastOption;
 };
 
+/** Browser-only: always same-origin `/api`, so the httpOnly session cookies go along. */
 function buildUrl(
   path: string,
   query?: RequestOptions["query"],
 ): string {
-  const rel = path.startsWith("/") ? path : `/${path}`;
-
-  let base: string;
-  if (typeof window === "undefined") {
-    // Server-side (Server Action, Server Component): dùng absolute URL
-    const configuredBase = publicEnv.NEXT_PUBLIC_API_LOGIN_URL.replace(/\/+$/, "");
-    if (configuredBase.startsWith("/")) {
-      // Relative config → prepend localhost (chỉ dùng trong server action gọi mock)
-      base = `http://localhost:3000${configuredBase}`;
-    } else {
-      base = configuredBase;
-    }
-  } else {
-    // Client-side (browser): LUÔN dùng relative URL → same-origin, không CORS
-    base = "/api";
-  }
-
-  const url = `${base}${rel}`;
+  const url = `/api${path.startsWith("/") ? path : `/${path}`}`;
   if (!query) return url;
 
   const params = new URLSearchParams();
@@ -104,7 +85,7 @@ function refreshSessionOnce(): Promise<RefreshOutcome> {
 }
 
 function buildInit(method: string, options: RequestOptions): RequestInit {
-  const { body, query: _query, serverCookie, headers, toast: _toast, ...rest } = options;
+  const { body, query: _query, headers, toast: _toast, ...rest } = options;
   void _query;
   void _toast;
   const finalHeaders = new Headers(headers);
@@ -112,7 +93,6 @@ function buildInit(method: string, options: RequestOptions): RequestInit {
     finalHeaders.set("Content-Type", "application/json");
   }
   finalHeaders.set("Accept", "application/json");
-  if (serverCookie) finalHeaders.set("Cookie", serverCookie);
   return {
     ...rest,
     method,
@@ -131,17 +111,12 @@ async function request<T>(
   const url = buildUrl(path, options.query);
   let res = await fetch(url, buildInit(method, options));
 
-  const canRefresh =
-    res.status === 401 && typeof window !== "undefined" && !path.startsWith(AUTH_PATH_PREFIX);
-  if (canRefresh) {
+  if (res.status === 401 && !path.startsWith(AUTH_PATH_PREFIX)) {
     const outcome = await refreshSessionOnce();
-    if (outcome === "ok") {
-      res = await fetch(url, buildInit(method, options));
-    }
     if (outcome === "unavailable") throw new ApiError(503, "Không kết nối được máy chủ");
-    if (outcome === "rejected" || res.status === 401) {
-      onSessionExpired();
-    }
+    // Only a rejected refresh ends the session; a 401 after a good refresh is the BE refusing this call.
+    if (outcome === "rejected") onSessionExpired();
+    else res = await fetch(url, buildInit(method, options));
   }
 
   if (!res.ok) {

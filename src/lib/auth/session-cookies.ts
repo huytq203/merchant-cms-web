@@ -21,13 +21,18 @@ export async function readRefreshToken(): Promise<string | null> {
   return store.get(AUTH_COOKIES.REFRESH_TOKEN)?.value ?? null;
 }
 
+/** How long before the JWT exp the access cookie disappears, so the proxy refreshes before BE calls fail. */
+const ACCESS_REFRESH_LEAD_SECONDS = 60;
+
 function accessMaxAge(tokens: TokenPair, nowMs: number): number {
   const payload = decodeJwtPayload(tokens.accessToken);
-  if (!payload) return tokens.expiresIn;
-  return Math.max(0, Math.floor(payload.exp - nowMs / 1000));
+  const lifetime = payload ? Math.floor(payload.exp - nowMs / 1000) : tokens.expiresIn;
+  if (lifetime <= 0) return 0;
+  // A short-lived token keeps half its lifetime; dropping the cookie at once would refresh on every request.
+  return lifetime - Math.min(ACCESS_REFRESH_LEAD_SECONDS, Math.floor(lifetime / 2));
 }
 
-/** Pure: the cookies to set after a login or refresh. The access cookie lives exactly as long as the token. */
+/** Pure: the cookies to set after a login or refresh. The access cookie expires a little before the token. */
 export function buildSessionCookies(
   tokens: TokenPair,
   options: { secure: boolean; nowMs?: number },

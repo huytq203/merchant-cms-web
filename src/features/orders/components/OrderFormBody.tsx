@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
-import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
+import { DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
 import { Input } from "@/components/ui/input/Input";
 import { Notice } from "@/components/page/Notice";
 import { Select } from "@/components/ui/select/Select";
@@ -44,13 +44,13 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
   const expiresAt = minutes > 0 ? new Date(now.getTime() + minutes * 60_000) : null;
 
   return (
-    <>
-      <DialogHeader>
+    <form onSubmit={form.submit} className="flex min-h-0 flex-1 flex-col gap-4">
+      <DialogHeader className="mb-0">
         <DialogTitle>Tạo đơn hàng thanh toán</DialogTitle>
         <p className="text-sm text-muted-foreground">Tạo xong, hệ thống sinh mã QR để khách thanh toán.</p>
       </DialogHeader>
-      <form onSubmit={form.submit} className="mt-2 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <DialogBody className="-mx-1 space-y-4 px-1 pb-1">
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           <Select
             label="Sub-merchant nhận tiền"
             value={subMerchantId}
@@ -72,10 +72,10 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
             disabled={terminalOptions.length === 0}
             description={
               !subMerchantId
-                ? "Chọn Sub-merchant để xem Terminal."
+                ? "Chọn Sub-merchant trước."
                 : terminalOptions.length === 0
-                  ? "Sub-merchant này chưa có Terminal đang hoạt động."
-                  : "Chỉ hiện Terminal đang hoạt động của Sub-merchant đã chọn."
+                  ? "Chưa có Terminal đang hoạt động."
+                  : undefined
             }
             error={errors.terminalId}
           />
@@ -87,7 +87,6 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
             value={form.values.orderCode}
             onChange={(event) => form.change("orderCode", event.target.value)}
             onBlur={(event) => setCheckedCode(event.target.value)}
-            description="Dùng mã duy nhất của bạn, hoặc bấm biểu tượng để tạo tự động."
             endIcon={
               <button
                 type="button"
@@ -110,9 +109,11 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
             onChange={(event) => form.change("amount", event.target.value.replace(/\D/g, ""))}
             error={errors.amount}
           />
+        </div>
+        <div className="grid items-start gap-4 sm:grid-cols-3">
           <Select
             label="Phương thức thanh toán"
-            placeholder="Chọn phương thức thanh toán"
+            placeholder="Chọn phương thức"
             value={form.values.paymentMethod}
             onChange={(value) => form.change("paymentMethod", value)}
             options={PAYMENT_METHOD_OPTIONS}
@@ -129,7 +130,7 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
           />
           <Select
             label="Hết hạn sau"
-            placeholder="Chọn thời gian hết hạn"
+            placeholder="Chọn thời gian"
             value={form.values.expiryMinutes}
             onChange={(value) => form.change("expiryMinutes", value)}
             options={EXPIRY_OPTIONS}
@@ -143,7 +144,6 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
           maxLength={500}
           value={form.values.orderDescription}
           onChange={(event) => form.change("orderDescription", event.target.value)}
-          description="Hiện trên màn thanh toán của khách."
           error={errors.orderDescription}
         />
         <OrderPreview amount={amount} expiresAt={expiresAt} />
@@ -154,18 +154,18 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
           </Notice>
         ) : null}
         {error ? <Notice tone="danger">{error}</Notice> : null}
-        <DialogFooter className="items-center">
-          <p className="mr-auto text-xs text-muted-foreground">
-            Phương thức chưa bật cho Sub-merchant sẽ bị từ chối khi tạo.
-          </p>
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            Hủy
-          </Button>
-          <Button type="submit" variant="solid" isLoading={isSubmitting}>
-            Tạo đơn hàng
-          </Button>
-        </DialogFooter>
-      </form>
-    </>
+      </DialogBody>
+      <DialogFooter className="items-center border-t border-border pt-4">
+        <p className="mr-auto text-xs text-muted-foreground">
+          Phương thức chưa bật cho Sub-merchant sẽ bị từ chối khi tạo.
+        </p>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Hủy
+        </Button>
+        <Button type="submit" variant="solid" isLoading={isSubmitting}>
+          Tạo đơn hàng
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

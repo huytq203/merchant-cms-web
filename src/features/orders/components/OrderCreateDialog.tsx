@@ -23,7 +23,7 @@ export function OrderCreateDialog(props: Props) {
   const { onClose, created } = props;
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent size={created ? "sm" : "lg"}>
+      <DialogContent size={created ? "sm" : "lg"} className="overflow-hidden">
         {created ? (
           <OrderCreatedStep
             order={created}

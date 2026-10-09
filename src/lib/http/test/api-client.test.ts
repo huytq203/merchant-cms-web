@@ -80,13 +80,13 @@ describe("apiClient 401 handling in the browser", () => {
     expect(expired).not.toHaveBeenCalled();
   });
 
-  it("expires the session when a retry still returns 401", async () => {
+  it("keeps the session when the refresh succeeds but the retry still returns 401", async () => {
     mswServer.use(
       http.get(`${ORIGIN}/api/v1/things`, () => HttpResponse.json({}, { status: 401 })),
       http.post(`${ORIGIN}/api/v1/admin/auth/refresh`, () => HttpResponse.json({ ok: true })),
     );
     await expect(apiClient.get("/v1/things")).rejects.toMatchObject({ status: 401 });
-    expect(expired).toHaveBeenCalledOnce();
+    expect(expired).not.toHaveBeenCalled();
   });
   it("keeps the session when the refresh request has a network error", async () => {
     mswServer.use(
