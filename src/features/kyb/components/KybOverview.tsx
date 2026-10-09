@@ -8,7 +8,7 @@ import type { EnterpriseWallet } from "../types";
 import { kybTimeline } from "../utils/kyb-timeline";
 import { businessTypeLabel } from "../utils/merchant-mapper";
 import { DetailRow } from "./DetailRow";
-import { KybNotice } from "./KybNotice";
+import { Notice } from "@/components/page/Notice";
 import { MerchantProcessSteps } from "./MerchantProcessSteps";
 
 type Props = {
@@ -49,9 +49,9 @@ export function KybOverview({ wallet, onEdit }: Props) {
             <h3 className="text-sm font-semibold">Tiến trình xử lý hồ sơ</h3>
             <MerchantProcessSteps steps={steps} />
           </div>
-          <KybNotice tone="info">
+          <Notice tone="info">
             Trong thời gian chờ, hồ sơ chỉ xem, không thể chỉnh sửa. Nếu bị từ chối, bạn nhận lý do và có thể sửa rồi gửi lại.
-          </KybNotice>
+          </Notice>
         </>
       )}
       <div className="grid gap-3">

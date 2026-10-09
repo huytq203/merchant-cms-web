@@ -5,7 +5,7 @@ import { useMerchantForm } from "../hooks/use-merchant-form";
 import type { MerchantProfile } from "../types";
 import { businessTypeLabel } from "../utils/merchant-mapper";
 import { DetailRow } from "./DetailRow";
-import { KybNotice } from "./KybNotice";
+import { Notice } from "@/components/page/Notice";
 import { MerchantFormFields } from "./MerchantFormFields";
 
 type Props = {
@@ -20,10 +20,10 @@ export function MerchantForm({ merchant, onRefreshLinks }: Props) {
   return (
     <form className="grid gap-6" noValidate onSubmit={merchantForm.sendForApproval}>
       {merchant.status === "REJECTED" && (
-        <KybNotice tone="danger">
+        <Notice tone="danger">
           <p className="font-semibold">Hồ sơ ĐVCNTT bị từ chối</p>
           <p>{merchant.rejectedReasonDetail ?? "Không có lý do được ghi nhận"}</p>
-        </KybNotice>
+        </Notice>
       )}
       <section className="grid gap-3" aria-labelledby="merchant-wallet-title">
         <h3 id="merchant-wallet-title" className="text-sm font-semibold text-foreground">

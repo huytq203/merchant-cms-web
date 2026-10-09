@@ -8,7 +8,7 @@ import { canEditKyb } from "../utils/kyb-mapper";
 import { formatDate } from "@/lib/utils/helper";
 import { KybDone } from "./KybDone";
 import { KybForm } from "./KybForm";
-import { KybNotice } from "./KybNotice";
+import { Notice } from "@/components/page/Notice";
 import { KybOtpStep } from "./KybOtpStep";
 import { KybOverview } from "./KybOverview";
 
@@ -22,11 +22,11 @@ type FormProps = Props & { onSent: (outcome: "sent" | "saved") => void; onCancel
 
 function RejectionNotice({ wallet }: { wallet: EnterpriseWallet }) {
   return (
-    <KybNotice tone="danger">
+    <Notice tone="danger">
       <p className="font-semibold">Hồ sơ KYB bị từ chối</p>
       <p>{wallet.kybRejectedReason ?? "Không có lý do được ghi nhận"}</p>
       {wallet.kybRejectedAt && <p className="text-xs">Từ chối lúc {formatDate(wallet.kybRejectedAt)}. Sửa hồ sơ rồi gửi lại.</p>}
-    </KybNotice>
+    </Notice>
   );
 }
 
@@ -34,16 +34,16 @@ function FormNotice({ wallet }: { wallet: EnterpriseWallet }) {
   if (wallet.verificationStatus === "REJECTED") return <RejectionNotice wallet={wallet} />;
   if (wallet.verificationStatus === "VERIFIED") {
     return (
-      <KybNotice tone="warning">
+      <Notice tone="warning">
         <b>Hồ sơ đã được xác thực.</b> Đổi tên pháp nhân, mã số thuế hoặc người đại diện sẽ đưa hồ sơ về Chờ duyệt KYB
         và tạm khóa các tính năng ví cho tới khi Flexpay duyệt lại. Các trường khác lưu ngay.
-      </KybNotice>
+      </Notice>
     );
   }
   return (
-    <KybNotice tone="info">
+    <Notice tone="info">
       <b>Chưa xác thực KYB.</b> Khai báo và tải lên hồ sơ pháp lý, rồi gửi để Flexpay duyệt và kích hoạt ví. Có thể lưu nháp và quay lại sau.
-    </KybNotice>
+    </Notice>
   );
 }
 

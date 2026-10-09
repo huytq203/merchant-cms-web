@@ -1,6 +1,6 @@
 "use client";
 
-import { KybNotice } from "./KybNotice";
+import { Notice } from "@/components/page/Notice";
 import { MerchantConditions } from "./MerchantConditions";
 import { MerchantForm } from "./MerchantForm";
 import { MerchantOverview } from "./MerchantOverview";
@@ -27,9 +27,9 @@ export function MerchantTab({ merchant, onRefreshLinks }: Props) {
       {ready
         ? <MerchantForm merchant={merchant} onRefreshLinks={onRefreshLinks} />
         : (
-          <KybNotice tone="warning">
+          <Notice tone="warning">
             <b>Chưa đủ điều kiện đăng ký.</b> Hoàn tất hai điều kiện trên rồi quay lại. Biểu mẫu sẽ mở ngay khi cả hai đạt.
-          </KybNotice>
+          </Notice>
         )}
     </div>
   );
