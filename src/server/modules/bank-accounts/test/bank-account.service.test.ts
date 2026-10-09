@@ -9,15 +9,14 @@ import {
   requestSensitiveOtp,
   setDefaultBankAccount,
   updateBankAccount,
-  verifyBankLink,
 } from "../bank-account.service";
 
 vi.mock("@/lib/auth/session-cookies", () => ({ readAccessToken: async () => null }));
 
 const base = "https://merchant.test";
-const accountsUrl = `${base}/api/v1/admin/merchant-bank-accounts`;
 const portalUrl = `${base}/api/v1/merchant/bank-accounts`;
-const otpUrl = `${base}/api/v1/admin/sensitive-operations/otp-challenge`;
+const accountsUrl = portalUrl;
+const otpUrl = `${base}/api/v1/merchant/sensitive-operations/otp-challenge`;
 const id = "11111111-1111-4111-8111-111111111111";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const account = {
@@ -146,26 +145,13 @@ describe("bank account service", () => {
     expect(await setDefaultBankAccount(id)).toMatchObject({ success: true, data: { applied: true } });
   });
 
-  it("records link verification through query parameters without a body", async () => {
-    let url: URL | undefined;
-    let text = "unset";
-    mswServer.use(http.post(`${accountsUrl}/${id}/link-verification`, async ({ request }) => {
-      url = new URL(request.url);
-      text = await request.text();
-      return HttpResponse.json(envelope(account));
-    }));
-    expect(await verifyBankLink(id, { linked: false, failureReason: "Sai tên" })).toMatchObject({ success: true });
-    expect(Object.fromEntries(url!.searchParams)).toEqual({ linked: "false", failureReason: "Sai tên" });
-    expect(text).toBe("");
-  });
-
   it("requests a bank-change OTP challenge", async () => {
     let body: unknown;
     mswServer.use(http.post(otpUrl, async ({ request }) => {
       body = await request.json();
       return HttpResponse.json(envelope({
         otpSessionId: "session-1",
-        maskedRecipient: "0912•••678",
+        maskedRecipient: "n***@mail.vn",
         expiresInSeconds: 300,
         canResendAfterSeconds: 60,
       }));

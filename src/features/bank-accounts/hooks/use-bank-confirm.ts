@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { describeBankError, type BankErrorView } from "../utils/bank-errors";
-import type { BankUpdateResponse } from "../types";
 import { useDeleteBankAccount, useSetDefaultBankAccount } from "./use-bank-account-mutations";
 
 export type BankConfirmKind = "delete" | "default";
 
 /** Runs the one-click account actions (delete, make default) and keeps their error for the dialog. */
-export function useBankConfirm(onDone: (result?: BankUpdateResponse) => void) {
+export function useBankConfirm(onDone: () => void) {
   const remove = useDeleteBankAccount();
   const makeDefault = useSetDefaultBankAccount();
   const [failure, setFailure] = useState<BankErrorView | null>(null);
@@ -19,7 +18,8 @@ export function useBankConfirm(onDone: (result?: BankUpdateResponse) => void) {
         onDone();
         return;
       }
-      onDone(await makeDefault.mutateAsync({ id, reason }));
+      await makeDefault.mutateAsync({ id, reason });
+      onDone();
     } catch (error) {
       setFailure(describeBankError(error));
     }

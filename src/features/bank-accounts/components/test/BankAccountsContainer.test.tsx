@@ -12,8 +12,6 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/bank-accounts" }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
-vi.mock("../../constants/capabilities", () => ({ BANK_ACCOUNT_WRITES_ENABLED: true }));
-
 const base = "/api/v1/admin/bank-accounts";
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const account: BankAccount = {
@@ -29,7 +27,7 @@ const account: BankAccount = {
   status: "ACTIVE",
   linkStatus: "LINKED",
 };
-// The dormant write flow edits a full number; the list/detail the portal BE serves today are masked.
+// Edits are tested against a full number so a changed number can be typed over it.
 const editable = { ...account, accountNumber: "1234567890" };
 const challenge = { otpSessionId: "session-1", maskedRecipient: "0912•••678", expiresInSeconds: 300, canResendAfterSeconds: 60 };
 const filter = { page: 1, pageSize: 10, merchantId };
@@ -52,7 +50,7 @@ async function typeCode(code: string) {
 }
 
 async function fillNewAccount() {
-  await userEvent.click(screen.getByRole("button", { name: /Thêm tài khoản mới/ }));
+  await userEvent.click(screen.getByRole("button", { name: /Thêm tài khoản/ }));
   const dialog = await screen.findByRole("dialog");
   await userEvent.click(within(dialog).getByRole("combobox"));
   await userEvent.click(await screen.findByRole("option", { name: "Vietcombank" }));
@@ -175,12 +173,12 @@ describe("bank accounts container", () => {
     expect(challenged).toBe(false);
   });
 
-  it("shows a pending badge after changing a linked account", async () => {
-    mswServer.use(http.put(`${base}/${account.id}`, () => HttpResponse.json({
-      account,
-      applied: false,
-      pendingChangeRequest: { id: "66666666-6666-4666-8666-666666666666", bankAccountId: account.id, changeType: "UPDATE_ACCOUNT", status: "PENDING" },
-    })));
+  it("shows the pending badge the BE reports after changing a linked account", async () => {
+    const pendingChangeRequest = { id: "66666666-6666-4666-8666-666666666666", bankAccountId: account.id, changeType: "UPDATE_ACCOUNT", status: "PENDING" as const };
+    mswServer.use(http.put(`${base}/${account.id}`, () => {
+      listReturns([{ ...account, pendingChangeRequest }]);
+      return HttpResponse.json({ account: { ...account, pendingChangeRequest }, applied: false, pendingChangeRequest });
+    }));
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Sửa tài khoản/ }));
     const number = await screen.findByRole("textbox", { name: /Số tài khoản/ });
@@ -192,6 +190,49 @@ describe("bank accounts container", () => {
     await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
     expect(await screen.findByText("Chờ duyệt")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sửa tài khoản/ })).toBeDisabled();
+  });
+
+  it("keeps an untouched masked number out of the request so it is not read as a change", async () => {
+    let body: Record<string, unknown> = {};
+    mswServer.use(http.get(`${base}/${account.id}`, () => HttpResponse.json(account)));
+    mswServer.use(http.put(`${base}/${account.id}`, async ({ request }) => {
+      body = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json({ account, applied: true });
+    }));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Sửa tài khoản/ }));
+    const branch = await screen.findByRole("textbox", { name: /Chi nhánh/ });
+    await userEvent.clear(branch);
+    await userEvent.type(branch, "Da Nang");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    await waitFor(() => expect(body).toMatchObject({ branchName: "Da Nang" }));
+    expect(body).not.toHaveProperty("accountNumber");
+  });
+
+  it("adds a Sub-merchant level account with the chosen Sub-merchant", async () => {
+    const sub = { id: "77777777-7777-4777-8777-777777777777", code: "SUB01", name: "Chi nhanh 1" };
+    let body: unknown;
+    mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [sub], total: 1 })));
+    mswServer.use(http.post(base, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ account, applied: true }, { status: 201 });
+    }));
+    renderContainer();
+    await screen.findByText("******7890");
+    await userEvent.click(screen.getByRole("button", { name: /Thêm tài khoản/ }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cấp Sub-merchant" }));
+    await userEvent.click(within(dialog).getByRole("combobox", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /SUB01/ }));
+    await userEvent.click(within(dialog).getByRole("combobox", { name: /Ngân hàng/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "Vietcombank" }));
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Số tài khoản/ }), "1234567890");
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Chủ tài khoản/ }), "CONG TY A");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Gửi liên kết và xác minh" }));
+    await screen.findByText(/0912•••678/);
+    await typeCode("123456");
+    await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
+    await waitFor(() => expect(body).toMatchObject({ subMerchantId: sub.id }));
   });
 
   it("offers a reload when the version is stale and refetches the account", async () => {

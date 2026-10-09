@@ -44,13 +44,16 @@ function initialValues(account: BankAccount | null, draft: BankAccountFormValues
   };
 }
 
-function issuesByField(values: BankAccountFormValues): Record<string, string> | null {
+/** The BE masks the number it returns, so an untouched number is not validated as if it had been typed. */
+function issuesByField(values: BankAccountFormValues, account: BankAccount | null): Record<string, string> | null {
   const parsed = bankAccountFormSchema.safeParse(values);
   if (parsed.success) return null;
-  return Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]));
+  const untouchedNumber = account !== null && values.accountNumber === account.accountNumber;
+  const issues = parsed.error.issues.filter((issue) => !(untouchedNumber && issue.path[0] === "accountNumber"));
+  return issues.length ? Object.fromEntries(issues.map((issue) => [String(issue.path[0]), issue.message])) : null;
 }
 
-const otpNotice = "Bạn sẽ nhận mã OTP để xác nhận trước khi lưu. Với tài khoản đã liên kết, thay đổi có thể tạo yêu cầu ở trạng thái Chờ duyệt.";
+const otpNotice = "Bạn sẽ nhận mã OTP qua email để xác nhận trước khi lưu. Thay đổi số tài khoản, ngân hàng hoặc chủ tài khoản sẽ đưa tài khoản về Chờ xác minh. Với tài khoản Sub-merchant, thay đổi cần Flexpay phê duyệt.";
 const branchOnlyNotice = "Chỉ thay đổi chi nhánh nên không cần xác thực OTP.";
 
 export function BankAccountFormModal(props: Props) {
@@ -66,7 +69,7 @@ export function BankAccountFormModal(props: Props) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const found = issuesByField(values);
+    const found = issuesByField(values, account);
     setIssues(found ?? {});
     if (!found) onSubmit(values);
   };

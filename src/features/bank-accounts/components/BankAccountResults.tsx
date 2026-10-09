@@ -16,7 +16,7 @@ type Props = BankAccountColumnOptions & {
 
 export function BankAccountResults({ list, page, pageSize, onPageChange, ...actions }: Props) {
   return (
-    <ResultCard subject="tài khoản ngân hàng" total={list.data?.total ?? 0}>
+    <ResultCard >
       {list.isPending ? <ResultState state="loading" /> : null}
       {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}
       {list.data?.rows.length === 0 ? <ResultState state="empty" emptyMessage="Chưa có tài khoản ngân hàng" /> : null}

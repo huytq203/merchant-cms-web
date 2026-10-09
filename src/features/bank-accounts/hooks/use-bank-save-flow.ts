@@ -29,7 +29,7 @@ export function useBankSaveFlow({ account, onSaved }: Options) {
     const sessionId = answer?.otpSessionId ?? null;
     const code = answer?.otp ?? null;
     const result = account
-      ? await update.mutateAsync({ id: account.id, request: toUpdateBankRequest(values, account.version, sessionId, code) })
+      ? await update.mutateAsync({ id: account.id, request: toUpdateBankRequest(values, account, sessionId, code) })
       : await create.mutateAsync(toCreateBankRequest(values, sessionId, code));
     onSaved(result);
   };

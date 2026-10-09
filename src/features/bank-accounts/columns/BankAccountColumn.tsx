@@ -6,18 +6,17 @@ import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge } from "@/components/page/StatusBadge";
 import { BankChangeRequestBadge } from "../components/BankChangeRequestBadge";
 import { bankAccountTitle, bankDisplayName, bankLinkLabel, canChangeBank } from "../utils/bank-mapper";
-import type { BankAccount, BankChangeRequest } from "../types";
+import type { BankAccount } from "../types";
 
 export type BankAccountColumnOptions = {
-  pendingChanges: Record<string, BankChangeRequest>;
   onView: (account: BankAccount) => void;
-  /** Write actions are passed only while BANK_ACCOUNT_WRITES_ENABLED; without them the row shows view only. */
-  onEdit?: (account: BankAccount) => void;
-  onSetDefault?: (account: BankAccount) => void;
-  onDelete?: (account: BankAccount) => void;
+  onEdit: (account: BankAccount) => void;
+  onSetDefault: (account: BankAccount) => void;
+  onDelete: (account: BankAccount) => void;
 };
 
-function StatusCell({ account, pending }: { account: BankAccount; pending?: BankChangeRequest }) {
+function StatusCell({ account }: { account: BankAccount }) {
+  const pending = account.pendingChangeRequest;
   return (
     <div className="flex flex-wrap items-center gap-1">
       <StatusBadge
@@ -42,7 +41,7 @@ function defaultLabel(account: BankAccount): string {
 
 function BankAccountRowActions({ account, options }: { account: BankAccount; options: BankAccountColumnOptions }) {
   const { onEdit, onSetDefault, onDelete } = options;
-  const editable = canChangeBank(account, options.pendingChanges[account.id]);
+  const editable = canChangeBank(account);
   return (
     <RowActions
       subject={bankAccountTitle(account)}
@@ -51,20 +50,18 @@ function BankAccountRowActions({ account, options }: { account: BankAccount; opt
         {
           label: "Sửa tài khoản",
           icon: <Pencil size={16} />,
-          visible: Boolean(onEdit),
           disabled: !editable,
           disabledReason: editLabel(account, editable),
-          onClick: () => onEdit?.(account),
+          onClick: () => onEdit(account),
         },
         {
           label: "Đặt làm mặc định",
           icon: <Star size={16} />,
-          visible: Boolean(onSetDefault),
-          disabled: account.isDefault || account.status === "INACTIVE",
+          disabled: account.isDefault || account.status === "INACTIVE" || account.pendingChangeRequest?.status === "PENDING",
           disabledReason: defaultLabel(account),
-          onClick: () => onSetDefault?.(account),
+          onClick: () => onSetDefault(account),
         },
-        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, visible: Boolean(onDelete), onClick: () => onDelete?.(account) },
+        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, onClick: () => onDelete(account) },
       ]}
     />
   );
@@ -83,17 +80,17 @@ export function getBankAccountColumns(options: BankAccountColumnOptions, page: n
         </div>
       ),
     },
-    { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "Chưa có" },
+    { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "--" },
     {
       id: "accountNumber",
       header: "Số tài khoản",
       cell: ({ row }) => <span className="font-mono">{row.original.accountNumber}</span>,
     },
-    { accessorKey: "accountName", header: "Chủ tài khoản" },
+    { id: "accountName", header: "Chủ tài khoản", cell: ({ row }) => row.original.accountName || "--" },
     {
       id: "status",
       header: "Trạng thái",
-      cell: ({ row }) => <StatusCell account={row.original} pending={options.pendingChanges[row.original.id]} />,
+      cell: ({ row }) => <StatusCell account={row.original} />,
     },
     {
       id: "actions",

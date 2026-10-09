@@ -4,7 +4,9 @@ import { Checkbox } from "@/components/ui/checkbox/Checkbox";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { BANK_OPTIONS } from "../constants/bank-options";
+import { normalizeAccountName } from "../utils/bank-mapper";
 import type { BankAccountFormValues } from "../types";
+import { BankAccountScopeField } from "./BankAccountScopeField";
 
 type Props = {
   values: BankAccountFormValues;
@@ -25,6 +27,7 @@ function bankOptionsFor(bankCode: string): { value: string; label: string }[] {
 export function BankAccountFields({ values, issues, mode, askReason, onChange }: Props) {
   return (
     <>
+      {mode === "create" && <BankAccountScopeField values={values} error={issues.subMerchantId || undefined} onChange={onChange} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Ngân hàng"
@@ -44,7 +47,7 @@ export function BankAccountFields({ values, issues, mode, askReason, onChange }:
         />
         <Input
           label="Số tài khoản"
-          placeholder="Nhập 6–20 chữ số"
+          placeholder={mode === "edit" ? "Để nguyên nếu không đổi" : "Nhập 6–20 chữ số"}
           required
           inputMode="numeric"
           autoComplete="off"
@@ -59,7 +62,11 @@ export function BankAccountFields({ values, issues, mode, askReason, onChange }:
           autoComplete="off"
           value={values.accountName}
           error={issues.accountName || undefined}
-          onChange={(event) => onChange("accountName", event.target.value)}
+          onChange={(event) => onChange("accountName", event.nativeEvent instanceof InputEvent && event.nativeEvent.isComposing
+            ? event.target.value
+            : normalizeAccountName(event.target.value))}
+          onCompositionEnd={(event) => onChange("accountName", normalizeAccountName(event.currentTarget.value))}
+          onBlur={(event) => onChange("accountName", normalizeAccountName(event.currentTarget.value))}
         />
       </div>
       {mode === "create" && (

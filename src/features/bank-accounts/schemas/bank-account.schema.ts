@@ -6,6 +6,20 @@ export const bankLinkStatusSchema = z.enum(["PENDING_VERIFICATION", "LINKED", "L
 export const bankHierarchyLevelSchema = z.enum(["SYSTEM_DEFAULT", "MASTER", "SUB", "TERMINAL"]);
 export const bankChangeStatusSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 
+export const bankChangeRequestSchema = z.object({
+  id: z.uuid(),
+  bankAccountId: z.uuid(),
+  changeType: z.string(),
+  status: bankChangeStatusSchema,
+  decisionReason: z.string().nullish(),
+  requestReason: z.string().nullish(),
+  proposedBankCode: z.string().nullish(),
+  proposedAccountNumber: z.string().nullish(),
+  proposedAccountName: z.string().nullish(),
+  proposedBranchName: z.string().nullish(),
+  createdAt: z.string().nullish(),
+}).passthrough();
+
 export const bankAccountSchema = z.object({
   id: z.uuid(),
   version: z.number().int().nonnegative(),
@@ -23,19 +37,12 @@ export const bankAccountSchema = z.object({
   payable: z.boolean().optional(),
   createdAt: z.string().nullish(),
   updatedAt: z.string().nullish(),
+  /** The change Flexpay has not decided yet; the BE keeps at most one per account. */
+  pendingChangeRequest: bankChangeRequestSchema.nullish(),
 }).transform(({ isDefault, default: dtoDefault, ...account }) => ({
   ...account,
   isDefault: isDefault ?? dtoDefault ?? false,
 }));
-
-export const bankChangeRequestSchema = z.object({
-  id: z.uuid(),
-  bankAccountId: z.uuid(),
-  changeType: z.string(),
-  status: bankChangeStatusSchema,
-  decisionReason: z.string().nullish(),
-  requestReason: z.string().nullish(),
-}).passthrough();
 
 export const bankUpdateResponseSchema = z.object({
   account: bankAccountSchema,
@@ -48,9 +55,4 @@ export const bankCreateResponseSchema = z.union([
   bankAccountSchema.transform((account) => ({ account, applied: true, pendingChangeRequest: null })),
 ]);
 
-export const sensitiveOtpChallengeSchema = z.object({
-  otpSessionId: z.string().min(1),
-  maskedRecipient: z.string(),
-  expiresInSeconds: z.number().nonnegative(),
-  canResendAfterSeconds: z.number().nonnegative(),
-});
+export { sensitiveOtpChallengeSchema } from "@/lib/schemas/sensitive-otp";

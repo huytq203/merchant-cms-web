@@ -24,8 +24,6 @@ import { bankAccountPaths } from "./bank-account.paths";
 /** Only the operation the merchant portal may ask for; the approval operation belongs to the checker. */
 export type MerchantSensitiveOperation = "BANK_ACCOUNT_CHANGE";
 
-export type LinkVerification = { linked: boolean; failureReason?: string; reason?: string };
-
 export async function listBankAccounts(filter: BankAccountFilter): Promise<BeResult<BankAccountList>> {
   const result = await merchantClient().get({
     path: bankAccountPaths.list,
@@ -62,14 +60,6 @@ export const setDefaultBankAccount = (id: string, reason?: string): Promise<BeRe
     path: bankAccountPaths.setDefault(id),
     schema: bankUpdateResponseSchema,
     body: reason ? { reason } : undefined,
-  });
-
-/** BE reconciliation action; intentionally not exposed through a route handler. */
-export const verifyBankLink = (id: string, verification: LinkVerification): Promise<BeResult<BankAccount>> =>
-  merchantClient().post({
-    path: bankAccountPaths.verifyLink(id),
-    schema: bankAccountSchema,
-    query: verification,
   });
 
 export const requestSensitiveOtp = (

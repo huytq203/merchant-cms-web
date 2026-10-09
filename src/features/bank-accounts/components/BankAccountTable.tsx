@@ -14,10 +14,10 @@ type Props = BankAccountColumnOptions & {
 };
 
 export function BankAccountTable({ rows, total, page, pageSize, onPageChange, ...actions }: Props) {
-  const { pendingChanges, onView, onEdit, onSetDefault, onDelete } = actions;
+  const { onView, onEdit, onSetDefault, onDelete } = actions;
   const columns = useMemo(
-    () => getBankAccountColumns({ pendingChanges, onView, onEdit, onSetDefault, onDelete }, page, pageSize),
-    [pendingChanges, onView, onEdit, onSetDefault, onDelete, page, pageSize],
+    () => getBankAccountColumns({ onView, onEdit, onSetDefault, onDelete }, page, pageSize),
+    [onView, onEdit, onSetDefault, onDelete, page, pageSize],
   );
   return (
     <Table
