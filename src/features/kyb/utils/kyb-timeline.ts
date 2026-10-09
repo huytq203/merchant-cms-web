@@ -12,7 +12,7 @@ export function kybTimeline(
   if (wallet.verificationStatus === "PENDING_APPROVAL") {
     return [
       submitted,
-      { title: "Flexpay đang thẩm định", description: "Thường 1 đến 2 ngày làm việc", variant: "warning" },
+      { title: "Flexpay đang thẩm định", description: "Đang chờ xử lý", variant: "warning" },
       { title: "Xác thực hoặc từ chối", description: "Đang chờ kết quả", variant: "default" },
     ];
   }

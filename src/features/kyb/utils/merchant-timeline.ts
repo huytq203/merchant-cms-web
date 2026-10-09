@@ -30,11 +30,11 @@ export function merchantTimeline(
   if (status === "PENDING_APPROVAL") {
     return [
       submitted,
-      { title: "Admin đang thẩm định", variant: "warning" },
+      { title: "Flexpay đang thẩm định", description: "Đang chờ xử lý", variant: "warning" },
       { title: "Kích hoạt hoặc từ chối", description: "Đang chờ kết quả", variant: "default" },
     ];
   }
-  const reviewed: TimelineEntry = { title: "Admin đã thẩm định", variant: "success" };
+  const reviewed: TimelineEntry = { title: "Flexpay đã thẩm định", variant: "success" };
   if (status === "REJECTED") {
     return [
       submitted,
