@@ -1,29 +1,21 @@
+import Image from "next/image";
 import Link from "next/link";
+import TealYellowLogo from "../../../../public/brand/logo-teal-yellow.webp";
 import { cn } from "@/lib/utils/cn";
 
-/** Logo và tên sản phẩm ở đầu sidebar; ẩn chữ khi sidebar thu gọn. */
+/** Logo xanh vàng ở đầu sidebar; khi thu gọn chỉ còn chữ F đầu của logo. */
 export function SidebarBrand({ isCollapsed }: { isCollapsed: boolean }) {
   return (
-    <Link href="/">
-      <div
-        className={cn(
-          "flex items-center gap-3 px-2 py-2 rounded-md transition-all duration-200",
-          isCollapsed && "justify-center",
-        )}
-      >
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shrink-0 shadow-sm flex-none">
-          <span className="text-primary-foreground font-bold text-sm select-none">
-            FP
+    <Link href="/" aria-label="Flexpay Merchant Portal">
+      <div className={cn("flex items-center gap-3 rounded-md px-2 py-2", isCollapsed && "justify-center")}>
+        {isCollapsed ? (
+          <span className="block h-8 w-8 flex-none overflow-hidden">
+            <Image src={TealYellowLogo} alt="Flexpay" className="h-8 w-auto max-w-none" priority />
           </span>
-        </div>
-        {!isCollapsed && (
-          <div className="overflow-hidden min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate leading-tight">
-              FlexPay
-            </p>
-            <p className="text-xs text-muted-foreground truncate leading-tight">
-              Merchant Admin CMS
-            </p>
+        ) : (
+          <div className="min-w-0">
+            <Image src={TealYellowLogo} alt="Flexpay" className="h-8 w-auto" priority />
+            <p className="mt-0.5 truncate text-xs leading-tight text-muted-foreground">Merchant Portal</p>
           </div>
         )}
       </div>
