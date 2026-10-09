@@ -10,7 +10,10 @@ export type LockSource = NonNullable<SubMerchantRow["lockSource"]>;
 export interface SubMerchantListFilter {
   page: number;
   pageSize: number;
-  keyword?: string;
+  /** Matches part of the code. */
+  code?: string;
+  /** Matches part of the name. */
+  name?: string;
   status?: SubMerchantRow["status"];
 }
 

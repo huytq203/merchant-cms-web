@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { SubMerchantDialogs as Dialogs } from '../hooks/use-sub-merchant-dialogs';
 import type { useSubMerchantActions } from '../hooks/use-sub-merchant-actions';
 import { subMerchantQueries } from '../sub-merchant-queries';
+import { canLock, canUnlock } from '../utils/sub-merchant-mapper';
 import { DialogActive } from './DialogActive';
 import { DialogUnActive } from './DialogUnActive';
 import { SubMerchantDetailModal } from './SubMerchantDetailModal';
@@ -31,6 +32,9 @@ export function SubMerchantDialogs({ dialogs, actions }: Props) {
         open={activeDialog === 'detail'}
         onOpenChange={closeOnDismiss}
         detail={detail.data ?? null}
+        onEdit={target && (canLock(target) || canUnlock(target)) ? () => dialogs.openFor('edit', target) : undefined}
+        onLock={target ? () => dialogs.openFor('lock', target) : undefined}
+        onUnlock={target ? () => dialogs.openFor('unlock', target) : undefined}
       />
       <SubMerchantFormModal
         open={activeDialog === 'create' || activeDialog === 'edit'}
@@ -43,6 +47,7 @@ export function SubMerchantDialogs({ dialogs, actions }: Props) {
       <DialogActive
         open={activeDialog === 'lock'}
         onOpenChange={closeOnDismiss}
+        target={target}
         onConfirm={actions.confirmLock}
         isLoading={actions.isLocking}
         error={actions.lockError}
@@ -50,6 +55,7 @@ export function SubMerchantDialogs({ dialogs, actions }: Props) {
       <DialogUnActive
         open={activeDialog === 'unlock'}
         onOpenChange={closeOnDismiss}
+        target={target}
         onConfirm={actions.confirmUnlock}
         isLoading={actions.isUnlocking}
         error={actions.unlockError}

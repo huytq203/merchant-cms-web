@@ -8,7 +8,7 @@ import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import { formatAmount } from "@/lib/utils/helper";
 import type { WithdrawalCreateFlow } from "../hooks/use-withdrawal-create-flow";
 
-const SUB_MERCHANT_ACCOUNT_NOTE = "Tài khoản cấp điểm bán chưa dùng được để rút tiền";
+const SUB_MERCHANT_ACCOUNT_NOTE = "Tài khoản cấp Sub-merchant chưa dùng được để rút tiền";
 
 type Props = { flow: WithdrawalCreateFlow; onCancel: () => void };
 

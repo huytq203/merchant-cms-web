@@ -17,7 +17,7 @@ export function useSubMerchantActions(dialogs: SubMerchantDialogs) {
     try {
       await save.mutateAsync({ ...values, phone: values.phone ?? '', address: values.address ?? '' });
       dialogs.close();
-      toast.success('Lưu điểm bán thành công');
+      toast.success('Lưu Sub-merchant thành công');
     } catch {
       // The form stays open and shows the save error so the user can retry.
     }
@@ -28,7 +28,7 @@ export function useSubMerchantActions(dialogs: SubMerchantDialogs) {
     try {
       await lock.mutateAsync({ id: dialogs.target.id, reason });
       dialogs.close();
-      toast.success('Khóa điểm bán thành công');
+      toast.success('Khóa Sub-merchant thành công');
     } catch {
       // The server error stays visible in the dialog.
     }
@@ -39,7 +39,7 @@ export function useSubMerchantActions(dialogs: SubMerchantDialogs) {
     try {
       await unlock.mutateAsync({ id: dialogs.target.id, reason });
       dialogs.close();
-      toast.success('Mở khóa điểm bán thành công');
+      toast.success('Mở khóa Sub-merchant thành công');
     } catch {
       // The server error stays visible in the dialog.
     }

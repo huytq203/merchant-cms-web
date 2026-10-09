@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button/Button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
+import { FormModal } from "@/components/modal/FormModal";
 import { useTerminalForm } from "../hooks/use-terminal-form";
 import type { TerminalFormValues } from "../schemas";
 import type { TerminalDetail } from "../types";
@@ -18,24 +17,23 @@ type Props = {
 
 export function TerminalFormModal({ open, onOpenChange, detail, onSubmit, isSubmitting, error }: Props) {
   const form = useTerminalForm(detail, onSubmit);
-  const message = form.fieldError || error;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{detail ? "Cập nhật Terminal" : "Thêm Terminal"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.submit} className="mt-4 space-y-4">
-          <TerminalIdentityFields values={form.values} change={form.change} detail={detail} />
-          <TerminalContactFields values={form.values} change={form.change} />
-          {message && <p role="alert" className="text-sm text-danger">{message}</p>}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Hủy</Button>
-            <Button type="submit" variant="solid" isLoading={isSubmitting}>Lưu Terminal</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title={detail ? "Sửa Terminal" : "Thêm Terminal"}
+      description={detail ? detail.tid : "Mã Terminal do hệ thống cấp sau khi tạo."}
+      submitLabel={detail ? "Lưu thay đổi" : "Thêm Terminal"}
+      isSubmitting={isSubmitting}
+      error={error}
+      onSubmit={() => form.submit()}
+    >
+      <div className="flex flex-col gap-6">
+        <TerminalIdentityFields values={form.values} errors={form.errors} change={form.change} detail={detail} />
+        <TerminalContactFields values={form.values} errors={form.errors} change={form.change} />
+      </div>
+    </FormModal>
   );
 }

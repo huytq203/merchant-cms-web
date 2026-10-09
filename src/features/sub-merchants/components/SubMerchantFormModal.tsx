@@ -3,14 +3,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button/Button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog/Dialog';
+import { FormModal } from '@/components/modal/FormModal';
 import { subMerchantFormSchema, type SubMerchantFormValues } from '../schemas';
 import type { SubMerchantDetail } from '../types';
 import {
@@ -49,24 +42,18 @@ export function SubMerchantFormModal({
   const submit = (values: SubMerchantFormValues) => onSubmit(toSubmitValues(values));
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editTarget ? 'Sửa điểm bán' : 'Thêm điểm bán'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(submit)} className="mt-5 space-y-4" noValidate>
-          <SubMerchantFormFields form={form} editTarget={editTarget} />
-          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Hủy
-            </Button>
-            <Button type="submit" variant="solid" isLoading={isSubmitting}>
-              Lưu
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title={editTarget ? 'Sửa Sub-merchant' : 'Thêm Sub-merchant'}
+      description={editTarget ? editTarget.code : 'Sub-merchant mới thuộc Master của bạn.'}
+      submitLabel={editTarget ? 'Lưu thay đổi' : 'Thêm Sub-merchant'}
+      isSubmitting={isSubmitting}
+      error={error}
+      onSubmit={() => void form.handleSubmit(submit)()}
+    >
+      <SubMerchantFormFields form={form} editTarget={editTarget} />
+    </FormModal>
   );
 }

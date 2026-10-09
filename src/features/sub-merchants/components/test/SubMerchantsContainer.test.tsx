@@ -10,7 +10,12 @@ import { SubMerchantsContainer } from '../SubMerchantsContainer';
 import type { SubMerchantDetail, SubMerchantRow } from '../../types';
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/sub-merchants' }));
+let currentSearch = '';
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+  usePathname: () => '/sub-merchants',
+  useSearchParams: () => new URLSearchParams(currentSearch),
+}));
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 const filter = { page: 1, pageSize: 10 };
 const row: SubMerchantRow = {
@@ -46,7 +51,7 @@ function renderContainer(data?: { rows: SubMerchantRow[]; total: number }) {
   return render(<QueryClientProvider client={client}><SubMerchantsContainer filter={filter} /></QueryClientProvider>);
 }
 beforeEach(() => mswServer.use(http.get(base, () => HttpResponse.json({ rows: [row], total: 1 }))));
-afterEach(() => { cleanup(); push.mockClear(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); push.mockClear(); vi.clearAllMocks(); currentSearch = ''; });
 
 describe('sub merchants container', () => {
   it('shows loading, error, empty, and data states', async () => {
@@ -71,10 +76,8 @@ describe('sub merchants container', () => {
     mswServer.use(http.post(base, async ({ request }) => { body = await request.json(); return HttpResponse.json(detail); }));
     renderContainer({ rows: [row], total: 1 });
     await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
-    await userEvent.type(await screen.findByRole('textbox', { name: /Tên điểm bán/ }), 'New shop');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Kế thừa điện thoại/ }));
-    await userEvent.click(screen.getByRole('checkbox', { name: /Kế thừa địa chỉ/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
     await waitFor(() => expect(body).toMatchObject({ name: 'New shop' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(toast.success).toHaveBeenCalled();
@@ -87,12 +90,12 @@ describe('sub merchants container', () => {
     renderContainer({ rows: [row], total: 1 });
     await userEvent.click(await screen.findByRole('button', { name: 'Xem chi tiết Shop' }));
     expect(await screen.findByText('Shop Ltd')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Sửa Shop' }));
-    expect(await screen.findByRole('textbox', { name: /Tên điểm bán/ })).toHaveValue('Shop');
-    await userEvent.clear(screen.getByRole('textbox', { name: /Tên điểm bán/ }));
-    await userEvent.type(screen.getByRole('textbox', { name: /Tên điểm bán/ }), 'Edited shop');
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await screen.findByRole('button', { name: 'Sửa Shop' }));
+    expect(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ })).toHaveValue('Shop');
+    await userEvent.clear(screen.getByRole('textbox', { name: /Tên Sub-merchant/ }));
+    await userEvent.type(screen.getByRole('textbox', { name: /Tên Sub-merchant/ }), 'Edited shop');
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
     await waitFor(() => expect(body).toMatchObject({ name: 'Edited shop' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -103,20 +106,30 @@ describe('sub merchants container', () => {
     renderContainer({ rows: [row], total: 1 });
     await userEvent.click(await screen.findByRole('button', { name: 'Khóa Shop' }));
     await userEvent.type(await screen.findByRole('textbox', { name: /Lý do/ }), 'short');
-    expect(screen.getByRole('button', { name: 'Xác nhận' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Khóa Sub-merchant' })).toBeDisabled();
     expect(screen.getByText('Lý do phải từ 10 đến 500 ký tự')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('textbox', { name: /Lý do/ }), ' but now valid');
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Khóa Sub-merchant' }));
     await waitFor(() => expect(reason).toEqual({ reason: 'short but now valid' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Xung đột trạng thái');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('does not offer filters the endpoint cannot apply', async () => {
+  it('searches by code, name and status and goes back to page 1', async () => {
+    currentSearch = 'page=3&pageSize=20';
     renderContainer({ rows: [row], total: 1 });
     await screen.findByText('SM001');
-    expect(screen.queryByRole('textbox', { name: /Tên \/ Mã sub-merchant/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Tìm kiếm' })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Mã Sub-merchant' }), 'SM0');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Tên Sub-merchant' }), 'Halo');
+    await userEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }));
+    expect(push).toHaveBeenCalledWith('/sub-merchants?page=1&pageSize=20&code=SM0&name=Halo');
+  });
+
+  it('keeps the active filters in the URL when the page changes', async () => {
+    currentSearch = 'code=SM0&status=ACTIVE';
+    renderContainer({ rows: [row], total: 30 });
+    await userEvent.click(await screen.findByRole('button', { name: /Next|Trang sau/i }));
+    expect(push).toHaveBeenCalledWith('/sub-merchants?code=SM0&status=ACTIVE&page=2&pageSize=10');
   });
 
   it('updates the URL when the page changes', async () => {
@@ -126,14 +139,12 @@ describe('sub merchants container', () => {
   });
 
   it('keeps the form open and shows the server error when saving fails', async () => {
-    mswServer.use(http.post(base, () => HttpResponse.json({ message: 'Tên điểm bán đã tồn tại' }, { status: 409 })));
+    mswServer.use(http.post(base, () => HttpResponse.json({ message: 'Tên Sub-merchant đã tồn tại' }, { status: 409 })));
     renderContainer({ rows: [row], total: 1 });
     await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
-    await userEvent.type(await screen.findByRole('textbox', { name: /Tên điểm bán/ }), 'New shop');
-    await userEvent.click(screen.getByRole('checkbox', { name: /Kế thừa điện thoại/ }));
-    await userEvent.click(screen.getByRole('checkbox', { name: /Kế thừa địa chỉ/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Tên điểm bán đã tồn tại');
+    await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tên Sub-merchant đã tồn tại');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(toast.success).not.toHaveBeenCalled();
   });

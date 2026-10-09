@@ -15,7 +15,7 @@ import { GET, POST } from "../route";
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const session = { merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] };
 const values = {
-  name: "Điểm bán",
+  name: "Sub-merchant",
   businessField: "",
   inheritPhone: true,
   phone: "",
@@ -56,13 +56,14 @@ describe("sub merchant collection route", () => {
 
   it("passes the filter and returns rows", async () => {
     listSubMerchants.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
-    const response = await GET(request("?page=2&pageSize=20&keyword=A&status=ACTIVE"));
+    const response = await GET(request("?page=2&pageSize=20&code=S1&name=A&status=ACTIVE"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ rows: [], total: 0 });
     expect(listSubMerchants).toHaveBeenCalledWith({
       page: 2,
       pageSize: 20,
-      keyword: "A",
+      code: "S1",
+      name: "A",
       status: "ACTIVE",
     });
   });

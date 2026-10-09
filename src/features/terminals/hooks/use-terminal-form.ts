@@ -8,26 +8,33 @@ export type ChangeTerminalField = <K extends keyof TerminalFormValues>(
   value: TerminalFormValues[K],
 ) => void;
 
+export type TerminalFormErrors = Partial<Record<keyof TerminalFormValues, string>>;
+
 export function useTerminalForm(
   detail: TerminalDetail | null | undefined,
   onSubmit: (values: TerminalFormValues) => Promise<void>,
 ) {
   const [values, setValues] = useState<TerminalFormValues>(() => terminalFormInitialValues(detail));
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<TerminalFormErrors>({});
 
   const change: ChangeTerminalField = (field, value) => {
     setValues((current) => ({ ...current, [field]: value }));
-    setFieldError(null);
+    setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
   };
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = (event?: FormEvent) => {
+    event?.preventDefault();
     const parsed = terminalFormSchema.safeParse(values);
     if (!parsed.success) {
-      setFieldError(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ");
+      const next: TerminalFormErrors = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as keyof TerminalFormValues;
+        next[field] ??= issue.message;
+      }
+      setErrors(next);
       return;
     }
     void onSubmit(parsed.data);
   };
 
-  return { values, fieldError, change, submit };
+  return { values, errors, change, submit };
 }

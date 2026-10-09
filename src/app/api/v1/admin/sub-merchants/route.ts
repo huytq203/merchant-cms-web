@@ -7,7 +7,8 @@ import { createSubMerchant, listSubMerchants } from "@/server/modules/sub-mercha
 import { requireSubMerchantAccess, selectMerchantId } from "@/server/modules/sub-merchants/require-sub-merchant-access";
 
 const listQuerySchema = paginationQuerySchema.extend({
-  keyword: z.string().max(100).optional(),
+  code: z.string().trim().max(100).optional(),
+  name: z.string().trim().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
 });
 

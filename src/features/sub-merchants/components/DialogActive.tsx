@@ -1,16 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button/Button';
-import { Textarea } from '@/components/ui/textarea/Textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog/Dialog';
-import { reasonBodySchema } from '@/lib/schemas/reason';
+import { DangerNotice, ReasonConfirmModal, type ReasonConfirmModalProps } from "@/components/modal/ReasonConfirmModal";
+import type { SubMerchantRow } from "../types";
 
 export type ReasonDialogProps = {
   open: boolean;
@@ -18,74 +9,33 @@ export type ReasonDialogProps = {
   onConfirm: (reason: string) => void | Promise<void>;
   isLoading?: boolean;
   error?: string | null;
-  title?: string;
+  /** The Sub-merchant being changed, named in the dialog so the action is never ambiguous. */
+  target?: Pick<SubMerchantRow, "code" | "name"> | null;
 };
 
-export function DialogActive({
-  open,
-  onOpenChange,
-  onConfirm,
-  isLoading,
-  error,
-  title = 'Khóa điểm bán',
-}: ReasonDialogProps) {
-  const [reason, setReason] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
-  const parsed = reasonBodySchema.safeParse({ reason });
-  const validationError = parsed.success ? null : parsed.error.issues[0]?.message ?? null;
+type Copy = Pick<ReasonConfirmModalProps, "title" | "description" | "reasonLabel" | "confirmLabel" | "confirmVariant" | "notice">;
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setReason('');
-      setLocalError(null);
-    }
-    onOpenChange(next);
-  };
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!parsed.success) {
-      setLocalError(validationError);
-      return;
-    }
-    void onConfirm(parsed.data.reason);
-  };
-  const changeReason = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setReason(event.target.value);
-    setLocalError(null);
-  };
+export const lockCopy: Copy = {
+  title: "Khóa Sub-merchant",
+  description: "Sub-merchant ngừng hoạt động cho đến khi được mở khóa.",
+  reasonLabel: "Lý do khóa",
+  confirmLabel: "Khóa Sub-merchant",
+  confirmVariant: "danger",
+  notice: <DangerNotice>Các terminal thuộc Sub-merchant này cũng bị khóa theo. Bạn có thể mở khóa lại sau.</DangerNotice>,
+};
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <form className="mt-5 space-y-4" onSubmit={submit}>
-          <Textarea
-            label="Lý do"
-            placeholder="Nhập lý do (10–500 ký tự)"
-            aria-label="Lý do"
-            required
-            value={reason}
-            onChange={changeReason}
-            error={localError ?? (reason ? validationError ?? undefined : undefined)}
-          />
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              variant="solid"
-              disabled={!parsed.success || isLoading}
-              isLoading={isLoading}
-            >
-              Xác nhận
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+export const unlockCopy: Copy = {
+  title: "Mở khóa Sub-merchant",
+  description: "Sub-merchant hoạt động trở lại sau khi mở khóa.",
+  reasonLabel: "Lý do mở khóa",
+  confirmLabel: "Mở khóa",
+  confirmVariant: "solid",
+};
+
+export function ReasonDialog({ copy, target, ...rest }: ReasonDialogProps & { copy: Copy }) {
+  return <ReasonConfirmModal {...copy} {...rest} target={target ? { title: target.name, subtitle: target.code } : null} />;
+}
+
+export function DialogActive(props: ReasonDialogProps) {
+  return <ReasonDialog copy={lockCopy} {...props} />;
 }

@@ -51,13 +51,14 @@ export const subMerchantDetailSchema = z.object({
 });
 
 export const subMerchantFilterSchema = z.object({
-  keyword: z.string().max(100).optional(),
+  code: z.string().max(100).optional(),
+  name: z.string().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
 });
 
 export const subMerchantFormSchema = z
   .object({
-    name: z.string().trim().min(1, "Tên điểm bán là bắt buộc").max(255, "Tối đa 255 ký tự"),
+    name: z.string().trim().min(1, "Tên Sub-merchant là bắt buộc").max(255, "Tối đa 255 ký tự"),
     businessField: z.string().trim().max(100, "Tối đa 100 ký tự"),
     inheritPhone: z.boolean(),
     phone: z.string().trim().max(15, "Tối đa 15 ký tự"),

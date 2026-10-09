@@ -1,16 +1,28 @@
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { SubMerchantFilterValues } from '../schemas';
 
 export function useSubMerchantListNavigation() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const changePage = (page: number, pageSize: number) => {
-    const params = new URLSearchParams({
-      page: String(page),
-      pageSize: String(pageSize),
-    });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', String(page));
+    params.set('pageSize', String(pageSize));
     router.push(`${pathname}?${params}`);
   };
 
-  return { changePage };
+  /** A new search always starts from the first page and keeps the chosen page size. */
+  const search = (values: SubMerchantFilterValues) => {
+    const params = new URLSearchParams({ page: '1' });
+    const pageSize = searchParams.get('pageSize');
+    if (pageSize) params.set('pageSize', pageSize);
+    if (values.code) params.set('code', values.code);
+    if (values.name) params.set('name', values.name);
+    if (values.status) params.set('status', values.status);
+    router.push(`${pathname}?${params}`);
+  };
+
+  return { changePage, search };
 }

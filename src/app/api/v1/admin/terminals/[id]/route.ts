@@ -28,7 +28,7 @@ export async function PUT(request: Request, context: Context) {
   const detail = await requireOwnedTerminal(id, access.user);
   if (detail instanceof NextResponse) return detail;
   if (body.data.subMerchantId !== detail.subMerchantId) {
-    return NextResponse.json({ message: "Không thể đổi điểm bán cha" }, { status: 400 });
+    return NextResponse.json({ message: "Không thể đổi Sub-merchant cha" }, { status: 400 });
   }
   const result = await updateTerminal(id, body.data);
   return result.success

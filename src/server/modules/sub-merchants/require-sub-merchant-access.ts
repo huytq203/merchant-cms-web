@@ -31,7 +31,7 @@ export async function requireOwnedSubMerchant(
     return reject(domainErrorMessage(result.error), toDomainHttpStatus(result.error));
   }
   if (!user.merchantIds.includes(result.data.merchantId)) {
-    return reject("Không tìm thấy điểm bán", 404);
+    return reject("Không tìm thấy Sub-merchant", 404);
   }
   return result.data;
 }

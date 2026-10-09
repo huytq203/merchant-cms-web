@@ -16,7 +16,7 @@ const merchantId = "11111111-1111-4111-8111-111111111111";
 const id = "22222222-2222-4222-8222-222222222222";
 const ctx = { params: Promise.resolve({ id }) };
 const values = {
-  name: "Điểm bán",
+  name: "Sub-merchant",
   businessField: "",
   inheritPhone: true,
   phone: "",
@@ -62,7 +62,7 @@ describe("sub merchant detail route", () => {
   });
 
   it("updates own detail", async () => {
-    updateSubMerchant.mockResolvedValue({ success: true, data: { id, merchantId, name: "Điểm bán" } });
+    updateSubMerchant.mockResolvedValue({ success: true, data: { id, merchantId, name: "Sub-merchant" } });
     const response = await PUT(put(), ctx);
     expect(response.status).toBe(200);
     expect(updateSubMerchant).toHaveBeenCalledWith(id, values);

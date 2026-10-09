@@ -168,14 +168,14 @@ describe("create withdrawal modal", () => {
     mswServer.use(http.get(`${base}/bank-options`, () => HttpResponse.json({ options: [bankOption], hasHiddenSubMerchantAccounts: true })));
     renderContainer();
     const dialog = await openCreateModal();
-    expect(await within(dialog).findByText("Tài khoản cấp điểm bán chưa dùng được để rút tiền")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Tài khoản cấp Sub-merchant chưa dùng được để rút tiền")).toBeInTheDocument();
   });
 
   it("shows no sub-merchant account note when nothing was hidden", async () => {
     renderContainer();
     const dialog = await openCreateModal();
     await within(dialog).findByRole("textbox", { name: /Số tiền/ });
-    expect(within(dialog).queryByText("Tài khoản cấp điểm bán chưa dùng được để rút tiền")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Tài khoản cấp Sub-merchant chưa dùng được để rút tiền")).not.toBeInTheDocument();
   });
 
   it("shows the BE error for an amount above the balance, keeps the data and retries with the same key", async () => {

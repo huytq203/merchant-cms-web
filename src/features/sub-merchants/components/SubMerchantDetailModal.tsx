@@ -1,80 +1,100 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { Lock, Unlock } from 'lucide-react';
+import { Badge as TagBadge, DetailItem, DetailList, DetailModal, DetailSection } from '@/components/modal/DetailModal';
 import { Badge } from '@/components/ui/badge/Badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog/Dialog';
+import { Button } from '@/components/ui/button/Button';
 import { statusBadge } from '../columns/SubMerchantColumn';
 import type { SubMerchantDetail } from '../types';
+import { canLock, canUnlock } from '../utils/sub-merchant-mapper';
 
 type Props = {
   detail: SubMerchantDetail | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Omitted when the outlet cannot be edited, such as a closed one; the Sửa button then disappears. */
+  onEdit?: () => void;
+  onLock?: () => void;
+  onUnlock?: () => void;
 };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="break-words text-sm font-medium">{children || '—'}</dd>
-    </div>
-  );
+const empty = <span className="text-muted-foreground">Chưa có</span>;
+
+function formatDateTime(value: string | null | undefined): string | undefined {
+  return value ? new Date(value).toLocaleString('vi-VN') : undefined;
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <div className="col-span-2 border-t pt-3 font-semibold">{children}</div>;
-}
-
-function Inherited({ field }: { field: SubMerchantDetail['phone'] }) {
+function Contact({ field }: { field: SubMerchantDetail['phone'] }) {
+  if (!field.value) return empty;
   return (
-    <span className="flex flex-wrap items-center gap-2">
-      {field.value || '—'}
+    <span className="flex flex-col">
+      <span>{field.value}</span>
       {field.suspended ? <Badge variant="soft-warning">Tạm dừng</Badge> : null}
-      {!field.suspended && field.inherited ? (
-        <Badge variant="secondary">Kế thừa từ Master</Badge>
-      ) : null}
+      {!field.suspended && field.inherited ? <span className="text-xs font-normal text-muted-foreground">Kế thừa từ Master</span> : null}
     </span>
   );
 }
 
-function formatDateTime(value: string | null | undefined): string | null {
-  return value ? new Date(value).toLocaleString('vi-VN') : null;
+function LockAction({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlock'> & { detail: SubMerchantDetail }) {
+  if (canLock(detail) && onLock) {
+    return <Button type="button" variant="outline" size="sm" leftIcon={<Lock className="h-4 w-4" aria-hidden="true" />} onClick={onLock}>Khóa Sub-merchant</Button>;
+  }
+  if (canUnlock(detail) && onUnlock) {
+    return <Button type="button" variant="outline" size="sm" leftIcon={<Unlock className="h-4 w-4" aria-hidden="true" />} onClick={onUnlock}>Mở khóa</Button>;
+  }
+  return null;
 }
 
-function DetailBody({ detail }: { detail: SubMerchantDetail }) {
+function Sections({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlock'> & { detail: SubMerchantDetail }): ReactNode {
   return (
-    <dl className="mt-5 grid grid-cols-2 gap-4">
-      <Field label="Mã">{detail.code}</Field>
-      <Field label="Tên">{detail.name}</Field>
-      <Field label="Trạng thái">{statusBadge(detail)}</Field>
-      <Field label="Mặc định">{detail.isDefault ? 'Mặc định' : 'Không'}</Field>
-      <Field label="Lĩnh vực kinh doanh">{detail.businessField}</Field>
-      <SectionTitle>Thông tin pháp lý</SectionTitle>
-      <Field label="Mã số thuế">{detail.taxCode}</Field>
-      <Field label="Tên pháp lý">{detail.legalName}</Field>
-      <Field label="Người đại diện pháp luật">{detail.legalRepresentativeName}</Field>
-      <SectionTitle>Liên hệ</SectionTitle>
-      <Field label="Số điện thoại"><Inherited field={detail.phone} /></Field>
-      <Field label="Địa chỉ"><Inherited field={detail.address} /></Field>
-      <Field label="Ngày tạo">{formatDateTime(detail.createdAt)}</Field>
-      <Field label="Ngày cập nhật">{formatDateTime(detail.updatedAt)}</Field>
-    </dl>
+    <>
+      <div className="flex flex-wrap gap-2 empty:hidden">
+        <LockAction detail={detail} onLock={onLock} onUnlock={onUnlock} />
+      </div>
+      <DetailSection title="Thông tin chung">
+        <DetailList>
+          <DetailItem label="Lĩnh vực kinh doanh" wide>{detail.businessField || empty}</DetailItem>
+        </DetailList>
+      </DetailSection>
+      <DetailSection title="Thông tin pháp lý" aside="Lấy từ Master">
+        <DetailList>
+          <DetailItem label="Mã số thuế"><span className="tabular-nums">{detail.taxCode || empty}</span></DetailItem>
+          <DetailItem label="Tên pháp lý">{detail.legalName || empty}</DetailItem>
+          <DetailItem label="Người đại diện pháp luật" wide>{detail.legalRepresentativeName || empty}</DetailItem>
+        </DetailList>
+      </DetailSection>
+      <DetailSection title="Liên hệ">
+        <DetailList>
+          <DetailItem label="Số điện thoại"><Contact field={detail.phone} /></DetailItem>
+          <DetailItem label="Địa chỉ"><Contact field={detail.address} /></DetailItem>
+        </DetailList>
+      </DetailSection>
+    </>
   );
 }
 
-export function SubMerchantDetailModal({ detail, open, onOpenChange }: Props) {
+const initialsOf = (name: string) => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word.charAt(0)).join('') || '?';
+
+export function SubMerchantDetailModal({ detail, open, onOpenChange, onEdit, onLock, onUnlock }: Props) {
+  if (!detail) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{detail?.name ?? 'Chi tiết điểm bán'}</DialogTitle>
-        </DialogHeader>
-        {detail ? <DetailBody detail={detail} /> : null}
-      </DialogContent>
-    </Dialog>
+    <DetailModal
+      open={open}
+      onOpenChange={onOpenChange}
+      header={{
+        monogramInitials: initialsOf(detail.name),
+        title: detail.name,
+        code: detail.code,
+        statusBadge: statusBadge(detail),
+        secondaryBadge: detail.isDefault ? <TagBadge tone="info">Mặc định</TagBadge> : undefined,
+      }}
+      sections={<Sections detail={detail} onLock={onLock} onUnlock={onUnlock} />}
+      createdAt={formatDateTime(detail.createdAt)}
+      updatedAt={formatDateTime(detail.updatedAt)}
+      editLabel="Sửa"
+      onEdit={onEdit}
+    />
   );
 }

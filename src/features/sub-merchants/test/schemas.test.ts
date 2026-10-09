@@ -38,7 +38,7 @@ describe("subMerchantSummarySchema", () => {
 });
 
 describe("subMerchantFormSchema", () => {
-  const base = { name: "Điểm bán A", businessField: "", inheritPhone: true, phone: "", inheritAddress: true, address: "" };
+  const base = { name: "Sub-merchant A", businessField: "", inheritPhone: true, phone: "", inheritAddress: true, address: "" };
 
   it("accepts inherited phone/address without values", () => {
     expect(subMerchantFormSchema.safeParse(base).success).toBe(true);

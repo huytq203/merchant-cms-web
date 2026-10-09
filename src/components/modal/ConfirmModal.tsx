@@ -29,6 +29,8 @@ export interface ConfirmModalProps {
   confirmLabel?: string;
   /** Cancel button label; default 'Hủy'. */
   cancelLabel?: string;
+  /** Caps the reason and shows a "n/max" counter under the field. */
+  reasonMaxLength?: number;
   /** Shown under the reason field as an alert, for example when the typed reason is too short. */
   reasonError?: string;
   /** Style of the confirm button; destructive actions keep the default `danger`. */
@@ -59,6 +61,7 @@ export function ConfirmModal({
   reasonValue = '',
   onReasonChange,
   reasonError,
+  reasonMaxLength,
   confirmLabel = 'Xác nhận',
   cancelLabel = 'Hủy',
   confirmVariant = 'danger',
@@ -88,6 +91,8 @@ export function ConfirmModal({
                 value={reasonValue}
                 onChange={(e) => onReasonChange(e.target.value)}
                 rows={2}
+                maxLength={reasonMaxLength}
+                showCount={reasonMaxLength !== undefined}
                 aria-invalid={reasonError ? true : undefined}
                 aria-describedby={reasonError ? 'reason-confirm-error' : undefined}
               />

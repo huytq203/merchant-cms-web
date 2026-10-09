@@ -9,6 +9,7 @@ import { useSubMerchantDialogs } from '../hooks/use-sub-merchant-dialogs';
 import { useSubMerchantListNavigation } from '../hooks/use-sub-merchant-list-navigation';
 import type { SubMerchantListFilter } from '../types';
 import { SubMerchantDialogs } from './SubMerchantDialogs';
+import { SubMerchantFilters } from './SubMerchantFilters';
 import { SubMerchantList } from './SubMerchantList';
 
 type Props = { filter: SubMerchantListFilter };
@@ -27,6 +28,11 @@ export function SubMerchantsContainer({ filter }: Props) {
           <Plus size={16} aria-hidden="true" /> Thêm mới
         </Button>
         }
+      />
+      <SubMerchantFilters
+        key={`${filter.code ?? ''}:${filter.name ?? ''}:${filter.status ?? ''}`}
+        defaultValues={{ code: filter.code, name: filter.name, status: filter.status }}
+        onSearch={navigation.search}
       />
       <SubMerchantList
         filter={filter}

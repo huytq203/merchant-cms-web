@@ -24,7 +24,7 @@ export const PERMISSION_LABELS: Record<MerchantPermission, string> = {
   EXPORT_BALANCE: 'Xuất số dư',
   VIEW_AUDIT_LOG: 'Xem nhật ký hệ thống',
   MANAGE_USER: 'Quản lý người dùng',
-  MANAGE_SUB_MERCHANT: 'Quản lý điểm bán',
+  MANAGE_SUB_MERCHANT: 'Quản lý Sub-merchant',
   MANAGE_PERMISSION_GROUP: 'Quản lý nhóm quyền',
   VIEW_WALLET: 'Xem ví',
   TOPUP_WALLET: 'Nạp tiền vào ví',

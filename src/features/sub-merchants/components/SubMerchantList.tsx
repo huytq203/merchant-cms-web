@@ -18,7 +18,7 @@ type ListBodyProps = Props & { list: UseQueryResult<SubMerchantListResult, Error
 function SubMerchantListBody({ list, filter, onPageChange, ...handlers }: ListBodyProps) {
   if (list.isPending) return <ResultState state="loading" />;
   if (list.isError) return <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} />;
-  if (list.data.rows.length === 0) return <ResultState state="empty" emptyMessage="Chưa có điểm bán phù hợp." />;
+  if (list.data.rows.length === 0) return <ResultState state="empty" emptyMessage="Chưa có Sub-merchant phù hợp." />;
   return (
     <SubMerchantTable
       data={list.data.rows}
@@ -35,7 +35,7 @@ export function SubMerchantList(props: Props) {
   const list = useQuery(subMerchantQueries.list(props.filter));
 
   return (
-    <ResultCard subject="điểm bán" total={list.data?.total ?? 0}>
+    <ResultCard subject="Sub-merchant" total={list.data?.total ?? 0}>
       <SubMerchantListBody list={list} {...props} />
     </ResultCard>
   );

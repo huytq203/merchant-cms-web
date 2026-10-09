@@ -7,9 +7,9 @@ export type SubMerchantSubmitValues =
 export const defaultFormValues: SubMerchantFormValues = {
   name: '',
   businessField: '',
-  inheritPhone: false,
+  inheritPhone: true,
   phone: '',
-  inheritAddress: false,
+  inheritAddress: true,
   address: '',
 };
 

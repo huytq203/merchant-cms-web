@@ -29,7 +29,7 @@ export const terminalDetailSchema = terminalSummarySchema.extend({
 });
 
 export const terminalFormSchema = z.object({
-  subMerchantId: z.uuid(),
+  subMerchantId: z.uuid("Chọn Sub-merchant"),
   name: z.string().trim().min(1, "Tên Terminal là bắt buộc").max(100),
   terminalType: terminalTypeSchema,
   address: z.string().trim().max(400),
@@ -39,10 +39,10 @@ export const terminalFormSchema = z.object({
   note: z.string().trim().max(500),
 }).superRefine((value, context) => {
   if (value.terminalType === "POS" && !value.address) {
-    context.addIssue({ code: "custom", path: ["address"], message: "Địa chỉ là bắt buộc cho POS" });
+    context.addIssue({ code: "custom", path: ["address"], message: "Nhập địa chỉ đặt máy POS" });
   }
   if (!value.inheritContactPhone && !value.contactPhone) {
-    context.addIssue({ code: "custom", path: ["contactPhone"], message: "Nhập số điện thoại hoặc chọn kế thừa" });
+    context.addIssue({ code: "custom", path: ["contactPhone"], message: "Nhập số điện thoại hoặc dùng của Sub-merchant" });
   }
 });
 

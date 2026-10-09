@@ -30,7 +30,7 @@ export function SubMerchantTable({
     <Table
       data={data}
       columns={columns}
-      labels={{ empty: 'Không có điểm bán' }}
+      labels={{ empty: 'Không có Sub-merchant' }}
       pagination={pagination}
     />
   );

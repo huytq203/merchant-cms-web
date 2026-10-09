@@ -104,7 +104,7 @@ describe("terminals container", () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: "Khóa Quầy 1" }));
     await userEvent.type(await screen.findByRole("textbox", { name: /Lý do/ }), "Lý do khóa hợp lệ");
-    await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
+    await userEvent.click(screen.getByRole("button", { name: "Khóa Terminal" }));
     await waitFor(() => expect(body).toEqual({ reason: "Lý do khóa hợp lệ" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Xung đột trạng thái");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -122,10 +122,10 @@ describe("terminals container", () => {
     await userEvent.type(await screen.findByRole("textbox", { name: /Tên Terminal/ }), "Quầy mới");
     await userEvent.click(within(dialog).getAllByRole("combobox")[0]!);
     await userEvent.click(await screen.findByRole("option", { name: /SM001/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Lưu Terminal" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Địa chỉ là bắt buộc cho POS");
-    await userEvent.type(screen.getByRole("textbox", { name: /Địa chỉ điểm bán/ }), "Hà Nội");
-    await userEvent.click(screen.getByRole("button", { name: "Lưu Terminal" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Thêm Terminal" }));
+    expect(await within(dialog).findByText("Nhập địa chỉ đặt máy POS")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: /Địa chỉ đặt máy POS/ }), "Hà Nội");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Thêm Terminal" }));
     await waitFor(() => expect(body).toMatchObject({ subMerchantId, terminalType: "POS", address: "Hà Nội" }));
   });
 
@@ -141,7 +141,7 @@ describe("terminals container", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Sửa Quầy 1" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByRole("status")).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: "Lưu Terminal" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Lưu thay đổi" })).not.toBeInTheDocument();
   });
 
   it("shows the error in a modal when the detail fails to load for editing", async () => {

@@ -34,6 +34,9 @@ export function TerminalDialogs({ dialogs, actions }: Props) {
         onOpenChange={onOpenChange}
         detail={detail.data}
         error={detail.error?.message}
+        onEdit={target ? () => dialogs.openFor("edit", target) : undefined}
+        onLock={target ? () => dialogs.openFor("lock", target) : undefined}
+        onUnlock={target ? () => dialogs.openFor("unlock", target) : undefined}
       />
       {(activeDialog === "create" || (isEditing && detail.data)) && (
         <TerminalFormModal
