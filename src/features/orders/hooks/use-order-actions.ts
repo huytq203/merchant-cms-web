@@ -10,7 +10,7 @@ export function useOrderActions(dialogs: OrderDialogs) {
   const submitCreate = async (values: OrderFormData) => {
     try {
       const order = await create.create(values);
-      dialogs.openFor("qr", order);
+      dialogs.showCreated(order);
     } catch {
       // The form stays open with the server error.
     }

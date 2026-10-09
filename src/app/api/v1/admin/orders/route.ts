@@ -13,6 +13,9 @@ import {
 const listQuerySchema = paginationQuerySchema.extend({
   orderCode: z.string().trim().max(100).optional(),
   status: orderStatusSchema.optional(),
+  subMerchantId: z.uuid().optional(),
+  createdFrom: z.iso.date().optional(),
+  createdTo: z.iso.date().optional(),
 });
 
 export async function GET(request: Request) {

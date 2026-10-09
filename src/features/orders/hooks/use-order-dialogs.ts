@@ -11,6 +11,11 @@ export function useOrderDialogs() {
     setTarget(null);
     setActiveDialog("create");
   };
+  /** Keeps the create dialog open, switched to the result of the order just created. */
+  const showCreated = (order: Order) => {
+    setTarget(order);
+    setActiveDialog("create");
+  };
   const openFor = (name: OrderDialogName, order: Order) => {
     setTarget(order);
     setActiveDialog(name);
@@ -20,7 +25,7 @@ export function useOrderDialogs() {
     setTarget(null);
   };
 
-  return { activeDialog, target, openCreate, openFor, close };
+  return { activeDialog, target, openCreate, showCreated, openFor, close };
 }
 
 export type OrderDialogs = ReturnType<typeof useOrderDialogs>;

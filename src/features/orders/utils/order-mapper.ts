@@ -7,12 +7,28 @@ export function canRefreshQr(status: OrderStatus): boolean {
   return status === "ACTIVE";
 }
 
+/** `expiredAt` arrives zone-less in business time (UTC+7); null when absent or unreadable. */
+export function parseExpiredAt(expiredAt: string | null | undefined): Date | null {
+  if (!expiredAt) return null;
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(expiredAt);
+  const parsed = new Date(hasZone ? expiredAt : `${expiredAt}+07:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /** The order is unpaid but its payment window has already closed, so the old QR must not be shown. */
 export function isOrderQrExpired(order: Pick<Order, "status" | "expiredAt">, now: Date): boolean {
-  if (order.status !== "ACTIVE" || !order.expiredAt) return false;
-  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(order.expiredAt);
-  const expiresAt = new Date(hasZone ? order.expiredAt : `${order.expiredAt}+07:00`);
-  return !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= now.getTime();
+  if (order.status !== "ACTIVE") return false;
+  const expiresAt = parseExpiredAt(order.expiredAt);
+  return expiresAt !== null && expiresAt.getTime() <= now.getTime();
+}
+
+/** `HH:MM:SS` until the QR closes; hours keep counting past 24 so a long window stays readable. */
+export function formatCountdown(expiredAt: string | null | undefined, now: Date): string | null {
+  const expiresAt = parseExpiredAt(expiredAt);
+  if (!expiresAt) return null;
+  const seconds = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / 1000));
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 }
 
 /** BE reads `expiredAt` as a zone-less LocalDateTime in business time (UTC+7). */
@@ -44,5 +60,6 @@ export function toOrderCreateRequest(values: OrderFormData, merchantId: string, 
     ...(values.orderDescription ? { orderDescription: values.orderDescription } : {}),
     ...(expiredAt ? { expiredAt } : {}),
     ...(values.subMerchantId ? { subMerchantId: values.subMerchantId } : {}),
+    ...(values.terminalId ? { terminalId: values.terminalId } : {}),
   };
 }

@@ -18,6 +18,9 @@ export async function listOrders(filter: OrderListFilter): Promise<BeResult<Orde
       size: filter.pageSize,
       orderCode: filter.orderCode,
       status: filter.status,
+      subMerchantId: filter.subMerchantId,
+      createdFrom: filter.createdFrom,
+      createdTo: filter.createdTo,
     },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;

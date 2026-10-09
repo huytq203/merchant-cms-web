@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { orderFormSchema, type OrderFormData } from "../schemas/order.schema";
+import { generateOrderCode } from "../utils/order-code";
+import { readLastBank, writeLastBank } from "../utils/order-preferences";
 
 export type OrderFormFields = {
   subMerchantId: string;
+  terminalId: string;
   bankCode: string;
   orderCode: string;
   amount: string;
@@ -15,6 +18,7 @@ export type OrderFormErrors = Partial<Record<keyof OrderFormFields, string>>;
 
 const BLANK: OrderFormFields = {
   subMerchantId: "",
+  terminalId: "",
   bankCode: "",
   orderCode: "",
   amount: "",
@@ -32,17 +36,21 @@ function toSchemaInput(values: OrderFormFields) {
     paymentMethod: values.paymentMethod,
     expiryMinutes: values.expiryMinutes,
     ...(values.subMerchantId ? { subMerchantId: values.subMerchantId } : {}),
+    ...(values.terminalId ? { terminalId: values.terminalId } : {}),
   };
 }
 
 export function useOrderForm(onSubmit: (values: OrderFormData) => Promise<void>) {
-  const [values, setValues] = useState<OrderFormFields>(BLANK);
+  const [values, setValues] = useState<OrderFormFields>(() => ({ ...BLANK, bankCode: readLastBank() }));
   const [errors, setErrors] = useState<OrderFormErrors>({});
 
   const change = <K extends keyof OrderFormFields>(field: K, value: OrderFormFields[K]) => {
-    setValues((current) => ({ ...current, [field]: value }));
+    // A Terminal belongs to one Sub-merchant, so switching the Sub-merchant drops the chosen Terminal.
+    setValues((current) => ({ ...current, [field]: value, ...(field === "subMerchantId" ? { terminalId: "" } : {}) }));
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
+
+  const generateCode = () => change("orderCode", generateOrderCode());
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -57,8 +65,9 @@ export function useOrderForm(onSubmit: (values: OrderFormData) => Promise<void>)
       return;
     }
     setErrors({});
+    writeLastBank(parsed.data.bankCode);
     void onSubmit(parsed.data);
   };
 
-  return { values, errors, change, submit };
+  return { values, errors, change, generateCode, submit };
 }

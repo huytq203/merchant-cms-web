@@ -22,7 +22,12 @@ export const orderResponseSchema = z.object({
   merchantName: z.string().nullish(),
   merchantCode: z.string().nullish(),
   subMerchantId: z.uuid().nullish(),
+  subMerchantCode: z.string().nullish(),
+  subMerchantName: z.string().nullish(),
   terminalId: z.uuid().nullish(),
+  terminalCode: z.string().nullish(),
+  terminalName: z.string().nullish(),
+  acceptedPaymentMethod: z.string().nullish(),
   orderCode: z.string(),
   orderDescription: z.string().nullish(),
   netAmount: z.number().int().nullish(),
@@ -53,6 +58,7 @@ export const orderFormSchema = z.object({
   paymentMethod: paymentMethodSchema.default("QR"),
   expiryMinutes: z.coerce.number<number>().int().min(0).optional(),
   subMerchantId: z.uuid().optional(),
+  terminalId: z.uuid().optional(),
 });
 
 export type Order = z.infer<typeof orderResponseSchema>;

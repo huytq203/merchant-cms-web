@@ -28,7 +28,7 @@ describe('useSubMerchantOptions', () => {
     const { client, wrapper } = setup();
     const { result } = renderHook(() => useSubMerchantOptions(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code }]);
+    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: false }]);
     expect(client.getQueryData(subMerchantQueries.list({ page: 1, pageSize: 100 }).queryKey))
       .toEqual({ rows: [row], total: 1 });
   });
@@ -52,6 +52,6 @@ describe('useSubMerchantOptions', () => {
     const { result } = renderHook(() => useSubMerchantOptions(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
     await act(async () => { await result.current.refetch(); });
-    await waitFor(() => expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code }]));
+    await waitFor(() => expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: false }]));
   });
 });

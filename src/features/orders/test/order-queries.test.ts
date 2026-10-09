@@ -18,4 +18,18 @@ describe("order search params", () => {
     expect(orderQueries.list(filter).queryKey).toEqual(["orders", "list", filter]);
     expect(orderQueries.list({ ...filter, page: 3 }).queryKey).not.toEqual(orderQueries.list(filter).queryKey);
   });
+
+  it("round-trips the Sub-merchant and created-date filters through the URL", () => {
+    const filter = {
+      page: 1, pageSize: 10, subMerchantId: "11111111-1111-4111-8111-111111111111",
+      createdFrom: "2026-10-01", createdTo: "2026-10-09",
+    } as const;
+    const params = toOrderSearchParams(filter);
+    expect(parseOrderSearchParams(Object.fromEntries(params))).toEqual(filter);
+  });
+
+  it("drops a malformed Sub-merchant id or date instead of sending it on", () => {
+    expect(parseOrderSearchParams({ subMerchantId: "abc", createdFrom: "09/10/2026", createdTo: "2026-13-40" }))
+      .toEqual({ page: 1, pageSize: 10 });
+  });
 });

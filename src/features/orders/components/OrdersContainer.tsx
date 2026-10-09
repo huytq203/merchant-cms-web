@@ -16,8 +16,11 @@ import type { OrderListFilter } from "../types/types";
 import { DialogOderQR } from "./DialogOderQR";
 import { DialogOrderDetail } from "./DialogOrderDetail";
 import { OrderFilter } from "./OrderFilter";
-import { OrderForm } from "./OrderForm";
+import { OrderCreateDialog } from "./OrderCreateDialog";
 import { OrderTable } from "./OrderTable";
+
+const orderFilterKey = (filter: OrderListFilter) =>
+  [filter.orderCode, filter.status, filter.subMerchantId, filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
 
 type Props = {
   filter: OrderListFilter;
@@ -29,11 +32,22 @@ export function OrdersContainer({ filter, abilities }: Props) {
   const actions = useOrderActions(dialogs);
   const navigation = useOrderListNavigation(filter);
   const list = useQuery(orderQueries.list(filter));
-  const qr = useQuery({
-    ...orderQueries.detail(dialogs.target?.id ?? ""),
-    enabled: dialogs.activeDialog === "qr" && Boolean(dialogs.target),
-  });
   const { activeDialog, target } = dialogs;
+  // The list row has no QR, so both the QR and the detail dialog read the order by id.
+  const fresh = useQuery({
+    ...orderQueries.detail(target?.id ?? ""),
+    enabled: (activeDialog === "qr" || activeDialog === "detail") && Boolean(target),
+  });
+  const qrDialog = {
+    order: fresh.data ?? target,
+    isLoading: fresh.isPending && fresh.fetchStatus !== "idle",
+    loadError: fresh.error?.message,
+    canRefresh: abilities.canCreate,
+    onRefresh: actions.submitRefreshQr,
+    isRefreshing: actions.refreshQr.isPending,
+    refreshError: actions.refreshQr.error?.message,
+    justRefreshed: actions.refreshQr.isSuccess,
+  };
 
   return (
     <div className="space-y-5">
@@ -47,7 +61,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
       />
       <div>
         <OrderFilter
-          key={`${filter.orderCode ?? ""}:${filter.status ?? ""}`}
+          key={orderFilterKey(filter)}
           initial={filter}
           onSearch={navigation.search}
         />
@@ -69,32 +83,22 @@ export function OrdersContainer({ filter, abilities }: Props) {
         ) : null}
       </ResultCard>
       {activeDialog === "create" && (
-        <OrderForm
-          open
-          onOpenChange={(open) => !open && actions.closeDialog()}
+        <OrderCreateDialog
+          onClose={actions.closeDialog}
+          created={target}
           onSubmit={actions.submitCreate}
           isSubmitting={actions.create.isPending}
           error={actions.create.error?.message}
           serverErrors={readFieldErrors(actions.create.error)}
+          onViewDetail={(order) => dialogs.openFor("detail", order)}
+          onCreateAnother={() => {
+            actions.create.reset();
+            dialogs.openCreate();
+          }}
         />
       )}
-      <DialogOrderDetail
-        open={activeDialog === "detail"}
-        onOpenChange={(open) => !open && actions.closeDialog()}
-        order={target}
-      />
-      <DialogOderQR
-        open={activeDialog === "qr"}
-        onOpenChange={(open) => !open && actions.closeDialog()}
-        order={qr.data ?? target}
-        isLoading={qr.isPending && qr.fetchStatus !== "idle"}
-        loadError={qr.error?.message}
-        canRefresh={abilities.canCreate}
-        onRefresh={actions.submitRefreshQr}
-        isRefreshing={actions.refreshQr.isPending}
-        refreshError={actions.refreshQr.error?.message}
-        justRefreshed={actions.refreshQr.isSuccess}
-      />
+      <DialogOrderDetail open={activeDialog === "detail"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />
+      <DialogOderQR open={activeDialog === "qr"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />
     </div>
   );
 }

@@ -49,6 +49,21 @@ describe("order service", () => {
     });
   });
 
+  it("forwards the Sub-merchant and created-date filters", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(path, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(page([])));
+    }));
+    await listOrders({
+      page: 1, pageSize: 10, subMerchantId: "11111111-1111-4111-8111-111111111111",
+      createdFrom: "2026-10-01", createdTo: "2026-10-09",
+    });
+    expect(Object.fromEntries(query!)).toMatchObject({
+      subMerchantId: "11111111-1111-4111-8111-111111111111", createdFrom: "2026-10-01", createdTo: "2026-10-09",
+    });
+  });
+
   it("maps an empty Page", async () => {
     mswServer.use(http.get(path, () => HttpResponse.json(envelope(page([], 0)))));
     expect(await listOrders({ page: 1, pageSize: 10 })).toEqual({

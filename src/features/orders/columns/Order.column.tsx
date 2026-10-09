@@ -5,7 +5,7 @@ import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge, type StatusTone } from "@/components/page/StatusBadge";
 import { formatAmount } from "@/lib/utils/helper";
-import { BANK_OPTIONS, ORDER_STATUS_OPTIONS, labelOf } from "../constants/Order.constants";
+import { ORDER_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS, labelOf } from "../constants/Order.constants";
 import type { Order } from "../types/types";
 import { canRefreshQr } from "../utils/order-mapper";
 
@@ -34,6 +34,16 @@ export function OrderStatusBadge({ status }: { status: Order["status"] }) {
   );
 }
 
+function SubMerchantCell({ order }: { order: Order }) {
+  if (!order.subMerchantCode && !order.subMerchantName) return "—";
+  return (
+    <div className="min-w-0">
+      <p className="font-mono text-xs text-muted-foreground">{order.subMerchantCode}</p>
+      <p>{order.subMerchantName}</p>
+    </div>
+  );
+}
+
 function OrderRowActions({ order, actions }: { order: Order; actions: OrderColumnActions }) {
   const showQr = canRefreshQr(order.status);
   return <RowActions subject={`đơn ${order.orderCode}`} actions={[
@@ -57,9 +67,14 @@ export function getOrderColumns(actions: OrderColumnActions, page: number, pageS
       cell: ({ row }) => <span className="font-mono tabular-nums">{formatAmount(row.original.amount)}</span>,
     },
     {
-      id: "bankCode",
-      header: "Ngân hàng",
-      cell: ({ row }) => labelOf(BANK_OPTIONS, row.original.bankCode),
+      id: "paymentMethod",
+      header: "Phương thức",
+      cell: ({ row }) => labelOf(PAYMENT_METHOD_OPTIONS, row.original.acceptedPaymentMethod),
+    },
+    {
+      id: "subMerchant",
+      header: "Nhận tiền về",
+      cell: ({ row }) => <SubMerchantCell order={row.original} />,
     },
     { id: "createdAt", header: "Ngày tạo", cell: ({ row }) => <DateTimeCell value={row.original.createdAt} /> },
     { id: "expiredAt", header: "Hết hạn", cell: ({ row }) => <DateTimeCell value={row.original.expiredAt} /> },

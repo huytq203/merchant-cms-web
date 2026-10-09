@@ -46,20 +46,22 @@ beforeEach(() => {
   listReturns([activeOrder]);
   mswServer.use(http.get(`${base}/${activeOrder.id}`, () => HttpResponse.json(activeOrder)));
   mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })));
+  mswServer.use(http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: [], total: 0 })));
 });
 afterEach(() => {
+  window.localStorage.clear();
   cleanup();
   vi.clearAllMocks();
 });
 
-async function chooseOption(dialog: HTMLElement, index: number, name: RegExp) {
-  await userEvent.click(within(dialog).getAllByRole("combobox")[index]!);
+async function chooseOption(scope: HTMLElement, field: RegExp, name: RegExp) {
+  await userEvent.click(within(scope).getByRole("combobox", { name: field }));
   await userEvent.click(await screen.findByRole("option", { name }));
 }
 
 async function fillValidForm() {
   const dialog = await screen.findByRole("dialog");
-  await chooseOption(dialog, 1, /Vietcombank/);
+  await chooseOption(dialog, /Ngân hàng/, /Vietcombank/);
   await userEvent.type(within(dialog).getByRole("textbox", { name: /Mã đơn hàng/ }), "INV-9");
   await userEvent.type(within(dialog).getByRole("textbox", { name: /Số tiền/ }), "250000");
   return dialog;
@@ -169,5 +171,133 @@ describe("order actions by status", () => {
     expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
     await userEvent.click(refresh);
     await waitFor(() => expect(screen.getByTitle(/Mã QR đơn INV-1/)).toBeInTheDocument());
+  });
+});
+
+describe("create order flow", () => {
+  const subId = "11111111-1111-4111-8111-111111111111";
+  const terminalId = "55555555-5555-4555-8555-555555555555";
+
+  function sellerHas(terminals: { id: string; tid: string; name: string }[]) {
+    mswServer.use(
+      http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
+        rows: [{ id: subId, code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: true }],
+        total: 1,
+      })),
+      http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: terminals, total: terminals.length })),
+    );
+  }
+
+  it("offers the Terminals of the default Sub-merchant and sends the chosen one", async () => {
+    sellerHas([{ id: terminalId, tid: "TML000001", name: "Quầy 1" }]);
+    const bodies: unknown[] = [];
+    mswServer.use(http.post(base, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json(makeOrder({ orderCode: "INV-9", qrCode: "new-qr" }), { status: 201 });
+    }));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await fillValidForm();
+    await chooseOption(dialog, /Terminal/, /TML000001/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tạo đơn hàng" }));
+    await screen.findByTitle(/Mã QR đơn INV-9/);
+    expect(bodies[0]).toMatchObject({ terminalId });
+  });
+
+  it("groups the amount with thousand separators while keeping the digits", async () => {
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await screen.findByRole("dialog");
+    const amount = within(dialog).getByRole("textbox", { name: /Số tiền/ });
+    await userEvent.type(amount, "1500000");
+    expect(amount).toHaveValue("1.500.000");
+  });
+
+  it("fills a generated order code on request", async () => {
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: /Tạo mã đơn tự động/ }));
+    const code = within(dialog).getByRole("textbox", { name: /Mã đơn hàng/ });
+    expect((code as HTMLInputElement).value).toMatch(/^DH\d{6}-\d{4}$/);
+  });
+
+  it("warns when the code already belongs to an unpaid order", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({ rows: [activeOrder], total: 1 })));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await screen.findByRole("dialog");
+    const code = within(dialog).getByRole("textbox", { name: /Mã đơn hàng/ });
+    await userEvent.type(code, "INV-1");
+    await userEvent.tab();
+    expect(await within(dialog).findByText(/Mã này đã có/)).toBeInTheDocument();
+  });
+
+  it("shows the result in the same dialog and returns to a fresh form for another order", async () => {
+    mswServer.use(http.post(base, () =>
+      HttpResponse.json(makeOrder({ orderCode: "INV-9", qrCode: "new-qr", feeAmount: 8250, netAmount: 241750 }), { status: 201 }),
+    ));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await fillValidForm();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tạo đơn hàng" }));
+    expect(await screen.findByRole("heading", { name: /Đã tạo đơn INV-9/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn khác/ }));
+    expect(await screen.findByRole("textbox", { name: /Mã đơn hàng/ })).toHaveValue("");
+  });
+
+  it("remembers the bank used for the last order", async () => {
+    mswServer.use(http.post(base, () => HttpResponse.json(makeOrder({ qrCode: "qr" }), { status: 201 })));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await fillValidForm();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tạo đơn hàng" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Tạo đơn khác/ }));
+    expect(await screen.findByRole("combobox", { name: /Ngân hàng/ })).toHaveTextContent("Vietcombank");
+  });
+});
+
+describe("order list filters", () => {
+  it("searches by status, Sub-merchant and created date", async () => {
+    mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
+      rows: [{ id: "11111111-1111-4111-8111-111111111111", code: "MC1-S001", name: "Halo tech", status: "ACTIVE" }],
+      total: 1,
+    })));
+    renderContainer();
+    await screen.findByText("INV-1");
+    const filter = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
+    await chooseOption(filter, /Trạng thái/, /Thành công/);
+    await chooseOption(filter, /Sub-merchant/, /Halo tech/);
+    await userEvent.click(within(filter).getByRole("button", { name: "Tìm kiếm" }));
+    const url = new URL(String(push.mock.calls.at(-1)?.[0]), "http://localhost");
+    expect(url.searchParams.get("status")).toBe("SUCCESS");
+    expect(url.searchParams.get("subMerchantId")).toBe("11111111-1111-4111-8111-111111111111");
+  });
+
+  it("shows where the order is going: the Sub-merchant and payment method columns", async () => {
+    listReturns([makeOrder({ subMerchantCode: "MC1-S001", subMerchantName: "Halo tech", acceptedPaymentMethod: "DOMESTIC_CARD" })]);
+    renderContainer();
+    expect(await screen.findByText("Halo tech")).toBeInTheDocument();
+    expect(screen.getByText("Thẻ nội địa")).toBeInTheDocument();
+  });
+});
+
+describe("order detail", () => {
+  it("explains an order that needs reconciliation without offering a QR", async () => {
+    const order = makeOrder({ status: "CREDIT_RECONCILIATION_REQUIRED", qrCode: "qr" });
+    listReturns([order]);
+    mswServer.use(http.get(`${base}/${order.id}`, () => HttpResponse.json(order)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+    expect(await screen.findByText(/không cần làm gì/)).toBeInTheDocument();
+    expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
+  });
+
+  it("shows the QR with its countdown for an unpaid order", async () => {
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+    expect(await screen.findByTitle(/Mã QR đơn INV-1/)).toBeInTheDocument();
+    expect(screen.getByText(/Mã QR còn hiệu lực/)).toBeInTheDocument();
   });
 });

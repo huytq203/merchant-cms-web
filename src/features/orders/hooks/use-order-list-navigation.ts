@@ -1,5 +1,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { toOrderSearchParams } from "../order-queries";
+import type { OrderFilterValues } from "../types/types";
 import type { OrderListFilter } from "../types/types";
 
 export function useOrderListNavigation(filter: OrderListFilter) {
@@ -9,7 +10,7 @@ export function useOrderListNavigation(filter: OrderListFilter) {
   const navigate = (next: OrderListFilter) => {
     router.push(`${pathname}?${toOrderSearchParams(next)}`);
   };
-  const search = (values: Pick<OrderListFilter, "orderCode" | "status">) => {
+  const search = (values: OrderFilterValues) => {
     navigate({ page: 1, pageSize: filter.pageSize, ...values });
   };
   const changePage = (page: number, pageSize: number) => {
