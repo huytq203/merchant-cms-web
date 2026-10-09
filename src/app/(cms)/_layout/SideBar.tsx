@@ -30,7 +30,7 @@ export default function DocSidebar() {
   return (
     <>
       <Sidebar collapsible="icon" variant="sidebar" side="left">
-        <SidebarHeader className="">
+        <SidebarHeader className="h-[60px] justify-center border-b border-border p-0 px-4">
           <SidebarBrand isCollapsed={state === "collapsed"} />
         </SidebarHeader>
         <SidebarContent>
