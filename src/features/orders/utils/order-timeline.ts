@@ -1,8 +1,7 @@
+import type { StepState } from "@/components/page/StepProgress";
 import type { OrderStatus } from "../schemas/order.schema";
 
 export const ORDER_STEPS = ["Tạo đơn", "Chờ thanh toán", "Đã thanh toán", "Ghi có", "Thành công"] as const;
-
-export type StepState = "done" | "current" | "failed" | "upcoming";
 
 /** Index of the step an order is on; equal to the step count once it has fully succeeded. */
 const POSITION: Record<OrderStatus, { current: number; failed?: boolean }> = {

@@ -1,6 +1,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { toWithdrawalSearchParams } from "../withdrawal-queries";
-import type { WithdrawalListFilter } from "../types/types";
+import type { WithdrawalFilterValues, WithdrawalListFilter } from "../types/types";
 
 export function useWithdrawalListNavigation(filter: WithdrawalListFilter) {
   const router = useRouter();
@@ -13,5 +13,9 @@ export function useWithdrawalListNavigation(filter: WithdrawalListFilter) {
     navigate({ ...filter, page, pageSize });
   };
 
-  return { changePage };
+  const search = (values: WithdrawalFilterValues) => {
+    navigate({ page: 1, pageSize: filter.pageSize, ...values });
+  };
+
+  return { changePage, search };
 }

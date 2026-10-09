@@ -1,12 +1,9 @@
-import { Badge } from "@/components/ui/badge/Badge";
-import { WITHDRAWAL_STATUS_OPTIONS } from "../constants/Withdrawal.constants";
+import { StatusBadge } from "@/components/page/StatusBadge";
+import { WITHDRAWAL_STATUS_OPTIONS, groupOfStatus } from "../constants/Withdrawal.constants";
 import type { WithdrawalStatus } from "../types/types";
 
+/** The exact BE status as the label; its stage gives the colour. */
 export function WithdrawalStatusBadge({ status }: { status: WithdrawalStatus }) {
-  const option = WITHDRAWAL_STATUS_OPTIONS.find((item) => item.value === status);
-  return (
-    <Badge variant={option?.variant ?? "outline"} className="w-44 justify-center">
-      {option?.label ?? "Không xác định"}
-    </Badge>
-  );
+  const label = WITHDRAWAL_STATUS_OPTIONS.find((item) => item.value === status)?.label;
+  return <StatusBadge label={label} tone={groupOfStatus(status)?.tone ?? "neutral"} />;
 }

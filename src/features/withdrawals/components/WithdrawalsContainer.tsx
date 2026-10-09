@@ -10,8 +10,13 @@ import { useWithdrawalListNavigation } from "../hooks/use-withdrawal-list-naviga
 import { withdrawalQueries } from "../withdrawal-queries";
 import type { WithdrawalListFilter } from "../types/types";
 import { WithdrawalCreateModal } from "./WithdrawalCreateModal";
+import { WithdrawalBalanceStrip } from "./WithdrawalBalanceStrip";
 import { WithdrawalDetailModal } from "./WithdrawalDetailModal";
+import { WithdrawalFilter } from "./WithdrawalFilter";
 import { WithdrawalResults } from "./WithdrawalResults";
+
+const filterKey = (filter: WithdrawalListFilter) =>
+  [filter.transactionCode, filter.statusGroup, filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
 
 type Props = {
   filter: WithdrawalListFilter;
@@ -33,13 +38,15 @@ export function WithdrawalsContainer({ filter, abilities }: Props) {
           </Button>
         ) : undefined}
       />
+      <WithdrawalBalanceStrip />
+      <WithdrawalFilter key={filterKey(filter)} initial={filter} onSearch={navigation.search} />
       <WithdrawalResults
         list={list}
         filter={filter}
         onPageChange={navigation.changePage}
         onView={dialogs.openDetail}
       />
-      {dialogs.activeDialog === "create" && <WithdrawalCreateModal onClose={dialogs.close} />}
+      {dialogs.activeDialog === "create" && <WithdrawalCreateModal onClose={dialogs.close} onViewDetail={dialogs.openDetail} />}
       <WithdrawalDetailModal
         open={dialogs.activeDialog === "detail"}
         onOpenChange={(open) => !open && dialogs.close()}

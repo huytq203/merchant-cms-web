@@ -11,14 +11,16 @@ const input = {
   bankAccountId: "44444444-4444-4444-8444-444444444444",
   amount: 250000,
   idempotencyKey: "key-1",
+  otp: { otpSessionId: "sess-1", otp: "123456" },
 };
 
 describe("toWithdrawalCreateRequest", () => {
-  it("keeps only the account id, amount and idempotency key", () => {
+  it("keeps only the account id, amount, idempotency key and the OTP answer", () => {
     expect(toWithdrawalCreateRequest(input)).toEqual({
       bankAccountId: input.bankAccountId,
       amount: 250000,
       idempotencyKey: "key-1",
+      otp: { otpSessionId: "sess-1", otp: "123456" },
     });
   });
 

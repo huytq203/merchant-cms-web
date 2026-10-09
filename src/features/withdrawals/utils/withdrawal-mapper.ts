@@ -13,12 +13,13 @@ export function withdrawalTotalDebit(withdrawal: Pick<Withdrawal, "amount" | "fe
   return withdrawal.fee === null ? null : withdrawal.amount + withdrawal.fee;
 }
 
-/** BE reads merchant, bank and account holder from the stored account, so only these four fields leave the browser. */
+/** BE reads merchant, bank and account holder from the stored account, so only these fields leave the browser. */
 export function toWithdrawalCreateRequest(body: WithdrawalCreateBody) {
   return {
     bankAccountId: body.bankAccountId,
     amount: body.amount,
     idempotencyKey: body.idempotencyKey,
+    otp: body.otp,
     ...(body.reason ? { reason: body.reason } : {}),
   };
 }

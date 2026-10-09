@@ -1,5 +1,6 @@
 import type { BadgeProps } from "@/components/ui/badge/Badge";
-import type { WithdrawalStatus } from "../schemas/withdrawal.schema";
+import type { StatusTone } from "@/components/page/StatusBadge";
+import type { WithdrawalStatus, WithdrawalStatusGroup } from "../schemas/withdrawal.schema";
 
 type StatusOption = { value: WithdrawalStatus; label: string; variant: BadgeProps["variant"] };
 
@@ -26,3 +27,32 @@ export const REQUEST_TYPE_LABELS = {
 } as const;
 
 export const EMPTY_VALUE = "—";
+
+/**
+ * The 14 BE statuses are steps of one payout pipeline. The merchant filters by the stage a request is in;
+ * the table and detail still show the exact status.
+ */
+export const WITHDRAWAL_STATUS_GROUPS: {
+  value: WithdrawalStatusGroup;
+  label: string;
+  tone: StatusTone;
+  statuses: readonly WithdrawalStatus[];
+}[] = [
+  { value: "PENDING", label: "Chờ duyệt", tone: "warning", statuses: ["PENDING"] },
+  {
+    value: "PROCESSING",
+    label: "Đang xử lý",
+    tone: "info",
+    statuses: [
+      "APPROVED", "FUNDS_RESERVING", "FUNDS_RESERVED", "BANK_SUBMITTING", "BANK_ACCEPTED",
+      "PROCESSING", "LEDGER_CAPTURING", "FUNDS_RELEASING",
+    ],
+  },
+  { value: "COMPLETED", label: "Hoàn tất", tone: "success", statuses: ["COMPLETED"] },
+  { value: "REJECTED", label: "Bị từ chối hoặc thất bại", tone: "danger", statuses: ["REJECTED", "BANK_REJECTED", "FAILED"] },
+  { value: "RECONCILIATION", label: "Cần đối soát", tone: "warning", statuses: ["RECONCILIATION_REQUIRED"] },
+];
+
+export function groupOfStatus(status: WithdrawalStatus) {
+  return WITHDRAWAL_STATUS_GROUPS.find((group) => group.statuses.includes(status));
+}

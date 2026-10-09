@@ -1,22 +1,23 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
+import type { SensitiveOtpChallenge } from "@/lib/schemas/sensitive-otp";
 import { withdrawalFormSchema } from "../schemas/withdrawal.schema";
 import { describeWithdrawalError, readFieldErrors } from "../utils/withdrawal-errors";
+import { amountProblem, maxWithdrawable } from "../utils/withdrawal-limits";
 import { withdrawalQueries } from "../withdrawal-queries";
-import { useCreateWithdrawal } from "./use-withdrawal-mutations";
+import { useCreateWithdrawal, useWithdrawalOtpChallenge } from "./use-withdrawal-mutations";
+import type { Withdrawal } from "../types/types";
 
 export type WithdrawalFormFields = {
-  subMerchantId: string;
   bankAccountId: string;
   amount: string;
   reason: string;
 };
 
 export type WithdrawalFormErrors = Partial<Record<keyof WithdrawalFormFields, string>>;
-export type WithdrawalCreateStep = 1 | 2;
+export type WithdrawalCreateStep = "form" | "confirm" | "otp" | "sent";
 
-const BLANK: WithdrawalFormFields = { subMerchantId: "", bankAccountId: "", amount: "", reason: "" };
+const BLANK: WithdrawalFormFields = { bankAccountId: "", amount: "", reason: "" };
 
 function parseFields(values: WithdrawalFormFields) {
   return withdrawalFormSchema.safeParse({
@@ -35,64 +36,96 @@ function issuesToErrors(issues: { path: PropertyKey[]; message: string }[]): Wit
   return next;
 }
 
-/** Two-step create flow: collect the request, review it, then send it. Data survives a rejected send. */
-export function useWithdrawalCreateFlow(onCreated: () => void) {
-  const [step, setStep] = useState<WithdrawalCreateStep>(1);
+/** Form, review, email code, result. Everything entered survives a rejected send. */
+export function useWithdrawalCreateFlow() {
+  const [step, setStep] = useState<WithdrawalCreateStep>("form");
   const [values, setValues] = useState<WithdrawalFormFields>(BLANK);
   const [errors, setErrors] = useState<WithdrawalFormErrors>({});
-  const subMerchants = useSubMerchantOptions();
-  const bankOptions = useQuery(withdrawalQueries.bankOptions(values.subMerchantId));
+  const [challenge, setChallenge] = useState<SensitiveOtpChallenge | null>(null);
+  const [otpFailure, setOtpFailure] = useState<string | null>(null);
+  const [created, setCreated] = useState<Withdrawal | null>(null);
+  const bankOptions = useQuery(withdrawalQueries.bankOptions());
+  const balance = useQuery(withdrawalQueries.balance());
+  const requestOtp = useWithdrawalOtpChallenge();
   const creation = useCreateWithdrawal();
   const selectedBank = bankOptions.data?.options.find((option) => option.id === values.bankAccountId);
-  const selectedSubMerchant = subMerchants.data?.find((option) => option.id === values.subMerchantId);
 
   const change = <K extends keyof WithdrawalFormFields>(field: K, value: WithdrawalFormFields[K]) => {
-    const resetsBank = field === "subMerchantId" ? { bankAccountId: "" } : {};
-    setValues((current) => ({ ...current, ...resetsBank, [field]: value }));
-    setErrors((current) => ({ ...current, ...resetsBank, [field]: undefined }));
+    setValues((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
     creation.reset();
+  };
+
+  const fillMaximum = () => {
+    if (balance.data) change("amount", String(maxWithdrawable(balance.data)));
   };
 
   const review = (event: FormEvent) => {
     event.preventDefault();
     const parsed = parseFields(values);
-    setErrors(parsed.success ? {} : issuesToErrors(parsed.error.issues));
-    if (parsed.success) setStep(2);
+    if (!parsed.success) return setErrors(issuesToErrors(parsed.error.issues));
+    const problem = amountProblem(parsed.data.amount, balance.data);
+    if (problem) return setErrors({ amount: problem });
+    setErrors({});
+    setStep("confirm");
   };
 
-  const submit = async () => {
-    const parsed = parseFields(values);
-    if (!parsed.success) {
-      setErrors(issuesToErrors(parsed.error.issues));
-      setStep(1);
-      return;
-    }
+  /** Asks BE to email a code, then shows the code step. A failure stays on the review step. */
+  const sendCode = async () => {
+    setOtpFailure(null);
     try {
-      await creation.create(parsed.data);
-      onCreated();
-    } catch {
-      // The review step stays open and shows the server error.
+      setChallenge(await requestOtp.mutateAsync());
+      setStep("otp");
+    } catch (error) {
+      setOtpFailure(describeWithdrawalError(error));
+    }
+  };
+
+  const confirm = async (otp: string) => {
+    const parsed = parseFields(values);
+    if (!parsed.success || !challenge) return;
+    setOtpFailure(null);
+    try {
+      setCreated(await creation.create(parsed.data, { otpSessionId: challenge.otpSessionId, otp }));
+      setStep("sent");
+    } catch (error) {
+      setOtpFailure(describeWithdrawalError(error));
+    }
+  };
+
+  const resend = async () => {
+    setOtpFailure(null);
+    try {
+      setChallenge(await requestOtp.mutateAsync());
+    } catch (error) {
+      setOtpFailure(describeWithdrawalError(error));
     }
   };
 
   const back = () => {
     creation.reset();
-    setStep(1);
+    setOtpFailure(null);
+    setStep(step === "otp" ? "confirm" : "form");
   };
 
   return {
     step,
     values,
     errors: { ...readFieldErrors(creation.error), ...errors },
-    subMerchants,
     bankOptions,
+    balance,
     selectedBank,
-    selectedSubMerchant,
-    isSubmitting: creation.isPending,
-    submitError: creation.error ? describeWithdrawalError(creation.error) : undefined,
+    challenge,
+    created,
+    otpFailure,
+    isSending: creation.isPending,
+    isRequestingCode: requestOtp.isPending,
     change,
+    fillMaximum,
     review,
-    submit,
+    sendCode,
+    confirm,
+    resend,
     back,
   };
 }

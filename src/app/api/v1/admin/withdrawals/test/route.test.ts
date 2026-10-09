@@ -16,7 +16,8 @@ import { GET, POST } from "../route";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const foreignId = "44444444-4444-4444-8444-444444444444";
 const bankAccountId = "55555555-5555-4555-8555-555555555555";
-const body = { bankAccountId, amount: 250000, idempotencyKey: "key-1" };
+const otp = { otpSessionId: "sess-1", otp: "123456" };
+const body = { bankAccountId, amount: 250000, idempotencyKey: "key-1", otp };
 const listRequest = (query = "") => new Request(`http://localhost/api/v1/admin/withdrawals${query}`);
 const postRequest = (value: unknown) =>
   new Request("http://localhost/api/v1/admin/withdrawals", { method: "POST", body: JSON.stringify(value) });
@@ -38,11 +39,20 @@ describe("withdrawals list route", () => {
     expect(listWithdrawals).not.toHaveBeenCalled();
   });
 
-  it("rejects an oversized page and does not pass filters to the service", async () => {
-    expect((await GET(listRequest("?pageSize=101"))).status).toBe(400);
+  it("rejects an oversized page and a malformed filter before calling the service", async () => {
+    for (const query of ["?pageSize=101", "?statusGroup=SOON", "?createdFrom=01/01/2026"]) {
+      expect((await GET(listRequest(query))).status).toBe(400);
+    }
     expect(listWithdrawals).not.toHaveBeenCalled();
-    expect((await GET(listRequest("?status=PENDING&transactionCode=WD"))).status).toBe(200);
-    expect(listWithdrawals).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
+  });
+
+  it("forwards the code, stage and day filters", async () => {
+    const query = "?transactionCode=%20WD1%20&statusGroup=PROCESSING&createdFrom=2026-01-01&createdTo=2026-01-31";
+    expect((await GET(listRequest(query))).status).toBe(200);
+    expect(listWithdrawals).toHaveBeenCalledWith({
+      page: 1, pageSize: 10, transactionCode: "WD1", statusGroup: "PROCESSING",
+      createdFrom: "2026-01-01", createdTo: "2026-01-31",
+    });
   });
 
   it("never forwards a merchantId from the client because BE scopes by session", async () => {
@@ -68,10 +78,10 @@ describe("withdrawals create route", () => {
     expect(createWithdrawal).not.toHaveBeenCalled();
   });
 
-  it("forwards only the four contract fields and drops a merchantId or account number from the body", async () => {
+  it("forwards only the contract fields and drops a merchantId or account number from the body", async () => {
     const response = await POST(postRequest({ ...body, reason: "Rút", merchantId: foreignId, bankAccountNumber: "9999", bankCode: "VCB" }));
     expect(response.status).toBe(201);
-    expect(createWithdrawal).toHaveBeenCalledWith({ bankAccountId, amount: 250000, idempotencyKey: "key-1", reason: "Rút" });
+    expect(createWithdrawal).toHaveBeenCalledWith({ bankAccountId, amount: 250000, idempotencyKey: "key-1", reason: "Rút", otp });
   });
 
   it("validates the contract limits before calling the BE", async () => {
@@ -80,6 +90,8 @@ describe("withdrawals create route", () => {
       { ...body, amount: 1.5 },
       { ...body, idempotencyKey: "k".repeat(101) },
       { ...body, reason: "r".repeat(501) },
+      { ...body, otp: { otpSessionId: "sess-1", otp: "12" } },
+      { bankAccountId, amount: 250000, idempotencyKey: "key-1" },
     ];
     for (const value of invalid) expect((await POST(postRequest(value))).status).toBe(400);
     expect(createWithdrawal).not.toHaveBeenCalled();

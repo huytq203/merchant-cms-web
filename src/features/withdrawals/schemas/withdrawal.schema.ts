@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sensitiveOtpSchema } from "@/lib/schemas/sensitive-otp";
 
 export const withdrawalStatusSchema = z.enum([
   "PENDING",
@@ -16,6 +17,8 @@ export const withdrawalStatusSchema = z.enum([
   "COMPLETED",
   "FAILED",
 ]);
+
+export const withdrawalStatusGroupSchema = z.enum(["PENDING", "PROCESSING", "COMPLETED", "REJECTED", "RECONCILIATION"]);
 
 export const withdrawalRequestTypeSchema = z.enum(["MANUAL", "AUTO_SWEEP"]);
 
@@ -70,9 +73,22 @@ export const withdrawalFormSchema = z.object({
 /** The browser sends the key so a retried request replays the same BE record instead of making a second one. */
 export const withdrawalCreateBodySchema = withdrawalFormSchema.extend({
   idempotencyKey: z.string().trim().min(1, "Thiếu mã chống gửi trùng").max(100),
+  otp: sensitiveOtpSchema,
+});
+
+/** What the merchant can withdraw now. A limit is null when no ceiling applies. */
+export const withdrawalBalanceSchema = z.object({
+  merchantId: z.uuid(),
+  availableBalance: z.number().int().nonnegative(),
+  heldBalance: z.number().int().nonnegative(),
+  dailyLimitRemaining: z.number().int().nonnegative().nullish().transform((value) => value ?? null),
+  minimumAmount: z.number().int().nonnegative().nullish().transform((value) => value ?? null),
+  maximumAmount: z.number().int().nonnegative().nullish().transform((value) => value ?? null),
 });
 
 export type WithdrawalStatus = z.infer<typeof withdrawalStatusSchema>;
+export type WithdrawalStatusGroup = z.infer<typeof withdrawalStatusGroupSchema>;
+export type WithdrawalBalance = z.infer<typeof withdrawalBalanceSchema>;
 export type Withdrawal = z.infer<typeof withdrawalResponseSchema>;
 export type WithdrawalFormValues = z.input<typeof withdrawalFormSchema>;
 export type WithdrawalFormData = z.output<typeof withdrawalFormSchema>;

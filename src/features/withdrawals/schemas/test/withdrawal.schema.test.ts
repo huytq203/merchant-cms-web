@@ -88,9 +88,12 @@ describe("withdrawal form schema", () => {
     expect(withdrawalFormSchema.safeParse({ ...form, reason: "a".repeat(501) }).success).toBe(false);
   });
 
-  it("requires an idempotency key on the create body", () => {
-    expect(withdrawalCreateBodySchema.safeParse(form).success).toBe(false);
-    expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "k".repeat(101) }).success).toBe(false);
-    expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1" }).success).toBe(true);
+  it("requires an idempotency key and the OTP answer on the create body", () => {
+    const otp = { otpSessionId: "sess-1", otp: "123456" };
+    expect(withdrawalCreateBodySchema.safeParse({ ...form, otp }).success).toBe(false);
+    expect(withdrawalCreateBodySchema.safeParse({ ...form, otp, idempotencyKey: "k".repeat(101) }).success).toBe(false);
+    expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1" }).success).toBe(false);
+    expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1", otp: { ...otp, otp: "12" } }).success).toBe(false);
+    expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1", otp }).success).toBe(true);
   });
 });

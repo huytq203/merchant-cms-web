@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
-import { withdrawalCreateBodySchema } from "@/features/withdrawals/schemas/withdrawal.schema";
+import { z } from "zod";
+import { withdrawalCreateBodySchema, withdrawalStatusGroupSchema } from "@/features/withdrawals/schemas/withdrawal.schema";
 import { createWithdrawal, listWithdrawals } from "@/server/modules/withdrawals/withdrawal.service";
 import { beErrorResponse, requireWithdrawalAccess } from "@/server/modules/withdrawals/require-withdrawal-access";
 
-// The BE search takes pagination only and scopes by the session; merchantId from the client is ignored.
-const listQuerySchema = paginationQuerySchema;
+// BE scopes the list by the session; merchantId from the client is ignored.
+const listQuerySchema = paginationQuerySchema.extend({
+  transactionCode: z.string().trim().max(100).optional(),
+  statusGroup: withdrawalStatusGroupSchema.optional(),
+  createdFrom: z.iso.date().optional(),
+  createdTo: z.iso.date().optional(),
+});
 
 export async function GET(request: Request) {
   const access = await requireWithdrawalAccess("VIEW_WITHDRAWAL");

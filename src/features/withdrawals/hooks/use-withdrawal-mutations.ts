@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { apiClient } from "@/lib/http/api-client";
+import { sensitiveOtpChallengeSchema, type SensitiveOtp, type SensitiveOtpChallenge } from "@/lib/schemas/sensitive-otp";
 import type { WithdrawalCreateBody, WithdrawalFormData } from "../schemas/withdrawal.schema";
 import type { Withdrawal } from "../types/types";
 import { WITHDRAWALS_ENDPOINT } from "../withdrawal-queries";
@@ -24,7 +24,7 @@ export function useCreateWithdrawal() {
     onSuccess: async (withdrawal) => {
       client.setQueryData(["withdrawals", "detail", withdrawal.id], withdrawal);
       await client.invalidateQueries({ queryKey: ["withdrawals", "list"] });
-      toast.success("Đã gửi yêu cầu rút tiền, đang chờ duyệt");
+      await client.invalidateQueries({ queryKey: ["withdrawals", "balance"] });
     },
   });
 
@@ -37,9 +37,9 @@ export function useCreateWithdrawal() {
   };
 
   /** Submitting while a request is in flight returns that same request, so a double click makes one record. */
-  const create = (values: WithdrawalFormData): Promise<Withdrawal> => {
+  const create = (values: WithdrawalFormData, otp: SensitiveOtp): Promise<Withdrawal> => {
     if (inFlight.current) return inFlight.current;
-    const request = mutation.mutateAsync({ ...values, idempotencyKey: keyFor(values) }).finally(() => {
+    const request = mutation.mutateAsync({ ...values, idempotencyKey: keyFor(values), otp }).finally(() => {
       inFlight.current = null;
     });
     inFlight.current = request;
@@ -47,4 +47,12 @@ export function useCreateWithdrawal() {
   };
 
   return { create, isPending: mutation.isPending, error: mutation.error, reset: mutation.reset };
+}
+
+/** Asks BE to email a code for sending a withdrawal; a resend is the same call. */
+export function useWithdrawalOtpChallenge() {
+  return useMutation({
+    mutationFn: (): Promise<SensitiveOtpChallenge> =>
+      apiClient.post(`${WITHDRAWALS_ENDPOINT}/otp-challenge`).then((data) => sensitiveOtpChallengeSchema.parse(data)),
+  });
 }
