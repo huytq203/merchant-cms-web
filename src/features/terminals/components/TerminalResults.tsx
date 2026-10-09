@@ -18,7 +18,7 @@ export function TerminalResults({ filter, dialogs, onPageChange }: Props) {
   const list = useQuery(terminalQueries.list(filter));
 
   return (
-    <ResultCard subject="Terminal" total={list.data?.total ?? 0}>
+    <ResultCard>
       {list.isPending ? (
         <ResultState state="loading" />
       ) : list.isError ? (

@@ -21,7 +21,7 @@ export function UserResults({ filter, actorId, openFor, onPageChange, onAdd }: P
   const list = useUsers(filter);
 
   return (
-    <ResultCard subject="Người dùng" total={list.data?.total ?? 0}>
+    <ResultCard>
       {list.isPending ? (
         <ResultState state="loading" />
       ) : list.isError ? (

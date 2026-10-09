@@ -35,7 +35,7 @@ export function SubMerchantList(props: Props) {
   const list = useQuery(subMerchantQueries.list(props.filter));
 
   return (
-    <ResultCard subject="Sub-merchant" total={list.data?.total ?? 0}>
+    <ResultCard>
       <SubMerchantListBody list={list} {...props} />
     </ResultCard>
   );

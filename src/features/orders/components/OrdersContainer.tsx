@@ -66,7 +66,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
           onSearch={navigation.search}
         />
       </div>
-      <ResultCard subject="đơn hàng" total={list.data?.total ?? 0}>
+      <ResultCard>
         {list.isPending ? <ResultState state="loading" /> : null}
         {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}
         {list.data?.rows.length === 0 ? <ResultState state="empty" emptyMessage="Không có đơn hàng" /> : null}

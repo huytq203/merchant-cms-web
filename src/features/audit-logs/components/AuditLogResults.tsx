@@ -17,7 +17,7 @@ export function AuditLogResults({ filter, onPageChange, onView }: Props) {
   const list = useQuery(auditLogQueries.list(filter));
 
   return (
-    <ResultCard subject="nhật ký" total={list.data?.total ?? 0}>
+    <ResultCard>
       {list.isPending && <ResultState state="loading" />}
       {list.isError && (
         <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} />
