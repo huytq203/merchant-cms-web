@@ -19,6 +19,13 @@ const otherWalletId = "88888888-8888-4888-8888-888888888888";
 const context = (id: string) => ({ params: Promise.resolve({ id }) });
 const url = `http://localhost/api/v1/admin/kyb/wallets/${walletId}`;
 
+function submitRequest() {
+  return new Request(`${url}/submit`, {
+    method: "POST",
+    body: JSON.stringify({ otp: { otpSessionId: "s-1", otp: "123456" } }),
+  });
+}
+
 function put(body: unknown) {
   return new Request(url, { method: "PUT", body: JSON.stringify(body) });
 }
@@ -48,7 +55,7 @@ describe("KYB wallet routes", () => {
 
   it("answers 404 and does not write for a wallet the session merchants do not sit on", async () => {
     expect((await PUT(put({ legalName: "Công ty A" }), context(otherWalletId))).status).toBe(404);
-    expect((await SUBMIT(new Request(url, { method: "POST" }), context(otherWalletId))).status).toBe(404);
+    expect((await SUBMIT(submitRequest(), context(otherWalletId))).status).toBe(404);
     expect(updateWallet).not.toHaveBeenCalled();
     expect(submitWallet).not.toHaveBeenCalled();
   });
@@ -60,9 +67,20 @@ describe("KYB wallet routes", () => {
   });
 
   it("updates an owned wallet", async () => {
-    const response = await PUT(put({ legalName: "Công ty A", internalWallet: false }), context(walletId));
+    const response = await PUT(put({ legalName: "Công ty A" }), context(walletId));
     expect(response.status).toBe(200);
-    expect(updateWallet).toHaveBeenCalledWith(walletId, { legalName: "Công ty A", internalWallet: false });
+    expect(updateWallet).toHaveBeenCalledWith(walletId, { legalName: "Công ty A" }, undefined);
+  });
+
+  it("passes the email OTP of a verified dossier edit to the service", async () => {
+    const otp = { otpSessionId: "s-1", otp: "123456" };
+    expect((await PUT(put({ legalName: "Công ty A", otp }), context(walletId))).status).toBe(200);
+    expect(updateWallet).toHaveBeenCalledWith(walletId, { legalName: "Công ty A" }, otp);
+  });
+
+  it("refuses a malformed OTP before anything is written", async () => {
+    expect((await PUT(put({ legalName: "Công ty A", otp: { otpSessionId: "s-1", otp: "12" } }), context(walletId))).status).toBe(400);
+    expect(updateWallet).not.toHaveBeenCalled();
   });
 
   it("answers 403 instead of 401 (which would end the session) when the merchant lookup fails", async () => {
@@ -74,9 +92,14 @@ describe("KYB wallet routes", () => {
     expect(updateWallet).not.toHaveBeenCalled();
   });
 
-  it("submits an owned wallet", async () => {
-    const response = await SUBMIT(new Request(url, { method: "POST" }), context(walletId));
+  it("submits an owned wallet with its OTP", async () => {
+    const response = await SUBMIT(submitRequest(), context(walletId));
     expect(response.status).toBe(200);
-    expect(submitWallet).toHaveBeenCalledWith(walletId);
+    expect(submitWallet).toHaveBeenCalledWith(walletId, { otpSessionId: "s-1", otp: "123456" });
+  });
+
+  it("refuses a submit that carries no OTP", async () => {
+    expect((await SUBMIT(new Request(url, { method: "POST" }), context(walletId))).status).toBe(400);
+    expect(submitWallet).not.toHaveBeenCalled();
   });
 });

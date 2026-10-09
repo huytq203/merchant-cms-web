@@ -89,16 +89,10 @@ export function isWalletFormComplete(values: WalletFormValues) {
   return walletFormSchema.safeParse(values).success;
 }
 
-/** Body of `PUT /enterprise-wallets/{id}`: the BE overwrites every field, so `internalWallet` travels along. */
-export function toWalletUpdate(
-  wallet: EnterpriseWallet,
-  values: Partial<WalletFormValues>,
-  stagingIds: StagingIds,
-) {
-  const { registeredEmail: _registeredEmail, ...editable } = values;
+/** Body of the wallet update: the email is fixed and the internal-wallet flag is Flexpay's, so neither is sent. */
+export function toWalletUpdate(values: Partial<WalletFormValues> & { internalWallet?: boolean }, stagingIds: StagingIds) {
+  const { registeredEmail: _registeredEmail, internalWallet: _internalWallet, ...editable } = values;
   void _registeredEmail;
-  return toWalletRequest(
-    { ...editable, internalWallet: wallet.internalWallet ?? false },
-    stagingIds,
-  );
+  void _internalWallet;
+  return toWalletRequest(editable, stagingIds);
 }

@@ -31,3 +31,9 @@ export function registrationConditions(merchant: MerchantProfile) {
     bankLinked: wallet?.bankLinkStatus === "BANK_LINKED",
   };
 }
+
+export function businessTypeLabel(type: string | null | undefined): string {
+  if (type === "ENTERPRISE") return "Doanh nghiệp";
+  if (type === "HOUSEHOLD") return "Hộ kinh doanh";
+  return "";
+}

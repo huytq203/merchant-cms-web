@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { SensitiveOtp, SensitiveOtpChallenge } from "@/lib/schemas/sensitive-otp";
 import { kybRequest } from "../kyb-api";
 import type {
   EnterpriseWallet,
@@ -10,7 +11,8 @@ import type {
 } from "../types";
 import { toWalletUpdate } from "../utils/kyb-mapper";
 
-function useRefreshProfile(merchantId: string) {
+/** Reloads the profile (and the status trail behind its progress steps) after a write. */
+export function useRefreshProfile(merchantId: string) {
   const client = useQueryClient();
   return async () => {
     await Promise.all([
@@ -23,24 +25,31 @@ function useRefreshProfile(merchantId: string) {
 type WalletSaveInput = {
   values: Partial<WalletFormValues>;
   stagingIds: StagingIds;
+  /** Needed only when the dossier is already verified and the change sends it back to review. */
+  otp?: SensitiveOtp;
 };
 
-export function useSaveWallet(merchantId: string, wallet: EnterpriseWallet) {
-  const refresh = useRefreshProfile(merchantId);
+export function useSaveWallet(wallet: EnterpriseWallet) {
   return useMutation({
-    mutationFn: ({ values, stagingIds }: WalletSaveInput) => kybRequest<EnterpriseWallet>(
+    mutationFn: ({ values, stagingIds, otp }: WalletSaveInput) => kybRequest<EnterpriseWallet>(
       `/wallets/${wallet.id}`,
-      { method: "PUT", body: JSON.stringify(toWalletUpdate(wallet, values, stagingIds)) },
+      { method: "PUT", body: JSON.stringify({ ...toWalletUpdate(values, stagingIds), ...(otp ? { otp } : {}) }) },
     ),
-    onSuccess: refresh,
   });
 }
 
-export function useSubmitWallet(merchantId: string, walletId: string) {
-  const refresh = useRefreshProfile(merchantId);
+export function useSubmitWallet(walletId: string) {
   return useMutation({
-    mutationFn: () => kybRequest<EnterpriseWallet>(`/wallets/${walletId}/submit`, { method: "POST" }),
-    onSuccess: refresh,
+    mutationFn: (otp: SensitiveOtp) => kybRequest<EnterpriseWallet>(
+      `/wallets/${walletId}/submit`,
+      { method: "POST", body: JSON.stringify({ otp }) },
+    ),
+  });
+}
+
+export function useKybOtpChallenge() {
+  return useMutation({
+    mutationFn: () => kybRequest<SensitiveOtpChallenge>("/otp-challenge", { method: "POST" }),
   });
 }
 
@@ -50,20 +59,16 @@ type MerchantSaveInput = {
 };
 
 export function useSaveMerchant(merchantId: string) {
-  const refresh = useRefreshProfile(merchantId);
   return useMutation({
     mutationFn: ({ values, stagingIds }: MerchantSaveInput) => kybRequest<MerchantProfile>(
       `/merchants/${merchantId}`,
       { method: "PUT", body: JSON.stringify({ ...values, ...stagingIds }) },
     ),
-    onSuccess: refresh,
   });
 }
 
 export function useSubmitMerchant(merchantId: string) {
-  const refresh = useRefreshProfile(merchantId);
   return useMutation({
     mutationFn: () => kybRequest<MerchantProfile>(`/merchants/${merchantId}/submit`, { method: "POST" }),
-    onSuccess: refresh,
   });
 }

@@ -1,16 +1,15 @@
-const ADMIN = "/api/v1/admin";
+// Every call goes through the Merchant Portal chain: the admin chain rejects merchant-realm tokens.
+// Creating wallets and deciding a dossier stay Flexpay's and have no merchant route.
+const MERCHANT = "/api/v1/merchant";
 
 export const kybPaths = {
-  availability: `${ADMIN}/enterprise-wallets/availability`,
-  walletDrafts: `${ADMIN}/enterprise-wallets/drafts`,
-  wallets: `${ADMIN}/enterprise-wallets`,
-  wallet: (id: string) => `${ADMIN}/enterprise-wallets/${encodeURIComponent(id)}`,
-  walletSubmit: (id: string) => `${ADMIN}/enterprise-wallets/${encodeURIComponent(id)}/submit`,
-  walletDocuments: (id: string) => `${ADMIN}/enterprise-wallets/${encodeURIComponent(id)}/documents`,
-  documents: `${ADMIN}/documents`,
-  merchants: `${ADMIN}/merchants`,
-  merchant: (id: string) => `${ADMIN}/merchants/${encodeURIComponent(id)}`,
-  merchantSubmit: (id: string) => `${ADMIN}/merchants/${encodeURIComponent(id)}/submit`,
-  merchantStatusHistory: (id: string) => `${ADMIN}/merchants/${encodeURIComponent(id)}/status-history`,
-  merchantRejectionReasons: `${ADMIN}/merchants/rejection-reasons`,
+  documents: `${MERCHANT}/documents`,
+  otpChallenge: `${MERCHANT}/sensitive-operations/otp-challenge`,
+  merchantRead: (id: string) => `${MERCHANT}/merchants/${encodeURIComponent(id)}`,
+  merchantUpdate: (id: string) => `${MERCHANT}/merchants/${encodeURIComponent(id)}`,
+  merchantSubmit: (id: string) => `${MERCHANT}/merchants/${encodeURIComponent(id)}/submit`,
+  merchantStatusHistory: (id: string) => `${MERCHANT}/merchants/${encodeURIComponent(id)}/status-history`,
+  walletUpdate: (id: string) => `${MERCHANT}/merchants/wallets/${encodeURIComponent(id)}`,
+  walletSubmit: (id: string) => `${MERCHANT}/merchants/wallets/${encodeURIComponent(id)}/submit`,
+  walletTaxCodeUsage: (id: string) => `${MERCHANT}/merchants/wallets/${encodeURIComponent(id)}/tax-code-usage`,
 } as const;

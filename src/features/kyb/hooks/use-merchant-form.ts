@@ -8,14 +8,11 @@ import { merchantFormSchema } from "../schemas/merchant-profile.schema";
 import type { MerchantFormValues, MerchantProfile, MerchantStagingIds } from "../types";
 import { merchantToFormValues } from "../utils/merchant-mapper";
 import { runGuarded } from "./run-guarded";
-import { useSaveMerchant, useSubmitMerchant } from "./use-kyb-mutations";
+import { useRefreshProfile, useSaveMerchant, useSubmitMerchant } from "./use-kyb-mutations";
 
-type Options = {
-  merchant: MerchantProfile;
-  onSubmitted: () => void;
-};
+type Options = { merchant: MerchantProfile };
 
-export function useMerchantForm({ merchant, onSubmitted }: Options) {
+export function useMerchantForm({ merchant }: Options) {
   const [stagingIds, setStagingIds] = useState<MerchantStagingIds>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm<MerchantFormValues>({
@@ -24,6 +21,7 @@ export function useMerchantForm({ merchant, onSubmitted }: Options) {
   });
   const save = useSaveMerchant(merchant.id);
   const submit = useSubmitMerchant(merchant.id);
+  const refresh = useRefreshProfile(merchant.id);
 
   const setStaging = (key: keyof MerchantStagingIds, ids: string[]) => {
     const next = key === "productImageStagingIds" ? ids : ids[0];
@@ -38,6 +36,7 @@ export function useMerchantForm({ merchant, onSubmitted }: Options) {
 
   const saveDraft = form.handleSubmit((values) => runGuarded(setServerError, async () => {
     await persist(values);
+    await refresh();
     toast.success("Đã lưu nháp hồ sơ ĐVCNTT");
   }));
 
@@ -45,7 +44,7 @@ export function useMerchantForm({ merchant, onSubmitted }: Options) {
     await persist(values);
     await submit.mutateAsync();
     toast.success("Đã gửi hồ sơ ĐVCNTT chờ duyệt");
-    onSubmitted();
+    await refresh();
   }));
 
   return {

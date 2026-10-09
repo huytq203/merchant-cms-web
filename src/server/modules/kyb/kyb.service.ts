@@ -8,17 +8,9 @@ import { readAccessToken } from "@/lib/auth/session-cookies";
 import { getServerEnv } from "@/lib/env/server";
 import { fail, ok } from "@/lib/http/result";
 import type { BeResult } from "@/lib/be/client";
-import {
-  documentUploadSchema,
-  enterpriseWalletSchema,
-  walletAvailabilitySchema,
-  walletDocumentSchema,
-} from "@/features/kyb/schemas/enterprise-wallet.schema";
-import {
-  merchantProfileSchema,
-  merchantRejectionReasonSchema,
-  merchantStatusHistorySchema,
-} from "@/features/kyb/schemas/merchant-profile.schema";
+import { documentUploadSchema, enterpriseWalletSchema } from "@/features/kyb/schemas/enterprise-wallet.schema";
+import { merchantProfileSchema, merchantStatusHistorySchema } from "@/features/kyb/schemas/merchant-profile.schema";
+import { sensitiveOtpChallengeSchema, type SensitiveOtp } from "@/lib/schemas/sensitive-otp";
 import type {
   MerchantFormValues,
   MerchantStagingIds,
@@ -28,58 +20,38 @@ import { toWalletRequest } from "@/features/kyb/utils/kyb-mapper";
 import { toMerchantUpdate } from "@/features/kyb/utils/merchant-mapper";
 import { kybPaths } from "./kyb.paths";
 
-export function checkAvailability({ email, taxCode }: { email: string; taxCode: string }) {
-  return merchantClient().get({
-    path: kybPaths.availability,
-    query: { registeredEmail: email, taxCode },
-    schema: walletAvailabilitySchema,
-  });
-}
-
-export function saveWalletDraft(values: WalletDraftValues) {
-  return merchantClient().post({
-    path: kybPaths.walletDrafts,
-    schema: enterpriseWalletSchema,
-    body: toWalletRequest(values, values),
-  });
-}
-
-export function createWallet(values: WalletDraftValues) {
-  return merchantClient().post({
-    path: kybPaths.wallets,
-    schema: enterpriseWalletSchema,
-    body: toWalletRequest(values, values),
-  });
-}
-
-export function updateWallet(id: string, values: WalletDraftValues) {
+export function updateWallet(id: string, values: WalletDraftValues, otp?: SensitiveOtp) {
   const { registeredEmail: _email, ...body } = toWalletRequest(values, values);
   void _email;
   return merchantClient().put({
-    path: kybPaths.wallet(id),
+    path: kybPaths.walletUpdate(id),
     schema: enterpriseWalletSchema,
-    body,
+    body: otp ? { ...body, otp } : body,
   });
 }
 
-export function submitWallet(id: string) {
+export function submitWallet(id: string, otp: SensitiveOtp) {
   return merchantClient().post({
     path: kybPaths.walletSubmit(id),
     schema: enterpriseWalletSchema,
+    body: { otp },
   });
 }
 
-export function getWallet(id: string) {
+/** Names of the other wallets that already use this tax code; never the caller's own. */
+export function getTaxCodeUsage(walletId: string, taxCode: string) {
   return merchantClient().get({
-    path: kybPaths.wallet(id),
-    schema: enterpriseWalletSchema,
+    path: kybPaths.walletTaxCodeUsage(walletId),
+    query: { taxCode },
+    schema: z.array(z.string()),
   });
 }
 
-export function listWalletDocuments(id: string) {
-  return merchantClient().get({
-    path: kybPaths.walletDocuments(id),
-    schema: z.array(walletDocumentSchema),
+export function requestKybOtp() {
+  return merchantClient().post({
+    path: kybPaths.otpChallenge,
+    schema: sensitiveOtpChallengeSchema,
+    body: { operation: "KYB_SUBMIT" },
   });
 }
 
@@ -117,25 +89,13 @@ export async function uploadDocument(file: File, documentType: string): Promise<
   return ok(parsed.data);
 }
 
-export function registerMerchant(
-  enterpriseWalletId: string,
-  values: MerchantFormValues,
-  stagingIds: MerchantStagingIds,
-) {
-  return merchantClient().post({
-    path: kybPaths.merchants,
-    schema: merchantProfileSchema,
-    body: { enterpriseWalletId, ...toMerchantUpdate(values, stagingIds) },
-  });
-}
-
 export function updateMerchant(
   id: string,
   values: MerchantFormValues,
   stagingIds: MerchantStagingIds,
 ) {
   return merchantClient().put({
-    path: kybPaths.merchant(id),
+    path: kybPaths.merchantUpdate(id),
     schema: merchantProfileSchema,
     body: toMerchantUpdate(values, stagingIds),
   });
@@ -150,7 +110,7 @@ export function submitMerchant(id: string) {
 
 export function getMerchant(id: string) {
   return merchantClient().get({
-    path: kybPaths.merchant(id),
+    path: kybPaths.merchantRead(id),
     schema: merchantProfileSchema,
   });
 }
@@ -166,9 +126,3 @@ export async function getMerchantStatusHistory(id: string, page: number) {
     : result;
 }
 
-export function listRejectionReasons() {
-  return merchantClient().get({
-    path: kybPaths.merchantRejectionReasons,
-    schema: z.array(merchantRejectionReasonSchema),
-  });
-}

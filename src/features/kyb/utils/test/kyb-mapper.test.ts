@@ -83,15 +83,10 @@ describe("KYB validation and mapping", () => {
     expect(missingDocuments(wallet, { idCardFrontStagingId: stagingIds.idCardFrontStagingId }))
       .toEqual(["idCardBackStagingId"]);
   });
-  it("builds the update body without the email and with the current internal flag", () => {
-    const wallet: EnterpriseWallet = {
-      id: "55555555-5555-4555-8555-555555555555",
-      registeredEmail: "owner@example.com",
-      verificationStatus: "DRAFT",
-      internalWallet: true,
-    };
-    const body = toWalletUpdate(wallet, values, {});
+  it("builds the update body without the email and never with the internal flag", () => {
+    const body = toWalletUpdate({ ...values, registeredEmail: "owner@example.com" }, {});
     expect(body).not.toHaveProperty("registeredEmail");
-    expect(body).toMatchObject({ legalName: "Công ty A", internalWallet: true });
+    expect(body).not.toHaveProperty("internalWallet");
+    expect(body).toMatchObject({ legalName: "Công ty A" });
   });
 });

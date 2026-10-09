@@ -2,9 +2,11 @@
 
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input/Input";
+import { Select } from "@/components/ui/select/Select";
 import { Switch } from "@/components/ui/switch/Switch";
 import { Textarea } from "@/components/ui/textarea/Textarea";
 import type { MerchantFormValues, MerchantProfile, MerchantStagingIds } from "../types";
+import { mccOptionsFor } from "../constants/mcc-options";
 import { DocumentUploadField } from "./DocumentUploadField";
 
 type Props = {
@@ -25,17 +27,25 @@ export function MerchantFormFields({ form, merchant, disabled, onStagingChange, 
           Thông tin ĐVCNTT
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Mã ngành nghề (MCC)"
-            placeholder="Ví dụ: 5812"
-            required
-            disabled={disabled}
-            inputMode="numeric"
-            error={errors.mccCode?.message}
-            {...register("mccCode")}
+          <Controller
+            name="mccCode"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Ngành nghề kinh doanh (MCC)"
+                placeholder="Chọn ngành nghề"
+                clearable={false}
+                disabled={disabled}
+                options={mccOptionsFor(field.value)}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.mccCode?.message}
+              />
+            )}
           />
           <Input
             label="Tên hiển thị"
+            description="Hiện cho khách hàng khi thanh toán."
             placeholder="Tên cửa hàng hiển thị cho khách hàng"
             required
             disabled={disabled}
@@ -51,7 +61,7 @@ export function MerchantFormFields({ form, merchant, disabled, onStagingChange, 
           />
           <Input
             label="Người liên hệ / Hotline"
-            placeholder="Ví dụ: 0912345678 hoặc Nguyễn Văn A"
+            placeholder="Họ tên và số hotline hỗ trợ"
             required
             disabled={disabled}
             error={errors.supportContact?.message}
@@ -96,12 +106,19 @@ export function MerchantFormFields({ form, merchant, disabled, onStagingChange, 
           name="contractSignedWithSub"
           control={control}
           render={({ field }) => (
-            <Switch
-              label="Ký hợp đồng riêng với từng Sub-merchant"
-              checked={field.value}
-              onCheckedChange={field.onChange}
-              disabled={disabled}
-            />
+            <div className="grid gap-1.5">
+              <Switch
+                label="Ký hợp đồng riêng với từng Sub-merchant"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                disabled={disabled}
+              />
+              <p className="text-xs text-muted-foreground">
+                {field.value
+                  ? "Đang bật: mỗi Sub-merchant ký hợp đồng riêng. Hợp đồng ở cấp Master là tùy chọn."
+                  : "Đang tắt: ký một hợp đồng ở cấp Master cho mọi Sub-merchant."}
+              </p>
+            </div>
           )}
         />
         <DocumentUploadField

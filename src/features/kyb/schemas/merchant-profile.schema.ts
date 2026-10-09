@@ -63,7 +63,8 @@ export const merchantStagingSchema = z.object({
 export const merchantStatusHistorySchema = z.object({
   auditLogId: z.string().nullish(),
   fromStatus: merchantStatusSchema.nullish(),
-  toStatus: merchantStatusSchema,
+  // Null when the audit snapshot has no readable status; the BE keeps the row as evidence.
+  toStatus: merchantStatusSchema.nullish(),
   reason: z.string().nullish(),
   rejectedReasonDetail: z.string().nullish(),
   actorType: z.string().nullish(),

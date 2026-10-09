@@ -1,24 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { ResultState } from "@/components/page/ResultState";
-import { useKybDialogs } from "../hooks/use-kyb-dialogs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs/Tabs";
 import { kybQueries } from "../kyb-queries";
-import { KybProgressCard } from "./KybProgressCard";
-import { KybStatusHistory } from "./KybStatusHistory";
-import { KybWizard } from "./KybWizard";
-import { MerchantFormDialog } from "./MerchantFormDialog";
-import { MerchantProfileCard } from "./MerchantProfileCard";
+import { KybTab } from "./KybTab";
+import { MerchantTab } from "./MerchantTab";
 
 type Props = { merchantId: string };
 
+type TabName = "kyb" | "merchant";
+
 export function KybContainer({ merchantId }: Props) {
-  const dialogs = useKybDialogs();
   const profile = useQuery(kybQueries.profile(merchantId));
   const merchant = profile.data;
   const wallet = merchant?.enterpriseWallet;
+  // Opens on the step that still needs doing: KYB until it is verified, then the ĐVCNTT dossier.
+  const [tab, setTab] = useState<TabName | null>(null);
+  const current: TabName = tab ?? (wallet?.verificationStatus === "VERIFIED" ? "merchant" : "kyb");
   return (
     <div className="space-y-5">
       <PageHeader
@@ -33,26 +35,18 @@ export function KybContainer({ merchantId }: Props) {
         </p>
       )}
       {merchant && wallet && (
-        <>
-          <KybProgressCard wallet={wallet} onOpenWizard={() => dialogs.open("kyb")} />
-          <MerchantProfileCard merchant={merchant} onOpenForm={() => dialogs.open("merchant")} />
-          <KybStatusHistory merchantId={merchantId} />
-          {dialogs.active === "kyb" && (
-            <KybWizard
-              merchantId={merchantId}
-              wallet={wallet}
-              onClose={dialogs.close}
-              onRefreshLinks={() => void profile.refetch()}
-            />
-          )}
-          {dialogs.active === "merchant" && (
-            <MerchantFormDialog
-              merchant={merchant}
-              onClose={dialogs.close}
-              onRefreshLinks={() => void profile.refetch()}
-            />
-          )}
-        </>
+        <Tabs value={current} onValueChange={(value) => setTab(value === "merchant" ? "merchant" : "kyb")}>
+          <TabsList>
+            <TabsTrigger value="kyb">Xác thực KYB</TabsTrigger>
+            <TabsTrigger value="merchant">Đăng ký ĐVCNTT</TabsTrigger>
+          </TabsList>
+          <TabsContent value="kyb" className="mt-4 rounded-xl border border-border bg-background p-5">
+            <KybTab merchantId={merchantId} wallet={wallet} onRefreshLinks={() => void profile.refetch()} />
+          </TabsContent>
+          <TabsContent value="merchant" className="mt-4 rounded-xl border border-border bg-background p-5">
+            <MerchantTab merchant={merchant} onRefreshLinks={() => void profile.refetch()} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

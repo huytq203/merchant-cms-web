@@ -1,38 +1,48 @@
-import { CheckCircle2, Circle } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { registrationConditions } from "../utils/merchant-mapper";
 import type { MerchantProfile } from "../types";
 
 type Props = { merchant: MerchantProfile };
 
-function Condition({ met, label }: { met: boolean; label: string }) {
-  const Icon = met ? CheckCircle2 : Circle;
+type ConditionProps = { state: "met" | "waiting" | "unmet"; label: string; hint?: string; href?: string; action?: string };
+
+function Condition({ state, label, hint, href, action }: ConditionProps) {
+  const Icon = state === "met" ? CheckCircle2 : state === "waiting" ? Clock : Circle;
   return (
-    <li className="flex items-center gap-2 text-sm">
-      <Icon className={met ? "size-4 text-success" : "size-4 text-muted-foreground"} aria-hidden />
-      <span className={met ? "text-foreground" : "text-muted-foreground"}>{label}</span>
-      <span className="sr-only">{met ? "(đã đạt)" : "(chưa đạt)"}</span>
+    <li className={cn("flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm", state === "met" ? "border-success/30 bg-success/5" : "border-border")}>
+      <Icon
+        className={cn("mt-0.5 size-4 shrink-0", state === "met" ? "text-success" : state === "waiting" ? "text-warning" : "text-muted-foreground")}
+        aria-hidden
+      />
+      <div className="grid gap-0.5">
+        <span className={state === "met" ? "font-medium text-foreground" : "font-medium text-foreground"}>{label}</span>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+        {href && action && <Link href={href} className="text-xs font-semibold text-primary underline underline-offset-4">{action}</Link>}
+      </div>
+      <span className="sr-only">{state === "met" ? "(đã đạt)" : "(chưa đạt)"}</span>
     </li>
   );
 }
 
-/** Conditions the ĐVCNTT form can verify from the wallet embedded in the merchant. */
+function kybCondition(merchant: MerchantProfile): ConditionProps {
+  const status = merchant.enterpriseWallet?.verificationStatus;
+  if (status === "VERIFIED") return { state: "met", label: "Đã xác thực KYB", hint: "Ví đang hoạt động" };
+  if (status === "PENDING_APPROVAL") return { state: "waiting", label: "KYB chưa xác thực", hint: "Đang chờ Flexpay duyệt" };
+  if (status === "REJECTED") return { state: "unmet", label: "KYB chưa xác thực", hint: "Hồ sơ bị từ chối, cần sửa và gửi lại" };
+  return { state: "unmet", label: "KYB chưa xác thực", hint: "Chưa gửi hồ sơ KYB" };
+}
+
+/** What the ĐVCNTT form needs before it opens: a verified KYB and a linked bank account. */
 export function MerchantConditions({ merchant }: Props) {
-  const { kybVerified, bankLinked } = registrationConditions(merchant);
-  const ready = kybVerified && bankLinked;
+  const { bankLinked } = registrationConditions(merchant);
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-muted/40 p-3">
-      <p className="text-sm text-muted-foreground">
-        Điều kiện đăng ký ĐVCNTT: ví đã xác thực KYB và đã liên kết tài khoản ngân hàng.
-      </p>
-      <ul className="flex flex-wrap gap-x-6 gap-y-1" aria-label="Điều kiện đăng ký">
-        <Condition met={kybVerified} label="Đã xác thực KYB" />
-        <Condition met={bankLinked} label="Đã liên kết ngân hàng" />
-      </ul>
-      {!ready && (
-        <p role="alert" className="text-sm text-warning">
-          Chưa đủ điều kiện nên biểu mẫu đang bị khoá.
-        </p>
-      )}
-    </div>
+    <ul className="grid gap-2 sm:grid-cols-2" aria-label="Điều kiện đăng ký">
+      <Condition {...kybCondition(merchant)} />
+      {bankLinked
+        ? <Condition state="met" label="Đã liên kết ngân hàng" />
+        : <Condition state="unmet" label="Chưa liên kết ngân hàng" href="/bank-accounts" action="Liên kết ngân hàng" />}
+    </ul>
   );
 }

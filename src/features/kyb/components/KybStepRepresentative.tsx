@@ -3,12 +3,18 @@
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { DatePicker } from "@/components/ui/datepicker/DatePicker";
 import { Input } from "@/components/ui/input/Input";
+import type { IdentityChanges } from "../utils/kyb-rekyb";
 import type { WalletFormValues } from "../types";
+import { KybFieldNote } from "./KybFieldNote";
 import { formatIsoDate, parseIsoDate } from "../utils/date-value";
 
-type Props = { form: UseFormReturn<WalletFormValues> };
+type Props = {
+  form: UseFormReturn<WalletFormValues>;
+  /** Set only for a verified dossier: which identity fields the user has changed. */
+  changes: IdentityChanges | null;
+};
 
-export function KybStepRepresentative({ form }: Props) {
+export function KybStepRepresentative({ form, changes }: Props) {
   const { register, control, formState } = form;
   const errors = formState.errors;
   return (
@@ -18,13 +24,18 @@ export function KybStepRepresentative({ form }: Props) {
           Người đại diện pháp luật
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Họ và tên người đại diện"
-            placeholder="Ví dụ: Nguyễn Văn A"
-            required
-            error={errors.legalRepresentativeName?.message}
-            {...register("legalRepresentativeName")}
-          />
+          <div>
+            <Input
+              label="Họ và tên người đại diện"
+              placeholder="Ví dụ: Nguyễn Văn A"
+              required
+              error={errors.legalRepresentativeName?.message}
+              {...register("legalRepresentativeName")}
+            />
+            {changes?.legalRepresentativeName && (
+              <KybFieldNote tone="warning">Đổi người đại diện sẽ đưa hồ sơ về Chờ duyệt KYB.</KybFieldNote>
+            )}
+          </div>
           <Input
             label="Số CCCD / Hộ chiếu người đại diện"
             placeholder="Nhập 9 hoặc 12 ký tự"
@@ -85,7 +96,8 @@ export function KybStepRepresentative({ form }: Props) {
           Thông tin liên hệ
         </h3>
         <Input
-          label="Số điện thoại nhận OTP"
+          label="SĐT nhận thông báo"
+          description="Mã OTP gửi về email đăng ký, không gửi tới số này."
           placeholder="Ví dụ: 0912345678"
           required
           inputMode="tel"

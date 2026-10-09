@@ -9,6 +9,7 @@ import { KybContainer } from "../KybContainer";
 import type { EnterpriseWallet, MerchantProfile } from "../../types";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
+vi.mock("next/link", () => ({ default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a> }));
 
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const walletId = "22222222-2222-4222-8222-222222222222";
@@ -19,6 +20,8 @@ const verifiedWallet: EnterpriseWallet = {
   registeredEmail: "owner@example.com",
   verificationStatus: "VERIFIED",
   bankLinkStatus: "BANK_LINKED",
+  businessType: "ENTERPRISE",
+  taxCode: "0312345678",
   legalName: "Công ty A",
   legalRepresentativeName: "Nguyễn A",
 };
@@ -46,18 +49,41 @@ function renderContainer() {
   );
 }
 
+async function pickIndustry() {
+  await userEvent.click(await screen.findByRole("combobox", { name: /Ngành nghề kinh doanh/ }));
+  await userEvent.click(await screen.findByRole("option", { name: /5812/ }));
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
 
 describe("ĐVCNTT profile", () => {
-  it("locks the form while a registration condition is unmet", async () => {
+  it("opens on the ĐVCNTT tab once KYB is verified and shows the form with the owner's data read only", async () => {
+    serve(profileOf("DRAFT"));
+    renderContainer();
+    expect(await screen.findByRole("button", { name: "Gửi duyệt" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Điều kiện đăng ký" }).querySelectorAll("li")).toHaveLength(2);
+    expect(screen.getAllByText("Công ty A").length).toBeGreaterThan(0);
+    expect(screen.getByText("0312345678")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("does not open the form while a registration condition is unmet, and points to the missing step", async () => {
     serve(profileOf("DRAFT", { ...verifiedWallet, bankLinkStatus: "BANK_UNLINKED" }));
     renderContainer();
-    await userEvent.click(await screen.findByRole("button", { name: "Đăng ký ĐVCNTT" }));
-    expect(await screen.findByLabelText(/Mã ngành nghề/)).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Gửi duyệt" })).toBeDisabled();
+    await userEvent.click(await screen.findByRole("tab", { name: "Đăng ký ĐVCNTT" }));
+    expect(await screen.findByText(/Chưa đủ điều kiện đăng ký/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Liên kết ngân hàng" })).toHaveAttribute("href", "/bank-accounts");
+    expect(screen.queryByRole("button", { name: "Gửi duyệt" })).not.toBeInTheDocument();
+  });
+
+  it("explains a KYB still under review as the reason", async () => {
+    serve(profileOf("DRAFT", { ...verifiedWallet, verificationStatus: "PENDING_APPROVAL" }));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("tab", { name: "Đăng ký ĐVCNTT" }));
+    expect(await screen.findByText("Đang chờ Flexpay duyệt")).toBeInTheDocument();
   });
 
   it("saves then submits, without an admin password", async () => {
@@ -76,14 +102,12 @@ describe("ĐVCNTT profile", () => {
       }),
     );
     renderContainer();
-    await userEvent.click(await screen.findByRole("button", { name: "Đăng ký ĐVCNTT" }));
-    await userEvent.type(await screen.findByLabelText(/Mã ngành nghề/), "5812");
-    await userEvent.type(screen.getByLabelText(/Người liên hệ/), "0912345678");
+    await pickIndustry();
+    await userEvent.type(await screen.findByLabelText(/Người liên hệ/), "Nguyễn Vận Hành 1900 1755");
     await userEvent.click(screen.getByRole("button", { name: "Gửi duyệt" }));
     await waitFor(() => expect(calls).toEqual(["save", "submit"]));
-    expect(body).toMatchObject({ mccCode: "5812", name: "Quán A", supportContact: "0912345678" });
+    expect(body).toMatchObject({ mccCode: "5812", name: "Quán A", supportContact: "Nguyễn Vận Hành 1900 1755" });
     expect(body).not.toHaveProperty("adminPassword");
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("shows field errors and does not call the server when required values are missing", async () => {
@@ -94,40 +118,65 @@ describe("ĐVCNTT profile", () => {
       return HttpResponse.json(profileOf("DRAFT"));
     }));
     renderContainer();
-    await userEvent.click(await screen.findByRole("button", { name: "Đăng ký ĐVCNTT" }));
     await userEvent.click(await screen.findByRole("button", { name: "Gửi duyệt" }));
     expect(await screen.findByText("Nhập mã MCC")).toBeInTheDocument();
     expect(called).toBe(false);
   });
 
-  it("keeps the dialog open and shows the BE message when submit fails", async () => {
+  it("keeps the form and shows the BE message when submit fails", async () => {
     serve(profileOf("DRAFT"));
     mswServer.use(
       http.put(`${base}/merchants/${merchantId}`, () => HttpResponse.json(profileOf("DRAFT"))),
       http.post(`${base}/merchants/${merchantId}/submit`, () =>
-        HttpResponse.json({ message: "Chưa liên kết ngân hàng" }, { status: 409 })),
+        HttpResponse.json({ message: "Hồ sơ chưa đủ điều kiện" }, { status: 409 })),
     );
     renderContainer();
-    await userEvent.click(await screen.findByRole("button", { name: "Đăng ký ĐVCNTT" }));
-    await userEvent.type(await screen.findByLabelText(/Mã ngành nghề/), "5812");
-    await userEvent.type(screen.getByLabelText(/Người liên hệ/), "0912345678");
+    await pickIndustry();
+    await userEvent.type(await screen.findByLabelText(/Người liên hệ/), "Nguyễn Vận Hành 1900 1755");
     await userEvent.click(screen.getByRole("button", { name: "Gửi duyệt" }));
-    expect(await screen.findByText("Chưa liên kết ngân hàng")).toBeInTheDocument();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByText("Hồ sơ chưa đủ điều kiện")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gửi duyệt" })).toBeInTheDocument();
+  });
+
+  it("changes the contract hint with the per-Sub-merchant switch", async () => {
+    serve(profileOf("DRAFT"));
+    renderContainer();
+    expect(await screen.findByText(/ký một hợp đồng ở cấp Master/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("switch", { name: /Ký hợp đồng riêng/ }));
+    expect(await screen.findByText(/mỗi Sub-merchant ký hợp đồng riêng/)).toBeInTheDocument();
   });
 
   it("shows read-only progress while pending, with no edit action", async () => {
     serve(profileOf("PENDING_APPROVAL"));
     renderContainer();
-    expect((await screen.findAllByRole("listitem")).length).toBeGreaterThanOrEqual(3);
-    expect(screen.queryByRole("button", { name: "Đăng ký ĐVCNTT" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Chỉnh sửa và gửi lại" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Chờ duyệt ĐVCNTT")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Tiến trình xử lý hồ sơ" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gửi duyệt|Lưu nháp/ })).not.toBeInTheDocument();
   });
 
-  it("shows the rejection reason and lets the user edit and resubmit", async () => {
+  it("shows the rejection reason above the form and lets the user resubmit", async () => {
     serve({ ...profileOf("REJECTED"), rejectedReasonDetail: "Website không hợp lệ" });
     renderContainer();
-    expect(await screen.findAllByText("Website không hợp lệ")).not.toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Chỉnh sửa và gửi lại" })).toBeInTheDocument();
+    expect(await screen.findByText("Website không hợp lệ")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gửi duyệt" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lưu nháp" })).not.toBeInTheDocument();
+  });
+
+  it("shows the website as a short link that opens in a new tab", async () => {
+    const url = "https://chat.halotech.io.vn/notes/cmtobcrc2000007m6gvuwrltz/cmtwe31sto00013chz9tb4mbz";
+    serve({ ...profileOf("ACTIVE"), websiteUrl: url });
+    renderContainer();
+    const link = await screen.findByRole("link", { name: /Liên kết website/ });
+    expect(link).toHaveAttribute("href", url);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.queryByText(url)).not.toBeInTheDocument();
+  });
+
+  it("never turns a non-http website value into a link", async () => {
+    serve({ ...profileOf("ACTIVE"), websiteUrl: "javascript:alert(1)" });
+    renderContainer();
+    expect(await screen.findByText("javascript:alert(1)")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Liên kết website/ })).not.toBeInTheDocument();
   });
 });
