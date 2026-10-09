@@ -43,6 +43,8 @@ export const meResponseSchema = z.object({
   status: z.enum(["PENDING", "ACTIVE", "LOCKED"]).catch("LOCKED"),
   merchantIds: z.array(z.string()),
   subMerchantIds: z.array(z.string()),
+  /** Only sent for a Sub-only session: the Masters its Subs sit under. */
+  parentMerchantIds: z.array(z.string()).default([]),
   permissions: z.array(z.string()),
   authorizationVersion: z.number(),
 });

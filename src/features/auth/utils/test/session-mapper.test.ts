@@ -30,6 +30,19 @@ describe("toSessionUser", () => {
     });
   });
 
+  it("opens a Sub-only session in the Master its Subs sit under", () => {
+    const session = toSessionUser(
+      meResponseSchema.parse({ ...base, merchantIds: [], parentMerchantIds: ["m-9"] }),
+    );
+    expect(session.merchantIds).toEqual(["m-9"]);
+    expect(session.subMerchantIds).toEqual(["s-1", "s-2"]);
+  });
+
+  it("keeps the session's own Masters when it has them", () => {
+    const session = toSessionUser(meResponseSchema.parse({ ...base, parentMerchantIds: ["m-9"] }));
+    expect(session.merchantIds).toEqual(["m-1"]);
+  });
+
   it("drops permission names the frontend does not know", () => {
     const session = toSessionUser(
       meResponseSchema.parse({ ...base, permissions: ["VIEW_ORDER", "FUTURE_PERMISSION"] }),
