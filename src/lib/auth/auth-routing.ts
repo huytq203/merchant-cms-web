@@ -2,8 +2,10 @@ export type AuthAction = "allow" | "redirect-login" | "redirect-dashboard" | "re
 
 export const LOGIN_PATH = "/login";
 export const DASHBOARD_PATH = "/dashboard";
+/** The page the activation and reset-password emails link to. */
+export const SET_PASSWORD_PATH = "/auth/set-password";
 
-const PUBLIC_PATHS: ReadonlySet<string> = new Set([LOGIN_PATH]);
+const PUBLIC_PATHS: ReadonlySet<string> = new Set([LOGIN_PATH, SET_PASSWORD_PATH]);
 
 export function decideAuthAction(input: {
   pathname: string;

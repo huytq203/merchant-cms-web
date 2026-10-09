@@ -33,6 +33,18 @@ export const newPasswordSchema = z
     "Mật khẩu cần chữ hoa, chữ thường, số và ký tự đặc biệt (@$!%*?&), không dùng ký tự khác",
   );
 
+/** The set-password form: a new password, typed twice. */
+export const setPasswordSchema = z
+  .object({
+    newPassword: newPasswordSchema,
+    confirmPassword: z.string().min(1, "Vui lòng nhập lại mật khẩu"),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Mật khẩu nhập lại không khớp",
+  });
+
+export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
