@@ -14,6 +14,7 @@ const session: SessionUser = {
   username: "An",
   status: "ACTIVE",
   merchantIds: [],
+  merchants: [],
   subMerchantIds: [],
   permissions: ["VIEW_ORDER"],
   authorizationVersion: 1,

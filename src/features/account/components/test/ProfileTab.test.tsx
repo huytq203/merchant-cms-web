@@ -9,7 +9,7 @@ vi.mock("../../hooks/use-update-profile-mutation", () => ({
 afterEach(cleanup);
 
 it("offers only full name and phone as profile form fields", () => {
-  render(<ProfileTab user={{ userId: "user-1", username: "Test User", email: "user@example.com", phone: "0912345678", status: "ACTIVE", merchantIds: [], subMerchantIds: [], permissions: [], authorizationVersion: 1 }} />);
+  render(<ProfileTab user={{ userId: "user-1", username: "Test User", email: "user@example.com", phone: "0912345678", status: "ACTIVE", merchantIds: [], merchants: [], subMerchantIds: [], permissions: [], authorizationVersion: 1 }} />);
   expect(screen.getAllByRole("textbox")).toHaveLength(2);
   expect(screen.getByRole("textbox", { name: /Họ và tên/ })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: /Số điện thoại/ })).toBeInTheDocument();

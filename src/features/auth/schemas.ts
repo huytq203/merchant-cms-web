@@ -54,6 +54,8 @@ export const meResponseSchema = z.object({
   fullName: z.string().nullish(),
   status: z.enum(["PENDING", "ACTIVE", "LOCKED"]).catch("LOCKED"),
   merchantIds: z.array(z.string()),
+  /** Code and name of each id in `merchantIds`; older BEs send none. */
+  merchants: z.array(z.object({ id: z.string(), code: z.string().nullish(), name: z.string().nullish() })).default([]),
   subMerchantIds: z.array(z.string()),
   /** Only sent for a Sub-only session: the Masters its Subs sit under. */
   parentMerchantIds: z.array(z.string()).default([]),

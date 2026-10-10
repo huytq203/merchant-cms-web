@@ -4,6 +4,13 @@ export type UserRole = "ACCOUNTANT" | "OPERATOR" | "SUPER_ADMIN" | string;
 
 export type MerchantUserStatus = "PENDING" | "ACTIVE" | "LOCKED";
 
+/** A Master of the session, named so a screen can show it instead of an id. */
+export interface SessionMerchant {
+  id: string;
+  code?: string | null;
+  name?: string | null;
+}
+
 export interface SessionUser {
   /** BE `merchantUserId`. */
   userId: string;
@@ -14,6 +21,7 @@ export interface SessionUser {
   phone?: string;
   status: MerchantUserStatus;
   merchantIds: string[];
+  merchants: SessionMerchant[];
   subMerchantIds: string[];
   permissions: MerchantPermission[];
   authorizationVersion: number;

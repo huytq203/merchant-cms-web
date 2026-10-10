@@ -30,17 +30,27 @@ describe("toSessionUser", () => {
     });
   });
 
-  it("opens a Sub-only session in the Master its Subs sit under", () => {
+  it("gives a Sub-only session no Master, so it never reaches a Master it does not own", () => {
     const session = toSessionUser(
       meResponseSchema.parse({ ...base, merchantIds: [], parentMerchantIds: ["m-9"] }),
     );
-    expect(session.merchantIds).toEqual(["m-9"]);
+    expect(session.merchantIds).toEqual([]);
     expect(session.subMerchantIds).toEqual(["s-1", "s-2"]);
   });
 
   it("keeps the session's own Masters when it has them", () => {
     const session = toSessionUser(meResponseSchema.parse({ ...base, parentMerchantIds: ["m-9"] }));
     expect(session.merchantIds).toEqual(["m-1"]);
+  });
+
+  it("carries the code and name of each Master so screens can show a name instead of an id", () => {
+    const merchants = [{ id: "m-1", code: "MC000001", name: "Halo tech" }];
+    const session = toSessionUser(meResponseSchema.parse({ ...base, merchants }));
+    expect(session.merchants).toEqual(merchants);
+  });
+
+  it("has no Master names when the BE sends none", () => {
+    expect(toSessionUser(meResponseSchema.parse(base)).merchants).toEqual([]);
   });
 
   it("drops permission names the frontend does not know", () => {

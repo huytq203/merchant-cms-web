@@ -11,9 +11,10 @@ export function toSessionUser(me: MeResponse): SessionUser {
     fullName,
     email,
     status: me.status,
-    // A session limited to Subs has no Master of its own; the Master its Subs sit under is the context
-    // the screens open in. The BE still decides what the session may actually reach.
-    merchantIds: me.merchantIds.length > 0 ? me.merchantIds : me.parentMerchantIds,
+    // A session limited to Subs has no Master of its own. Its parent Master is not reachable for it,
+    // so it must not be offered as the merchant context (the BE answers 404 for it).
+    merchantIds: me.merchantIds,
+    merchants: me.merchants,
     subMerchantIds: me.subMerchantIds,
     permissions: me.permissions.filter(isMerchantPermission),
     authorizationVersion: me.authorizationVersion,
