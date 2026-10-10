@@ -18,6 +18,18 @@ describe("user filter", () => {
     expect(screen.queryByText(new RegExp(`${merchantA}|${merchantB}`))).not.toBeInTheDocument();
   });
 
+  it("shows merchants by code and name when the session carries them", async () => {
+    const merchants = [
+      { id: merchantA, code: "MC000001", name: "Halo tech" },
+      { id: merchantB, code: "MC000002", name: "Green mart" },
+    ];
+    render(<UserFilter filter={{ page: 1, pageSize: 10 }} merchantIds={[merchantA, merchantB]} merchants={merchants} onSearch={vi.fn()} />);
+    const [, merchantSelect] = screen.getAllByRole("combobox");
+    await userEvent.click(merchantSelect!);
+    expect(await screen.findByRole("option", { name: /Green mart/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /^Merchant \d/ })).not.toBeInTheDocument();
+  });
+
   it("hides the merchant choice for a single merchant", () => {
     render(<UserFilter filter={{ page: 1, pageSize: 10 }} merchantIds={[merchantA]} onSearch={vi.fn()} />);
     expect(screen.getAllByRole("combobox")).toHaveLength(1);

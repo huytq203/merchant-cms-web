@@ -2,6 +2,7 @@
 
 import { Mail, ShieldCheck, Store } from "lucide-react";
 import { DetailItem, DetailList, DetailModal, DetailSection, StatusBadge } from "@/components/modal/DetailModal";
+import type { SessionMerchant } from "@/types/auth";
 import { usePermissionGroups } from "@/features/permission/permission-group-queries";
 import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import { userStatusLabels } from "../constants/user.constants";
@@ -20,8 +21,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   user: MerchantUser | null;
   actorId: string;
-  /** Every merchant id in the session. */
-  merchantIds: string[];
+  merchants?: SessionMerchant[];
   proposal: ScopeProposal | null;
   proposalError?: string;
   isPending: boolean;
@@ -60,7 +60,7 @@ function Sections({ user, ...props }: Omit<Props, "open" | "onOpenChange" | "onE
       </DetailSection>
       <GroupsSection user={user} />
       <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />}>
-        <UserScopeItems user={user} merchantIds={props.merchantIds} />
+        <UserScopeItems user={user} merchants={props.merchants} />
       </DetailSection>
       <UserScopeProposalSection
         proposal={props.proposal}

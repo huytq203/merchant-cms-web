@@ -27,7 +27,17 @@ const existingUser: MerchantUser = {
   createdAt: "",
 };
 
-afterEach(cleanup);
+const merchantB = "22222222-2222-4222-8222-222222222222";
+const namedMerchants = [
+  { id: merchantId, code: "MC000001", name: "Halo tech" },
+  { id: merchantB, code: "MC000002", name: "Green mart" },
+];
+const subRequests: URL[] = [];
+
+afterEach(() => {
+  cleanup();
+  subRequests.length = 0;
+});
 
 function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}, proposal?: unknown) {
   mswServer.use(
@@ -40,10 +50,10 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}
       ],
       total: 2,
     })),
-    http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
-      rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }],
-      total: 1,
-    })),
+    http.get("/api/v1/admin/sub-merchants", ({ request }) => {
+      subRequests.push(new URL(request.url));
+      return HttpResponse.json({ rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }], total: 1 });
+    }),
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const onSubmit = vi.fn();
@@ -136,9 +146,57 @@ describe("user modal: create", () => {
     await fillRequired();
     await userEvent.click(screen.getByRole("radio", { name: "Chọn sub-merchant" }));
     await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
-    await userEvent.click(screen.getByRole("radio", { name: "Toàn bộ merchant" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Toàn bộ sub-merchant" }));
     await submitCreate();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ subMerchantIds: [] }));
+  });
+
+  it("names the merchant the user is created under when the session has just one", () => {
+    renderModal({ merchants: [{ id: merchantId, code: "MC000001", name: "Halo tech" }] });
+    expect(screen.getByText("MC000001 · Halo tech")).toBeInTheDocument();
+    expect(screen.queryByText(/Merchant của bạn/)).not.toBeInTheDocument();
+  });
+
+  it("shows no merchant line instead of a vague one when the name is unknown", () => {
+    renderModal();
+    expect(screen.queryByText(/Merchant của bạn/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Merchant:/)).not.toBeInTheDocument();
+  });
+
+  it("names the merchants instead of numbering them when the session has several", () => {
+    renderModal({ merchantIds: [merchantId, merchantB], merchants: namedMerchants });
+    expect(screen.queryByText(/Merchant \d/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Halo tech/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Toàn bộ sub-merchant" })).toBeChecked();
+  });
+
+  it("lets the creator choose the merchant by name when the session has several", async () => {
+    renderModal({ merchantIds: [merchantId, merchantB], merchants: namedMerchants });
+    await userEvent.click(screen.getByRole("combobox"));
+    expect(await screen.findByRole("option", { name: /Green mart/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Halo tech/ })).toBeInTheDocument();
+  });
+
+  it("lists only the sub-merchants of the chosen merchant and drops ticks when it changes", async () => {
+    renderModal({ merchantIds: [merchantId, merchantB], merchants: namedMerchants });
+    await userEvent.click(screen.getByRole("radio", { name: "Chọn sub-merchant" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
+    expect(subRequests.at(-1)?.searchParams.get("merchantId")).toBe(merchantId);
+
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: /Green mart/ }));
+
+    await waitFor(() => expect(subRequests.at(-1)?.searchParams.get("merchantId")).toBe(merchantB));
+    expect(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ })).not.toBeChecked();
+  });
+
+  it("creates the user under the merchant that was chosen", async () => {
+    const onSubmit = renderModal({ merchantIds: [merchantId, merchantB], merchants: namedMerchants });
+    await fillRequired();
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(await screen.findByRole("option", { name: /Green mart/ }));
+    await submitCreate();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ merchantIds: [merchantB] }));
   });
 
   it("shows a duplicate-email response at the email input", () => {

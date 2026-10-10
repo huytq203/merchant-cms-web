@@ -60,6 +60,13 @@ describe("merchantUserSchema", () => {
     expect(merchantUserSchema.parse(user).groups).toEqual([]);
   });
 
+  it("accepts a user the BE has not yet bound to a Keycloak subject", () => {
+    expect(merchantUserSchema.safeParse({ ...user, keycloakUserId: null }).success).toBe(true);
+    const withoutSubject: Partial<typeof user> = { ...user };
+    delete withoutSubject.keycloakUserId;
+    expect(merchantUserSchema.safeParse(withoutSubject).success).toBe(true);
+  });
+
   it("requires explicit portal activity flags", () => {
     expect(merchantUserSchema.safeParse({ ...user, active: undefined }).success).toBe(false);
   });

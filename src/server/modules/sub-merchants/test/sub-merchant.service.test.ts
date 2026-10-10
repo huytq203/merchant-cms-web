@@ -29,6 +29,14 @@ describe("sub merchant service", () => {
     expect(await listSubMerchants({ page: 2, pageSize: 10 })).toEqual({ success: true, data: { rows: [expect.objectContaining(row)], total: 17 } });
     expect(Object.fromEntries(query!)).toEqual({ page: "2", size: "10" });
   });
+  it("asks the merchant endpoint for one merchant's outlets when a merchant is given", async () => {
+    const queries: URLSearchParams[] = [];
+    mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page([row], 1))); }));
+    await listSubMerchants({ page: 1, pageSize: 10, merchantId });
+    await listSubMerchants({ page: 1, pageSize: 10, merchantId, name: "sub" });
+    expect(Object.fromEntries(queries[0]!)).toEqual({ page: "1", size: "10", merchantId });
+    expect(Object.fromEntries(queries[1]!)).toEqual({ page: "1", size: "100", merchantId });
+  });
   it("filters by code, name and status itself, because the merchant endpoint cannot", async () => {
     const outlets = [
       { ...row, id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", code: "MC01-S001", name: "Cửa hàng Điện máy", status: "ACTIVE" },

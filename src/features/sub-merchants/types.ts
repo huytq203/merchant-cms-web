@@ -15,6 +15,8 @@ export interface SubMerchantListFilter {
   /** Matches part of the name. */
   name?: string;
   status?: SubMerchantRow["status"];
+  /** Only the outlets of this merchant; the BE still bounds them to the session's scope. */
+  merchantId?: string;
 }
 
 export interface SubMerchantListResult {

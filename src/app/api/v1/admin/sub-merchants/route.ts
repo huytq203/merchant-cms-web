@@ -22,13 +22,15 @@ export async function GET(request: Request) {
   const access = await requireSubMerchantAccess();
   if (!access.ok) return access.response;
   const params = new URL(request.url).searchParams;
-  const merchantId = selectMerchantId(access.user, params.get("merchantId"));
+  const requestedMerchant = params.get("merchantId");
+  const merchantId = selectMerchantId(access.user, requestedMerchant);
   if (merchantId instanceof NextResponse) return merchantId;
   const query = listQuerySchema.safeParse(Object.fromEntries(params));
   if (!query.success) {
     return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
   }
-  const result = await listSubMerchants(query.data);
+  // Only a merchant the caller asked for narrows the list; the default merchant must not hide outlets of the others.
+  const result = await listSubMerchants(requestedMerchant ? { ...query.data, merchantId } : query.data);
   return result.success
     ? NextResponse.json(result.data)
     : NextResponse.json(

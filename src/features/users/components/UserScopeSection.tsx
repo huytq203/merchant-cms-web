@@ -6,14 +6,14 @@ import { DetailSection } from "@/components/modal/DetailModal";
 import { Badge } from "@/components/ui/badge/Badge";
 import { Button } from "@/components/ui/button/Button";
 import { useScopeProposal } from "../hooks/use-scope-proposal";
+import type { SessionMerchant } from "@/types/auth";
 import type { MerchantUser, ScopeProposal } from "../schemas/user.schema";
 import { UserScopeItems } from "./UserScopeItems";
 import { UserScopeProposalForm } from "./UserScopeProposalForm";
 
 interface Props {
   user: MerchantUser;
-  /** Every merchant id in the session. */
-  merchantIds: string[];
+  merchants?: SessionMerchant[];
   /** False when the actor may not change this user, for example their own account. */
   canPropose: boolean;
 }
@@ -31,7 +31,7 @@ function PendingProposal({ proposal }: { proposal: ScopeProposal }) {
 }
 
 /** Scope summary plus the entry point to request a change; saving the form never edits scope directly. */
-export function UserScopeSection({ user, merchantIds, canPropose }: Props) {
+export function UserScopeSection({ user, merchants, canPropose }: Props) {
   const proposal = useScopeProposal(user.id);
   const [isOpen, setIsOpen] = useState(false);
   const pending = proposal.data?.status === "PENDING_APPROVAL" ? proposal.data : null;
@@ -39,7 +39,7 @@ export function UserScopeSection({ user, merchantIds, canPropose }: Props) {
   return (
     <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />} bare>
       <div className="space-y-3 rounded-xl border border-divider bg-page p-4">
-        <UserScopeItems user={user} merchantIds={merchantIds} />
+        <UserScopeItems user={user} merchants={merchants} />
         {pending ? <PendingProposal proposal={pending} /> : null}
         {!pending && canPropose && !isOpen ? (
           <div className="flex flex-wrap items-center justify-between gap-2">

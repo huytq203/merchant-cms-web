@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { userStatusOptions } from "../constants/user.constants";
 import type { UserFilter as UserFilterValues } from "../user-queries";
-import { merchantLabel } from "../utils/user-mapper";
+import type { SessionMerchant } from "@/types/auth";
+import { merchantOptionLabel } from "../utils/user-mapper";
 
 interface Props {
   filter: UserFilterValues;
   merchantIds: string[];
+  /** Code and name of those merchants; without them the options fall back to a position label. */
+  merchants?: SessionMerchant[];
   onSearch: (values: Pick<UserFilterValues, "query" | "status" | "merchantId">) => void;
 }
 
-export function UserFilter({ filter, merchantIds, onSearch }: Props) {
+export function UserFilter({ filter, merchantIds, merchants = [], onSearch }: Props) {
   const [query, setQuery] = useState(filter.query ?? "");
   const [status, setStatus] = useState(filter.status ?? "");
   const [merchantId, setMerchantId] = useState(filter.merchantId ?? "");
@@ -57,7 +60,7 @@ export function UserFilter({ filter, merchantIds, onSearch }: Props) {
             clearable={false}
             options={[
               { value: "", label: "Merchant mặc định" },
-              ...merchantIds.map((id) => ({ value: id, label: merchantLabel(merchantIds, id) })),
+              ...merchantIds.map((id) => ({ value: id, label: merchantOptionLabel(merchants, merchantIds, id) })),
             ]}
           />
         )}

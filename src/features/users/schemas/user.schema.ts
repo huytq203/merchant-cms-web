@@ -10,7 +10,8 @@ export const scopeProposalStatusSchema = z.enum(["PENDING_APPROVAL", "APPROVED",
  */
 export const merchantUserSchema = z.object({
   id: z.uuid(),
-  keycloakUserId: z.string(),
+  /** Bound only once the BE has provisioned the Keycloak account, so a new user has none yet. */
+  keycloakUserId: z.string().nullish(),
   email: z.email(),
   fullName: z.string().nullish(),
   phone: z.string().nullable(),

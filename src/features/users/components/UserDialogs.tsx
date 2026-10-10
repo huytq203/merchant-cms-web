@@ -1,5 +1,6 @@
 "use client";
 
+import type { SessionMerchant } from "@/types/auth";
 import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import type { useUserActions } from "../hooks/use-user-actions";
 import { useScopeProposal } from "../hooks/use-scope-proposal";
@@ -20,6 +21,7 @@ interface Props {
   actions: Actions;
   merchantId: string;
   merchantIds: string[];
+  merchants?: SessionMerchant[];
   actorId: string;
 }
 
@@ -27,7 +29,7 @@ interface SectionProps extends Pick<Props, "dialogs" | "actions" | "openFor" | "
   onOpenChange: (open: boolean) => void;
 }
 
-function UserFormDialog({ dialogs, actions, onOpenChange, merchantId, merchantIds, actorId }: SectionProps & Pick<Props, "merchantId" | "merchantIds">) {
+function UserFormDialog({ dialogs, actions, onOpenChange, merchantId, merchantIds, merchants, actorId }: SectionProps & Pick<Props, "merchantId" | "merchantIds" | "merchants">) {
   const { activeDialog, target } = dialogs;
   const { saveAction } = actions;
 
@@ -37,6 +39,7 @@ function UserFormDialog({ dialogs, actions, onOpenChange, merchantId, merchantId
       onOpenChange={onOpenChange}
       merchantId={merchantId}
       merchantIds={merchantIds}
+      merchants={merchants}
       actorId={actorId}
       user={activeDialog === "edit" ? target : null}
       isSubmitting={saveAction.isSaving}
@@ -47,7 +50,7 @@ function UserFormDialog({ dialogs, actions, onOpenChange, merchantId, merchantId
   );
 }
 
-function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, merchantIds }: SectionProps & Pick<Props, "merchantIds">) {
+function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, merchants }: SectionProps & Pick<Props, "merchants">) {
   const { target } = dialogs;
   const { commandAction } = actions;
   const shown = usePreservedValue(target);
@@ -61,7 +64,7 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
       onOpenChange={onOpenChange}
       user={target}
       actorId={actorId}
-      merchantIds={merchantIds}
+      merchants={merchants}
       proposal={proposal.data ?? null}
       proposalError={loadError ?? commandAction.error}
       isPending={commandAction.isScopePending}
@@ -136,7 +139,7 @@ function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: Section
   );
 }
 
-export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds, actorId }: Props) {
+export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds, merchants, actorId }: Props) {
   const onOpenChange = (open: boolean) => {
     if (!open) actions.closeDialogs();
   };
@@ -144,8 +147,8 @@ export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds
 
   return (
     <>
-      <UserFormDialog {...section} merchantId={merchantId} merchantIds={merchantIds} />
-      <UserDetailDialog {...section} merchantIds={merchantIds} />
+      <UserFormDialog {...section} merchantId={merchantId} merchantIds={merchantIds} merchants={merchants} />
+      <UserDetailDialog {...section} merchants={merchants} />
       <UserCommandDialogs {...section} />
     </>
   );

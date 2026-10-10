@@ -1,3 +1,4 @@
+import type { SessionMerchant } from "@/types/auth";
 import { singleMerchantLabel } from "../constants/user.constants";
 import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
 import { userStatusOf } from "./user-view";
@@ -44,6 +45,36 @@ export function hasSameIds(left: readonly string[] = [], right: readonly string[
   const sortedLeft = [...left].sort();
   const sortedRight = [...right].sort();
   return sortedLeft.every((id, index) => id === sortedRight[index]);
+}
+
+/** Count of the user's merchants, for when their names are not known (a bare "Merchant 3" named nothing). */
+export function merchantScopeLabel(userMerchantIds: readonly string[]): string {
+  return userMerchantIds.length === 0 ? "Chưa có" : `${userMerchantIds.length} merchant`;
+}
+
+/** Labels of all the user's merchants, or null when any has no known name (the caller then shows a count). */
+export function merchantScopeNames(
+  userMerchantIds: readonly string[],
+  merchants: readonly SessionMerchant[],
+): string[] | null {
+  if (userMerchantIds.length === 0) return null;
+  const labels = userMerchantIds.map((id) => {
+    const merchant = merchants.find((candidate) => candidate.id === id);
+    if (!merchant?.name) return null;
+    return merchant.code ? `${merchant.code} · ${merchant.name}` : merchant.name;
+  });
+  return labels.every((label): label is string => label !== null) ? labels : null;
+}
+
+/** A merchant as people know it: "MC000001 · Halo tech"; the position label only when the BE sent no name. */
+export function merchantOptionLabel(
+  merchants: readonly SessionMerchant[],
+  sessionMerchantIds: readonly string[],
+  id: string,
+): string {
+  const merchant = merchants.find((candidate) => candidate.id === id);
+  if (!merchant?.name) return merchantLabel(sessionMerchantIds, id);
+  return merchant.code ? `${merchant.code} · ${merchant.name}` : merchant.name;
 }
 
 export function merchantLabel(merchantIds: readonly string[], id: string): string {

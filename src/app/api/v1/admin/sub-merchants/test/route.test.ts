@@ -68,6 +68,18 @@ describe("sub merchant collection route", () => {
     });
   });
 
+  it("narrows the list to a merchant of the session when one is asked for", async () => {
+    listSubMerchants.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    expect((await GET(request(`?merchantId=${merchantId}`))).status).toBe(200);
+    expect(listSubMerchants).toHaveBeenCalledWith(expect.objectContaining({ merchantId }));
+  });
+
+  it("does not narrow the list when no merchant is asked for", async () => {
+    listSubMerchants.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    await GET(request());
+    expect(listSubMerchants.mock.calls[0]?.[0]).not.toHaveProperty("merchantId");
+  });
+
   it("rejects a merchant ID outside the session", async () => {
     expect((await GET(request("?merchantId=other"))).status).toBe(403);
     expect(listSubMerchants).not.toHaveBeenCalled();

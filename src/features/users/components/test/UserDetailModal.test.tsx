@@ -58,7 +58,6 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserDetailModal>
         onOpenChange={vi.fn()}
         user={user}
         actorId={actorId}
-        merchantIds={[merchantA]}
         proposal={null}
         isPending={false}
         {...handlers}
@@ -78,17 +77,40 @@ describe("user detail modal", () => {
     expect(screen.queryByText(new RegExp(groupId))).not.toBeInTheDocument();
   });
 
-  it("shows a placeholder for a missing phone and the whole merchant when no sub-merchant is set", async () => {
+  it("shows a placeholder for a missing phone and every sub-merchant when none is limited", async () => {
     renderModal();
     expect(screen.getByText("Chưa có")).toBeInTheDocument();
-    expect(screen.getByText("Toàn bộ merchant")).toBeInTheDocument();
+    expect(screen.getByText("Tất cả sub-merchant")).toBeInTheDocument();
+    await screen.findByText("Vận hành");
+  });
+
+  it("names the merchants of the user when the session carries their names", async () => {
+    const merchantB = "22222222-2222-4222-8222-222222222222";
+    renderModal({
+      user: { ...user, merchantIds: [merchantA, merchantB] },
+      merchants: [
+        { id: merchantA, code: "MC000001", name: "Halo tech" },
+        { id: merchantB, code: "MC000002", name: "Green mart" },
+      ],
+    });
+    expect(screen.getByText("MC000001 · Halo tech")).toBeInTheDocument();
+    expect(screen.getByText("MC000002 · Green mart")).toBeInTheDocument();
+    expect(screen.queryByText("2 merchant")).not.toBeInTheDocument();
+    await screen.findByText("Vận hành");
+  });
+
+  it("counts merchants instead of numbering them when the session has several", async () => {
+    const merchantB = "22222222-2222-4222-8222-222222222222";
+    renderModal({ user: { ...user, merchantIds: [merchantB, merchantA] } });
+    expect(screen.getByText("2 merchant")).toBeInTheDocument();
+    expect(screen.queryByText(/^Merchant \d/)).not.toBeInTheDocument();
     await screen.findByText("Vận hành");
   });
 
   it("lists the sub-merchants the user is limited to", async () => {
     renderModal({ user: { ...user, subMerchantIds: [subMerchantId] } });
     expect(await screen.findByText(/Cửa hàng 1/)).toBeInTheDocument();
-    expect(screen.queryByText("Toàn bộ merchant")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tất cả sub-merchant")).not.toBeInTheDocument();
   });
 
   it("offers reset password and lock for an active user and reports the clicks", async () => {

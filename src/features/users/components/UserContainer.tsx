@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { Button } from "@/components/ui/button/Button";
+import type { SessionMerchant } from "@/types/auth";
 import type { UserFilter } from "../user-queries";
 import { useUserActions } from "../hooks/use-user-actions";
 import { useUserDialogs, type UserDialogsState } from "../hooks/use-user-dialogs";
@@ -15,10 +16,11 @@ import { UserResults } from "./UserResults";
 interface Props {
   filter: UserFilter;
   merchantIds: string[];
+  merchants?: SessionMerchant[];
   actorId: string;
 }
 
-export function UserContainer({ filter, merchantIds, actorId }: Props) {
+export function UserContainer({ filter, merchantIds, merchants, actorId }: Props) {
   const dialogs = useUserDialogs();
   const actions = useUserActions(dialogs.close);
   const navigation = useUserListNavigation(filter);
@@ -46,6 +48,7 @@ export function UserContainer({ filter, merchantIds, actorId }: Props) {
         key={`${filter.query ?? ""}:${filter.status ?? ""}:${filter.merchantId ?? ""}`}
         filter={filter}
         merchantIds={merchantIds}
+        merchants={merchants}
         onSearch={navigation.search}
       />
       <UserResults filter={filter} actorId={actorId} openFor={openFor} onPageChange={navigation.changePage} onAdd={openCreate} />
@@ -55,6 +58,7 @@ export function UserContainer({ filter, merchantIds, actorId }: Props) {
         actions={actions}
         merchantId={merchantId}
         merchantIds={merchantIds}
+        merchants={merchants}
         actorId={actorId}
       />
     </div>

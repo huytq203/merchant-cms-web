@@ -14,17 +14,17 @@ import { subMerchantPaths } from "./sub-merchant.paths";
 const FILTER_FETCH_SIZE = 100;
 const FILTER_MAX_PAGES = 10;
 
-function fetchPage(page: number, size: number) {
-  return merchantClient().get({ path: subMerchantPaths.list, schema: pageSchema(subMerchantSummarySchema), query: { page, size } });
+function fetchPage(page: number, size: number, merchantId?: string) {
+  return merchantClient().get({ path: subMerchantPaths.list, schema: pageSchema(subMerchantSummarySchema), query: { page, size, merchantId } });
 }
 
 /** The merchant endpoint only paginates, so a filtered list reads the assigned outlets and filters them here. */
 async function listFiltered(filter: SubMerchantListFilter): Promise<BeResult<SubMerchantListResult>> {
-  const first = await fetchPage(1, FILTER_FETCH_SIZE);
+  const first = await fetchPage(1, FILTER_FETCH_SIZE, filter.merchantId);
   if (!first.success) return first;
   const all = [...first.data.content];
   for (let page = 2; page <= Math.min(first.data.totalPages, FILTER_MAX_PAGES); page += 1) {
-    const next = await fetchPage(page, FILTER_FETCH_SIZE);
+    const next = await fetchPage(page, FILTER_FETCH_SIZE, filter.merchantId);
     if (!next.success) return next;
     all.push(...next.data.content);
   }
@@ -35,7 +35,7 @@ async function listFiltered(filter: SubMerchantListFilter): Promise<BeResult<Sub
 
 export async function listSubMerchants(filter: SubMerchantListFilter): Promise<BeResult<SubMerchantListResult>> {
   if (hasSubMerchantFilter(filter)) return listFiltered(filter);
-  const result = await fetchPage(filter.page, filter.pageSize);
+  const result = await fetchPage(filter.page, filter.pageSize, filter.merchantId);
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
 

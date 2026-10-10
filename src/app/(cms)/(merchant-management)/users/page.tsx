@@ -33,7 +33,7 @@ export default async function UsersPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <UserContainer filter={filter} merchantIds={session.merchantIds} actorId={session.userId} />
+      <UserContainer filter={filter} merchantIds={session.merchantIds} merchants={session.merchants} actorId={session.userId} />
     </HydrationBoundary>
   );
 }

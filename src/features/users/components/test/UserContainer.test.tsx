@@ -38,6 +38,22 @@ function renderWithClient(actorId = "actor") {
   );
 }
 
+function renderWithNamedMerchants() {
+  const merchantB = "77777777-7777-4777-8777-777777777777";
+  mswServer.use(http.get(base, () => HttpResponse.json({ rows: [row], total: 1 })));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <UserContainer
+        filter={{ page: 1, pageSize: 10 }}
+        merchantIds={[merchantId, merchantB]}
+        merchants={[{ id: merchantId, code: "MC000001", name: "Halo tech" }, { id: merchantB, code: "MC000002", name: "Green mart" }]}
+        actorId="actor"
+      />
+    </QueryClientProvider>,
+  );
+}
+
 function renderContainer(status: "ACTIVE" | "LOCKED" = "ACTIVE", actorId = "actor") {
   mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...row, ...(status === "LOCKED" ? { active: false, locked: true } : {}) }], total: 1 })));
   return renderWithClient(actorId);
@@ -281,5 +297,14 @@ describe("user container", () => {
 
     expect(await screen.findByText("Không có người dùng phù hợp. Đổi bộ lọc hoặc thêm người dùng mới.")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Thêm người dùng" })).toHaveLength(2);
+  });
+
+  it("lets the creator pick the merchant by name in the create dialog", async () => {
+    renderWithNamedMerchants();
+    await screen.findByText("Vận hành");
+    await userEvent.click(screen.getAllByRole("button", { name: /Thêm người dùng/ })[0]!);
+    const dialog = await openDialog();
+    await userEvent.click(dialog.getByRole("combobox"));
+    expect(await screen.findByRole("option", { name: /Green mart/ })).toBeInTheDocument();
   });
 });

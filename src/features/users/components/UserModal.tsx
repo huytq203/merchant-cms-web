@@ -5,7 +5,8 @@ import { FormModal } from "@/components/modal/FormModal";
 import { usePermissionGroups } from "@/features/permission/permission-group-queries";
 import { useUserForm } from "../hooks/use-user-form";
 import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
-import { merchantLabel } from "../utils/user-mapper";
+import type { SessionMerchant } from "@/types/auth";
+import { merchantOptionLabel, merchantScopeNames } from "../utils/user-mapper";
 import { UserBasicFields } from "./UserFormFields";
 import { UserGroupPicker } from "./UserGroupPicker";
 import { UserScopeSection } from "./UserScopeSection";
@@ -17,6 +18,8 @@ interface Props {
   merchantId: string;
   /** Every merchant id in the session. */
   merchantIds: string[];
+  /** Code and name of those merchants, so they can be chosen by name. */
+  merchants?: SessionMerchant[];
   actorId?: string;
   user?: MerchantUser | null;
   isSubmitting: boolean;
@@ -36,7 +39,7 @@ function SelfEditBanner() {
   );
 }
 
-function UserFormModal({ onOpenChange, merchantId, merchantIds, actorId, user, isSubmitting, emailError, error, onSubmit }: Omit<Props, "open">) {
+function UserFormModal({ onOpenChange, merchantId, merchantIds, merchants = [], actorId, user, isSubmitting, emailError, error, onSubmit }: Omit<Props, "open">) {
   const form = useUserForm(user, merchantId, onSubmit);
   const groups = usePermissionGroups({ page: 1, pageSize: 100 });
   const isSelf = Boolean(user && actorId && user.id === actorId);
@@ -59,9 +62,13 @@ function UserFormModal({ onOpenChange, merchantId, merchantIds, actorId, user, i
         <UserBasicFields form={form} isEdit={Boolean(user)} readOnly={isSelf} emailError={emailError} />
         <UserGroupPicker form={form} groups={groups} locked={isSelf} />
         {user ? (
-          <UserScopeSection user={user} merchantIds={merchantIds} canPropose={!isSelf} />
+          <UserScopeSection user={user} merchants={merchants} canPropose={!isSelf} />
         ) : (
-          <UserScopePicker form={form} merchantName={merchantLabel(merchantIds, merchantId)} />
+          <UserScopePicker
+            form={form}
+            merchantName={merchantIds.length > 1 ? undefined : merchantScopeNames([merchantId], merchants)?.[0]}
+            merchantOptions={merchantIds.map((id) => ({ value: id, label: merchantOptionLabel(merchants, merchantIds, id) }))}
+          />
         )}
       </div>
     </FormModal>

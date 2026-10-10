@@ -14,6 +14,17 @@ describe('sub merchant query contract', () => {
     get.mockRestore();
   });
 
+  it('sends the merchant when one is chosen and keys the cache by it', async () => {
+    const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ rows: [], total: 0 });
+    const filter = { page: 1, pageSize: 100, merchantId: 'm-1' };
+    const query = subMerchantQueries.list(filter);
+    expect(query.queryKey).toEqual(['sub-merchants', 'list', { page: 1, pageSize: 100, merchantId: 'm-1' }]);
+    expect(query.queryKey).not.toEqual(subMerchantQueries.list({ page: 1, pageSize: 100 }).queryKey);
+    await query.queryFn!({} as never);
+    expect(get).toHaveBeenCalledWith('/v1/admin/sub-merchants', { query: { page: 1, pageSize: 100, merchantId: 'm-1' } });
+    get.mockRestore();
+  });
+
   it('gives each filter its own cache entry', () => {
     const base = { page: 1, pageSize: 10 };
     expect(subMerchantQueries.list({ ...base, name: 'A' }).queryKey).not.toEqual(subMerchantQueries.list(base).queryKey);

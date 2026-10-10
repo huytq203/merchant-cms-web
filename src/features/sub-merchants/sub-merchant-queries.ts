@@ -34,6 +34,7 @@ export const subMerchantQueries = {
       ...(filter.code ? { code: filter.code } : {}),
       ...(filter.name ? { name: filter.name } : {}),
       ...(filter.status ? { status: filter.status } : {}),
+      ...(filter.merchantId ? { merchantId: filter.merchantId } : {}),
     };
     return queryOptions({
       queryKey: ['sub-merchants', 'list', params] as const,

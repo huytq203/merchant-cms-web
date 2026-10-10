@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasSameIds, canLockUser, canUnlockUser, toCreateUserRequest, toUpdateUserRequest } from "../user-mapper";
+import { hasSameIds, canLockUser, canUnlockUser, merchantOptionLabel, merchantScopeLabel, merchantScopeNames, toCreateUserRequest, toUpdateUserRequest } from "../user-mapper";
 
 const values = { email: "user@example.com", fullName: "Test User", phone: "0912345678", groupIds: ["group-1"], merchantIds: [], subMerchantIds: [] };
 
@@ -34,5 +34,59 @@ describe("user mapper", () => {
     expect(hasSameIds(["a", "b"], ["b", "a"])).toBe(true);
     expect(hasSameIds(["a"], ["a", "b"])).toBe(false);
     expect(hasSameIds(undefined, [])).toBe(true);
+  });
+
+  describe("merchantScopeLabel", () => {
+    it("says none when the user has no merchant", () => {
+      expect(merchantScopeLabel([])).toBe("Chưa có");
+    });
+
+    it("counts the merchants of the user instead of using a vague phrase", () => {
+      expect(merchantScopeLabel(["m-1"])).toBe("1 merchant");
+    });
+
+    it("counts merchants instead of numbering them when the session has several", () => {
+      expect(merchantScopeLabel(["m-1", "m-4", "m-3", "m-2"])).toBe("4 merchant");
+      expect(merchantScopeLabel(["m-2"])).toBe("1 merchant");
+    });
+  });
+
+  describe("merchantOptionLabel", () => {
+    const merchants = [
+      { id: "m-1", code: "MC000001", name: "Halo tech" },
+      { id: "m-2", code: null, name: "Green mart" },
+    ];
+
+    it("shows the code and name of a merchant", () => {
+      expect(merchantOptionLabel(merchants, ["m-1", "m-2"], "m-1")).toBe("MC000001 · Halo tech");
+    });
+
+    it("shows just the name when the merchant has no code", () => {
+      expect(merchantOptionLabel(merchants, ["m-1", "m-2"], "m-2")).toBe("Green mart");
+    });
+
+    it("falls back to the position label when the BE sent no name", () => {
+      expect(merchantOptionLabel([], ["m-1", "m-2"], "m-2")).toBe("Merchant 2");
+    });
+  });
+
+  describe("merchantScopeNames", () => {
+    const merchants = [
+      { id: "m-1", code: "MC000001", name: "Halo tech" },
+      { id: "m-2", code: "MC000002", name: "Green mart" },
+    ];
+
+    it("names every merchant of the user, in the user's order", () => {
+      expect(merchantScopeNames(["m-2", "m-1"], merchants)).toEqual(["MC000002 · Green mart", "MC000001 · Halo tech"]);
+    });
+
+    it("gives no names when one merchant is unknown, so the caller falls back to a count", () => {
+      expect(merchantScopeNames(["m-1", "m-9"], merchants)).toBeNull();
+      expect(merchantScopeNames(["m-1"], [])).toBeNull();
+    });
+
+    it("gives no names for a user without merchants", () => {
+      expect(merchantScopeNames([], merchants)).toBeNull();
+    });
   });
 });
