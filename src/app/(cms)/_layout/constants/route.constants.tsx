@@ -30,6 +30,8 @@ export interface SidebarItem {
   badge?: string;
   subPages?: SubPage[];
   permission?: MerchantPermission;
+  /** Page works on the session's own Master; hidden for a session limited to Subs. */
+  requiresMerchant?: boolean;
 }
 
 export interface SidebarSection {
@@ -91,6 +93,7 @@ export const routesConfig: SidebarSection[] = [
       {
         title: "Tổng quan",
         href: "/dashboard",
+        requiresMerchant: true,
         icon: <LayoutDashboard className="w-4 h-4" />,
       },
     ],
@@ -103,18 +106,21 @@ export const routesConfig: SidebarSection[] = [
         title: "Danh sách nhóm quyền",
         permission: "MANAGE_PERMISSION_GROUP",
         href: "/permissions",
+        requiresMerchant: true,
         icon: <ShieldCheck className="w-4 h-4" />,
       },
       {
         title: "Danh sách người dùng",
         permission: "MANAGE_USER",
         href: "/users",
+        requiresMerchant: true,
         icon: <Users className="w-4 h-4" />,
       },
       {
         title: "Danh sách Sub-merchant",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/sub-merchants",
+        requiresMerchant: true,
         icon: <Store className="w-4 h-4" />,
       },
       {
@@ -127,12 +133,14 @@ export const routesConfig: SidebarSection[] = [
         title: "Danh sách tài khoản ngân hàng",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/bank-accounts",
+        requiresMerchant: true,
         icon: <Landmark className="w-4 h-4" />,
       },
       {
         title: "Hồ sơ KYB và ĐVCNTT",
         permission: "MANAGE_SUB_MERCHANT",
         href: "/merchants",
+        requiresMerchant: true,
         icon: <BadgeCheck className="w-4 h-4" />,
       },
     ],
@@ -145,30 +153,35 @@ export const routesConfig: SidebarSection[] = [
         title: "Danh sách giao dịch",
         permission: "VIEW_TRANSACTION",
         href: "/transaction",
+        requiresMerchant: true,
         icon: <ArrowLeftRight className="w-4 h-4" />,
       },
       {
         title: "Danh sách đơn hàng",
         permission: "VIEW_ORDER",
         href: "/order",
+        requiresMerchant: true,
         icon: <ShoppingBag className="w-4 h-4" />,
       },
       {
         title: "Danh sách yêu cầu hoàn tiền",
         permission: "VIEW_REFUND",
         href: "/refund",
+        requiresMerchant: true,
         icon: <RotateCcw className="w-4 h-4" />,
       },
       {
         title: "Danh sách khiếu nại",
         permission: "VIEW_DISPUTE",
         href: "/complaint",
+        requiresMerchant: true,
         icon: <MessageSquareWarning className="w-4 h-4" />,
       },
       {
         title: "Danh sách giao dịch rút tiền",
         permission: "VIEW_WITHDRAWAL",
         href: "/withdrawal",
+        requiresMerchant: true,
         icon: <Wallet className="w-4 h-4" />,
       },
     ],
@@ -195,14 +208,23 @@ export function getRouteTitle(href: string): string {
   return routeSearchOptions.find((option) => option.value === href)?.label ?? href;
 }
 
-export function filterRoutesByPermissions(
+export interface RouteAccess {
+  permissions: readonly MerchantPermission[];
+  hasMerchant: boolean;
+}
+
+export function filterRoutesByAccess(
   sections: SidebarSection[],
-  permissions: readonly MerchantPermission[],
+  { permissions, hasMerchant }: RouteAccess,
 ): SidebarSection[] {
   return sections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.permission || permissions.includes(item.permission)),
+      items: section.items.filter(
+        (item) =>
+          (!item.permission || permissions.includes(item.permission)) &&
+          (!item.requiresMerchant || hasMerchant),
+      ),
     }))
     .filter((section) => section.items.length > 0);
 }

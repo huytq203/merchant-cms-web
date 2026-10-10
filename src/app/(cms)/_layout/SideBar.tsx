@@ -8,7 +8,7 @@ import {
   SidebarContent,
   useSidebar,
 } from "@/components/ui/sidebar/Sidebar";
-import { filterRoutesByPermissions, routesConfig } from "./constants/route.constants";
+import { filterRoutesByAccess, routesConfig } from "./constants/route.constants";
 import { useSession } from "@/features/auth/components/session-provider";
 import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
 import { AccountDialog } from "@/features/account/components/AccountDialog";
@@ -22,9 +22,10 @@ export default function DocSidebar() {
   const { logout, isPending: isLoggingOut } = useLogoutMutation();
   const [accountOpen, setAccountOpen] = useState(false);
   const session = useSession();
+  const hasMerchant = session.merchantIds.length > 0;
   const visibleRoutes = useMemo(
-    () => filterRoutesByPermissions(routesConfig, session.permissions),
-    [session.permissions],
+    () => filterRoutesByAccess(routesConfig, { permissions: session.permissions, hasMerchant }),
+    [session.permissions, hasMerchant],
   );
 
   return (
