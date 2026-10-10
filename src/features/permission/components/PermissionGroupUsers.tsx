@@ -18,7 +18,6 @@ function EmptyUsers() {
     <div className="grid justify-items-center gap-1 rounded-xl border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">
       <Users className="h-5 w-5 text-primary" aria-hidden="true" />
       <p className="font-semibold text-foreground">Chưa có người dùng trong nhóm</p>
-      <p>Gán nhóm này cho người dùng ở màn Người dùng.</p>
     </div>
   );
 }
