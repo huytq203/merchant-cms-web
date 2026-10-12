@@ -1,5 +1,7 @@
 import { HydrationBoundary } from "@tanstack/react-query";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
+import { findLandingPath } from "@/app/(cms)/_layout/constants/route.constants";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { Text } from "@/components/ui/typography/Typography";
 import { DashboardOverview } from "@/features/dashboard/_components/DashboardOverview";
@@ -26,7 +28,12 @@ const DEFAULT_PERIOD = "7days";
 const DashboardPage = async () => {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
-  if (user.merchantIds.length === 0) return <AccessDenied />;
+  if (user.merchantIds.length === 0) {
+    // The overview is per Master; a Sub-only session goes straight to the first page it may open.
+    const landing = findLandingPath({ permissions: user.permissions, hasMerchant: false });
+    if (landing) redirect(landing as Route);
+    return <AccessDenied />;
+  }
 
   const state = await prefetchDehydrated(async (client) => {
     await Promise.all([

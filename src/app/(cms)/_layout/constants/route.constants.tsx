@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import type { MerchantPermission } from "@/features/auth/permissions";
 import {
@@ -227,4 +226,9 @@ export function filterRoutesByAccess(
       ),
     }))
     .filter((section) => section.items.length > 0);
+}
+
+/** First page the session may open, or null when it may open none. Pure, so server code can call it. */
+export function findLandingPath(access: RouteAccess): string | null {
+  return filterRoutesByAccess(routesConfig, access)[0]?.items[0]?.href ?? null;
 }

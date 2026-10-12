@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filterRoutesByAccess, routesConfig } from "@/app/(cms)/_layout/constants/route.constants";
+import { filterRoutesByAccess, findLandingPath, routesConfig } from "@/app/(cms)/_layout/constants/route.constants";
 
 const titles = (sections: ReturnType<typeof filterRoutesByAccess>) =>
   sections.flatMap((section) => section.items.map((item) => item.title));
@@ -54,5 +54,20 @@ describe("filterRoutesByAccess", () => {
     );
     expect(visible).toContain("Danh sách Terminal");
     expect(visible).toContain("Nhật ký hệ thống");
+  });
+});
+
+describe("findLandingPath", () => {
+  it("lands on the dashboard when the session has a Master", () => {
+    expect(findLandingPath({ permissions: [], hasMerchant: true })).toBe("/dashboard");
+  });
+
+  it("lands on the first page a Sub-only session may open", () => {
+    expect(findLandingPath({ permissions: ["MANAGE_SUB_MERCHANT", "VIEW_AUDIT_LOG"], hasMerchant: false })).toBe("/terminals");
+    expect(findLandingPath({ permissions: ["VIEW_AUDIT_LOG"], hasMerchant: false })).toBe("/audit-logs");
+  });
+
+  it("returns null when nothing is allowed", () => {
+    expect(findLandingPath({ permissions: [], hasMerchant: false })).toBeNull();
   });
 });
