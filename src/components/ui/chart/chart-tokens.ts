@@ -1,15 +1,14 @@
-// ─── Chart design tokens (Kraken palette) ────────────────────────────────────
+// ─── Chart design tokens: system CSS variables, so charts follow the theme ───
 
 export const CHART_COLORS = [
-  '#7132f5', '#149e61', '#2563eb', '#f59e0b',
-  '#ef4444', '#c4b0ff', '#5741d8', '#1acc72',
+  'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)',
 ] as const;
 
 /** Axis tick style */
-export const CHART_AX  = { fontSize: 12, fill: '#9497a9' } as const;
+export const CHART_AX  = { fontSize: 12, fill: 'var(--muted-foreground)' } as const;
 
 /** Cartesian grid style */
-export const CHART_GRD = { stroke: '#dedee5', strokeDasharray: '4 4' } as const;
+export const CHART_GRD = { stroke: 'var(--border)', strokeDasharray: '4 4' } as const;
 
 // ─── Shared prop types ────────────────────────────────────────────────────────
 

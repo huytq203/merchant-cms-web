@@ -46,14 +46,14 @@ describe("route loading skeletons", () => {
     expect(rows(<TransactionLoading />)).toBe(2);
   });
 
-  it("dashboard shows a busy title, stat cards, chart and recent list", () => {
+  it("dashboard shows a busy title, stat cards, charts and two recent lists", () => {
     const { container } = render(<DashboardLoading />);
     const root = container.firstElementChild!;
     expect(root).toHaveAttribute("aria-busy", "true");
-    const [title, stats, chart, recent] = Array.from(root.children);
+    const [title, stats, charts, lists] = Array.from(root.children);
     expect(title!.children).toHaveLength(2);
     expect(stats!.children).toHaveLength(4);
-    expect(chart!.children).toHaveLength(0);
-    expect(recent!.children.length).toBeGreaterThan(1);
+    expect(charts!.children).toHaveLength(2);
+    expect(lists!.children).toHaveLength(2);
   });
 });

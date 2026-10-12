@@ -97,20 +97,22 @@ export interface ChartBarProps {
     series: SeriesItem[];
     height?: number;
     stacked?: boolean;
+    /** false keeps count axes on whole numbers. */
+    allowDecimals?: boolean;
     layout?: 'horizontal' | 'vertical';
     defaultIndex?: TooltipIndex;
     onClick?: (payload: ChartClickEvent, event: React.MouseEvent) => void;
 }
 
 export const ChartBar: React.FC<ChartBarProps> = ({
-    data, xKey, series, height = 280, stacked, layout = 'horizontal', defaultIndex, onClick,
+    data, xKey, series, height = 280, stacked, allowDecimals = true, layout = 'horizontal', defaultIndex, onClick,
 }) => (
     <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} layout={layout} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="35%">
             {layout === 'horizontal' ? (
                 <>
                     <XAxis dataKey={xKey} tick={CHART_AX} axisLine={false} tickLine={false} />
-                    <YAxis tick={CHART_AX} axisLine={false} tickLine={false} width={64} />
+                    <YAxis tick={CHART_AX} axisLine={false} tickLine={false} width={64} allowDecimals={allowDecimals} />
                 </>
             ) : (
                 <>
@@ -119,7 +121,7 @@ export const ChartBar: React.FC<ChartBarProps> = ({
                 </>
             )}
             <CartesianGrid {...CHART_GRD} vertical={layout === 'vertical'} horizontal={layout === 'horizontal'} />
-            <Tooltip content={ChartTooltip} cursor={{ fill: 'rgba(113,50,245,0.05)' }} defaultIndex={defaultIndex} />
+            <Tooltip content={ChartTooltip} cursor={{ fill: 'var(--muted)', opacity: 0.6 }} defaultIndex={defaultIndex} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             {series.map((s, i) => (
                 // Bar.onClick giống Pie.onClick — recharts truyền toàn bộ row data trực tiếp
@@ -305,7 +307,7 @@ export const ChartRadar: React.FC<ChartRadarProps> = ({
                 ? ({ activeLabel }, e) => resolveByLabel(data, angleKey, activeLabel, e, onClick)
                 : undefined}
         >
-            <PolarGrid stroke="#dedee5" />
+            <PolarGrid stroke="var(--border)" />
             <PolarAngleAxis dataKey={angleKey} tick={CHART_AX} />
             <Tooltip content={ChartTooltip} />
             <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" />

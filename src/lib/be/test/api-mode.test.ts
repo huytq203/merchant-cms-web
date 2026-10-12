@@ -6,7 +6,7 @@ import {
   unsupportedResult,
 } from "../api-mode";
 
-const MODULES = ["transactions", "refund", "complaints", "dashboard"] as const;
+const MODULES = ["transactions", "refund", "complaints"] as const;
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -55,9 +55,9 @@ describe("resolveModuleSource", () => {
   it("reads process.env by default", () => {
     vi.stubEnv("MERCHANT_API_MODE", "fixture");
     vi.stubEnv("NODE_ENV", "production");
-    expect(resolveModuleSource("dashboard")).toBe("unsupported");
+    expect(resolveModuleSource("refund")).toBe("unsupported");
     vi.stubEnv("NODE_ENV", "development");
-    expect(resolveModuleSource("dashboard")).toBe("fixture");
+    expect(resolveModuleSource("refund")).toBe("fixture");
   });
 });
 
