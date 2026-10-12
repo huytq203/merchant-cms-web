@@ -65,8 +65,21 @@ describe("FilterCard", () => {
     const actions = screen.getByRole("button", { name: "Tìm kiếm" }).parentElement;
 
     expect(form).toHaveAttribute("data-layout", "grid");
-    expect(grid).toHaveClass("grid", "md:grid-cols-2", "min-[860px]:grid-cols-4");
+    expect(grid).toHaveClass("grid", "@md:grid-cols-2", "@3xl:grid-cols-4");
     expect(actions).toHaveClass("justify-end");
+  });
+
+  it("sizes its columns by the width of the card, not of the window", () => {
+    const { container } = render(
+      <FilterCard fieldCount={4} onSubmit={vi.fn()}>
+        <label>Một<input /></label>
+        <label>Hai<input /></label>
+        <label>Ba<input /></label>
+        <label>Bốn<input /></label>
+      </FilterCard>,
+    );
+
+    expect(container.firstElementChild).toHaveClass("@container");
   });
 
   it("can place the actions as the last cell of the grid, so an odd field count leaves no gap", () => {

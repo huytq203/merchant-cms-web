@@ -4,6 +4,7 @@ import { Children, type FormEvent, type ReactNode } from "react";
 import { Eraser, Search } from "lucide-react";
 import { Card } from "@/components/ui/card/Card";
 import { Button } from "@/components/ui/button/Button";
+import { cn } from "@/lib/utils/cn";
 
 interface FilterCardProps {
   children: ReactNode;
@@ -24,7 +25,7 @@ export function FilterCard({ children, fieldCount, onSubmit, onClear, className,
   }
 
   return (
-    <Card className={className} padding="none">
+    <Card className={cn("@container", className)} padding="none">
       <form
         aria-label="Bộ lọc tìm kiếm"
         data-layout={usesInlineLayout ? "inline" : "grid"}
@@ -44,13 +45,13 @@ export function FilterCard({ children, fieldCount, onSubmit, onClear, className,
           </div>
         ) : (
           actionsInGrid ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[860px]:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 @md:grid-cols-2 @3xl:grid-cols-4">
               {children}
               <FilterActions onClear={onClear} className="items-end justify-end" />
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[860px]:grid-cols-4">{children}</div>
+              <div className="grid grid-cols-1 gap-4 @md:grid-cols-2 @3xl:grid-cols-4">{children}</div>
               <FilterActions onClear={onClear} className="justify-end" />
             </>
           )
