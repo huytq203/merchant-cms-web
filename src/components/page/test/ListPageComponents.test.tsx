@@ -68,6 +68,20 @@ describe("FilterCard", () => {
     expect(grid).toHaveClass("grid", "md:grid-cols-2", "min-[860px]:grid-cols-4");
     expect(actions).toHaveClass("justify-end");
   });
+
+  it("can place the actions as the last cell of the grid, so an odd field count leaves no gap", () => {
+    render(
+      <FilterCard fieldCount={7} actionsInGrid onSubmit={vi.fn()}>
+        {Array.from({ length: 7 }, (_, index) => <label key={index}>Ô {index}<input /></label>)}
+      </FilterCard>,
+    );
+
+    const grid = screen.getByRole("form").firstElementChild;
+    const actions = screen.getByRole("button", { name: "Tìm kiếm" }).parentElement;
+
+    expect(actions?.parentElement).toBe(grid);
+    expect(grid?.lastElementChild).toBe(actions);
+  });
 });
 
 describe("ResultState", () => {

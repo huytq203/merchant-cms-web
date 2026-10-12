@@ -108,12 +108,12 @@ describe("transactions sub-merchant filter", () => {
     }));
     renderContainer();
     await screen.findByText("TRX-1");
-    expect(within(screen.getByRole("region", { name: "Bộ lọc tìm kiếm" })).getByText("Sub-merchant")).toBeInTheDocument();
+    expect(within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).getByText("Sub-merchant")).toBeInTheDocument();
     cleanup();
     requested.mockClear();
     renderContainer({ showSubMerchantFilter: false });
     await screen.findByText("TRX-1");
-    expect(within(screen.getByRole("region", { name: "Bộ lọc tìm kiếm" })).queryByText("Sub-merchant")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).queryByText("Sub-merchant")).not.toBeInTheDocument();
     expect(requested).not.toHaveBeenCalled();
   });
 });
@@ -133,7 +133,14 @@ describe("transactions container behavior", () => {
   it("hides the export button without the export permission", async () => {
     renderContainer({ abilities: { ...abilities, canExport: false } });
     await screen.findByText("TRX-1");
-    expect(screen.queryByRole("button", { name: /Xuất Excel/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Xuất báo cáo/ })).not.toBeInTheDocument();
+  });
+
+  it("offers the export button in the page header with the export permission", async () => {
+    renderContainer();
+    await screen.findByText("TRX-1");
+    const header = screen.getByRole("banner");
+    expect(within(header).getByRole("button", { name: /Xuất báo cáo/ })).toBeInTheDocument();
   });
 
   it("writes the search into the URL starting from the first page", async () => {
@@ -146,6 +153,34 @@ describe("transactions container behavior", () => {
     expect(url.pathname).toBe("/transaction");
     expect(url.searchParams.get("keyword")).toBe("TRX-9");
     expect(url.searchParams.get("page")).toBe("1");
+  });
+
+  it("searches by status and type chosen in the filter", async () => {
+    renderContainer();
+    await screen.findByText("TRX-1");
+    const filters = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
+    await userEvent.click(within(filters).getByRole("combobox", { name: /Trạng thái/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "Thất bại" }));
+    await userEvent.click(within(filters).getByRole("combobox", { name: /Loại giao dịch/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /Hoàn tiền/ }));
+    await userEvent.click(within(filters).getByRole("button", { name: "Tìm kiếm" }));
+    const url = new URL(String(push.mock.calls[0]?.[0]), "http://localhost");
+    expect(url.searchParams.get("status")).toBe("failed");
+    expect(url.searchParams.get("type")).toBe("refund");
+  });
+
+  it("filters the created date with one range field", async () => {
+    renderContainer();
+    await screen.findByText("TRX-1");
+    const filters = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
+    expect(within(filters).getByText("Ngày tạo")).toBeInTheDocument();
+    expect(within(filters).queryByText("Từ ngày (tạo)")).not.toBeInTheDocument();
+  });
+
+  it("opens the detail from the transaction code as well as from the row action", async () => {
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "TRX-1" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("TRX-1");
   });
 
   it("opens the detail for the chosen transaction", async () => {

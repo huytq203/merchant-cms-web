@@ -1,14 +1,15 @@
 'use client';
-import { Badge } from '@/components/ui/badge/Badge';
 import {
   Sheet,
   SheetBody,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet/Sheet';
 import { cn } from '@/lib/utils/cn';
-import { CARD_TYPE_LABELS, TRANSACTION_STATUS_OPTIONS } from '../constants/Transaction.constants';
+import { CARD_TYPE_LABELS, PAYMENT_METHOD_OPTIONS, TRANSACTION_TYPE_OPTIONS } from '../constants/Transaction.constants';
+import { TransactionStatusBadge } from './TransactionStatusBadge';
 import type { Transaction } from '../types';
 import { Button } from '@/components/ui';
 import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
@@ -24,31 +25,15 @@ interface TransactionDetailSheetProps {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="col-span-2 pt-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pb-1.5 border-b border-border">
-        {children}
-      </p>
-    </div>
-  );
+  return <p className="pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</p>;
 }
 
-function DetailRow({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function DetailRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <>
-      <dt className="text-sm text-muted-foreground self-center">{label}</dt>
-      <dd className={cn('text-sm font-medium text-foreground', className)}>
-        {children}
-      </dd>
-    </>
+    <div className="flex justify-between gap-4 border-b border-border py-2.5 last:border-b-0">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className={cn('break-words text-right text-sm font-medium text-foreground', className)}>{children}</dd>
+    </div>
   );
 }
 
@@ -62,94 +47,67 @@ export function TransactionDetailSheet({
   onReconcile,
 }: TransactionDetailSheetProps) {
   const data = transaction;
-  const statusOption = data
-    ? TRANSACTION_STATUS_OPTIONS.find((o) => o.value === data.status)
-    : undefined;
+  const showRefund = canRefund && data?.status === 'success';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Chi tiết giao dịch</SheetTitle>
+          {data && <p className="font-mono text-sm text-muted-foreground">{data.code}</p>}
         </SheetHeader>
         {data && (
-          <SheetBody>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 items-start">
-              {/* Thông tin cơ bản */}
-              <SectionTitle>Thông tin cơ bản</SectionTitle>
-              <DetailRow label="Mã giao dịch">
-                <span className="font-mono text-primary">{data.code}</span>
-              </DetailRow>
-              <DetailRow label="Trạng thái">
-                <Badge variant={statusOption?.variant ?? 'outline'} size="sm">
-                  {statusOption?.label ?? data.status}
-                </Badge>
-              </DetailRow>
-              <DetailRow label="Thời gian tạo">{formatDate(data.createdAt)}</DetailRow>
-              <DetailRow label="Mô tả">{data.description}</DetailRow>
+          <>
+            <SheetBody>
+              <div className="grid gap-1.5 rounded-xl bg-muted p-4">
+                <p className="font-mono text-2xl font-bold tabular-nums text-brand-ink">{formatAmount(data.amount)}</p>
+                <div className="flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
+                  <TransactionStatusBadge status={data.status} />
+                  <span>{formatDate(data.createdAt)}</span>
+                </div>
+              </div>
+              <dl>
+                <SectionTitle>Thanh toán</SectionTitle>
+                <DetailRow label="Số tiền"><span className="font-mono">{formatAmount(data.amount)}</span></DetailRow>
+                <DetailRow label="Phí giao dịch"><span className="font-mono">{formatAmount(data.fee)}</span></DetailRow>
+                <DetailRow label="Thực nhận"><span className="font-mono text-success">{formatAmount(data.netAmount)}</span></DetailRow>
+                <DetailRow label="Loại giao dịch">{TRANSACTION_TYPE_OPTIONS.find((option) => option.value === data.type)?.label ?? data.type}</DetailRow>
+                <DetailRow label="Mã hóa đơn"><span className="font-mono">{data.invoiceCode ?? '—'}</span></DetailRow>
+                <DetailRow label="Mô tả">{data.description}</DetailRow>
 
-              {/* Thông tin thẻ */}
-              <SectionTitle>Thông tin thẻ</SectionTitle>
-              <DetailRow label="Loại thẻ">{CARD_TYPE_LABELS[data.cardType]}</DetailRow>
-              <DetailRow label="Số thẻ">
-                <span className="font-mono">{data.cardNumber}</span>
-              </DetailRow>
-              <DetailRow label="Chủ thẻ">{data.cardHolderName}</DetailRow>
-              <DetailRow label="Ngân hàng">{data.bankCode}</DetailRow>
+                <SectionTitle>Phương thức</SectionTitle>
+                <DetailRow label="Hình thức">{PAYMENT_METHOD_OPTIONS.find((option) => option.value === data.paymentMethod)?.label ?? data.paymentMethod}</DetailRow>
+                <DetailRow label="Loại thẻ">{CARD_TYPE_LABELS[data.cardType]}</DetailRow>
+                <DetailRow label="Số thẻ"><span className="font-mono">{data.cardNumber}</span></DetailRow>
+                <DetailRow label="Chủ thẻ">{data.cardHolderName}</DetailRow>
+                <DetailRow label="Ngân hàng">{data.bankCode}</DetailRow>
 
-              {/* Thông tin thanh toán */}
-              <SectionTitle>Thông tin thanh toán</SectionTitle>
-              <DetailRow label="Số tiền">
-                <span className="font-mono font-semibold text-foreground">
-                  {formatAmount(data.amount)}
-                </span>
-              </DetailRow>
-              <DetailRow label="Phí giao dịch">
-                <span className="font-mono text-muted-foreground">
-                  {formatAmount(data.fee)}
-                </span>
-              </DetailRow>
-              <DetailRow label="Thực nhận">
-                <span className="font-mono font-semibold text-success">
-                  {formatAmount(data.netAmount)}
-                </span>
-              </DetailRow>
+                <SectionTitle>Khách hàng và nơi bán</SectionTitle>
+                <DetailRow label="Khách hàng">{data.customerName}</DetailRow>
+                <DetailRow label="Số điện thoại"><span className="font-mono">{maskPhone(data.customerPhone)}</span></DetailRow>
+                <DetailRow label="Sub-merchant">{data.subMerchantName}</DetailRow>
 
-              {/* Sub-merchant */}
-              <SectionTitle>Sub-merchant</SectionTitle>
-              <DetailRow label="Tên Sub-merchant">{data.subMerchantName}</DetailRow>
-
-              {/* Khách hàng */}
-              <SectionTitle>Khách hàng</SectionTitle>
-              <DetailRow label="Tên khách hàng">{data.customerName}</DetailRow>
-              <DetailRow label="Số điện thoại">
-                <span className="font-mono">{maskPhone(data.customerPhone)}</span>
-              </DetailRow>
-
-              {/* Kỹ thuật */}
-              <SectionTitle>Thông tin kỹ thuật</SectionTitle>
-              <DetailRow label="Mã tham chiếu">
-                <span className="font-mono text-xs">{data.referenceCode}</span>
-              </DetailRow>
-              <DetailRow label="Mã phản hồi">
-                <span className="font-mono">{data.responseCode}</span>
-              </DetailRow>
-              <DetailRow label="Thông báo">{data.responseMessage}</DetailRow>
-            </dl>
-
-            <div className="mt-3 flex w-full justify-start gap-2">
-              {canDispute && (
-                <Button variant="outline" className="flex-1" onClick={onReconcile}>
-                  Tra soát
-                </Button>
-              )}
-              {canRefund && data.status === 'success' && (
-                <Button className="flex-1" onClick={onRefund}>
-                  Hoàn tiền
-                </Button>
-              )}
-            </div>
-          </SheetBody>
+                <SectionTitle>Kỹ thuật</SectionTitle>
+                <DetailRow label="Mã tham chiếu"><span className="font-mono text-xs">{data.referenceCode}</span></DetailRow>
+                <DetailRow label="Mã phản hồi"><span className="font-mono">{data.responseCode}</span></DetailRow>
+                <DetailRow label="Thông báo">{data.responseMessage}</DetailRow>
+              </dl>
+            </SheetBody>
+            {(canDispute || showRefund) && (
+              <SheetFooter>
+                {canDispute && (
+                  <Button variant="outline" className="flex-1" onClick={onReconcile}>
+                    Tra soát
+                  </Button>
+                )}
+                {showRefund && (
+                  <Button className="flex-1" onClick={onRefund}>
+                    Hoàn tiền
+                  </Button>
+                )}
+              </SheetFooter>
+            )}
+          </>
         )}
       </SheetContent>
     </Sheet>

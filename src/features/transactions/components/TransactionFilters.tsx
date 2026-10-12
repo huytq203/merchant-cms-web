@@ -1,14 +1,9 @@
 'use client';
-import {
-  Button,
-  ComboBox,
-  DatePicker,
-  Form,
-  FormField,
-  Input,
-} from '@/components/ui';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import type { DateRange } from 'react-day-picker';
+import { FilterCard } from '@/components/page/FilterCard';
+import { DatePicker, Form, FormField, Input, Select } from '@/components/ui';
 import { SubMerchantFilterField } from '@/features/sample-data/components/SubMerchantFilterField';
 import {
   PAYMENT_METHOD_OPTIONS,
@@ -38,8 +33,6 @@ const EMPTY_VALUES: TransactionFilterValues = {
 
 const STATUS_OPTIONS = TRANSACTION_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
 
-const firstValue = (value: string | string[]) => (typeof value === 'string' ? value : (value[0] ?? ''));
-
 export function TransactionFilters({ onSearch, defaultValues, showSubMerchant = true }: TransactionFiltersProps) {
   const form = useForm<TransactionFilterValues>({
     resolver: zodResolver(transactionFilterSchema),
@@ -53,120 +46,68 @@ export function TransactionFilters({ onSearch, defaultValues, showSubMerchant = 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSearch)} className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <FormField
-            name="type"
-            control={form.control}
-            render={({ field }) => (
-              <ComboBox
-                autocomplete={false}
-                label="Loại giao dịch"
-                placeholder="Tất cả loại giao dịch"
-                value={field.value ?? ''}
-                onValueChange={(value) => field.onChange(firstValue(value))}
-                options={TRANSACTION_TYPE_OPTIONS}
-              />
-            )}
-          />
-          <FormField
-            name="createdFrom"
-            control={form.control}
-            render={({ field }) => (
-              <DatePicker
-                label="Từ ngày (tạo)"
-                placeholder="Chọn ngày bắt đầu"
-                value={field.value ?? undefined}
-                onChange={(date) => field.onChange(date instanceof Date ? date : null)}
-              />
-            )}
-          />
-          <FormField
-            name="createdTo"
-            control={form.control}
-            render={({ field }) => (
-              <DatePicker
-                label="Đến ngày (tạo)"
-                placeholder="Chọn ngày kết thúc"
-                value={field.value ?? undefined}
-                onChange={(date) => field.onChange(date instanceof Date ? date : null)}
-                error={form.formState.errors.createdTo?.message}
-              />
-            )}
-          />
-          <FormField
-            name="keyword"
-            control={form.control}
-            render={({ field }) => (
-              <Input
-                label="Mã giao dịch / HĐ"
-                placeholder="Nhập mã giao dịch..."
-                {...field}
-                value={field.value ?? ''}
-              />
-            )}
-          />
-          <FormField
-            name="status"
-            control={form.control}
-            render={({ field }) => (
-              <ComboBox
-                autocomplete={false}
-                label="Trạng thái"
-                placeholder="Tất cả trạng thái"
-                value={field.value ?? ''}
-                onValueChange={(val) => field.onChange(firstValue(val))}
-                options={STATUS_OPTIONS}
-              />
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {showSubMerchant && (
-            <FormField
-              name="subMerchantId"
-              control={form.control}
-              render={({ field }) => (
-                <SubMerchantFilterField value={field.value ?? ''} onChange={field.onChange} />
-              )}
+      <FilterCard fieldCount={showSubMerchant ? 7 : 6} actionsInGrid onSubmit={() => void form.handleSubmit(onSearch)()} onClear={handleReset}>
+        <FormField
+          name="keyword"
+          control={form.control}
+          render={({ field }) => (
+            <Input label="Mã giao dịch / HĐ" placeholder="Nhập mã giao dịch hoặc hóa đơn" {...field} value={field.value ?? ''} />
+          )}
+        />
+        <FormField
+          name="status"
+          control={form.control}
+          render={({ field }) => (
+            <Select label="Trạng thái" placeholder="Tất cả trạng thái" value={field.value ?? ''} onChange={field.onChange} options={STATUS_OPTIONS} />
+          )}
+        />
+        <FormField
+          name="type"
+          control={form.control}
+          render={({ field }) => (
+            <Select label="Loại giao dịch" placeholder="Tất cả loại giao dịch" value={field.value ?? ''} onChange={field.onChange} options={TRANSACTION_TYPE_OPTIONS} />
+          )}
+        />
+        <FormField
+          name="createdFrom"
+          control={form.control}
+          render={({ field }) => (
+            <DatePicker
+              mode="range"
+              label="Ngày tạo"
+              placeholder="Từ ngày, đến ngày"
+              value={field.value ? { from: field.value, to: form.getValues('createdTo') ?? undefined } : undefined}
+              onChange={(value) => {
+                const range = value && !(value instanceof Date) ? (value as DateRange) : undefined;
+                field.onChange(range?.from ?? null);
+                form.setValue('createdTo', range?.to ?? null, { shouldValidate: true });
+              }}
+              error={form.formState.errors.createdTo?.message}
             />
           )}
+        />
+        {showSubMerchant && (
           <FormField
-            name="paymentMethod"
+            name="subMerchantId"
             control={form.control}
-            render={({ field }) => (
-              <ComboBox
-                autocomplete={false}
-                label="Phương thức TT"
-                placeholder="Tất cả phương thức"
-                value={field.value ?? ''}
-                onValueChange={(value) => field.onChange(firstValue(value))}
-                options={PAYMENT_METHOD_OPTIONS}
-              />
-            )}
+            render={({ field }) => <SubMerchantFilterField value={field.value ?? ''} onChange={field.onChange} />}
           />
-          <FormField
-            name="customerContact"
-            control={form.control}
-            render={({ field }) => (
-              <Input
-                label="SĐT / Email KH"
-                placeholder="Ví dụ: 0912345678 hoặc ten@congty.vn"
-                {...field}
-                value={field.value ?? ''}
-              />
-            )}
-          />
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={handleReset}>
-            Xóa lọc
-          </Button>
-          <Button type="submit" variant="solid">
-            Tìm kiếm
-          </Button>
-        </div>
-      </form>
+        )}
+        <FormField
+          name="paymentMethod"
+          control={form.control}
+          render={({ field }) => (
+            <Select label="Phương thức thanh toán" placeholder="Tất cả phương thức" value={field.value ?? ''} onChange={field.onChange} options={PAYMENT_METHOD_OPTIONS} />
+          )}
+        />
+        <FormField
+          name="customerContact"
+          control={form.control}
+          render={({ field }) => (
+            <Input label="SĐT / Email khách hàng" placeholder="0912345678 hoặc ten@congty.vn" {...field} value={field.value ?? ''} />
+          )}
+        />
+      </FilterCard>
     </Form>
   );
 }

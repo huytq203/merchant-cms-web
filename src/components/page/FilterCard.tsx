@@ -11,9 +11,11 @@ interface FilterCardProps {
   onSubmit: () => void;
   onClear?: () => void;
   className?: string;
+  /** Put the actions in the last grid cell instead of a row below, for a field count that fills the grid with them. */
+  actionsInGrid?: boolean;
 }
 
-export function FilterCard({ children, fieldCount, onSubmit, onClear, className }: FilterCardProps) {
+export function FilterCard({ children, fieldCount, onSubmit, onClear, className, actionsInGrid = false }: FilterCardProps) {
   const usesInlineLayout = fieldCount <= 3;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -41,10 +43,17 @@ export function FilterCard({ children, fieldCount, onSubmit, onClear, className 
             <FilterActions onClear={onClear} className="ml-auto" />
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[860px]:grid-cols-4">{children}</div>
-            <FilterActions onClear={onClear} className="justify-end" />
-          </>
+          actionsInGrid ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[860px]:grid-cols-4">
+              {children}
+              <FilterActions onClear={onClear} className="items-end justify-end" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-[860px]:grid-cols-4">{children}</div>
+              <FilterActions onClear={onClear} className="justify-end" />
+            </>
+          )
         )}
       </form>
     </Card>

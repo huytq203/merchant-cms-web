@@ -1,19 +1,19 @@
-import type { BadgeProps } from '@/components/ui/badge/Badge';
+import type { StatusTone } from '@/components/page/StatusBadge';
 import type { TransactionStatus, TransactionType, CardType, PaymentMethod } from '../types';
 
 export const TRANSACTION_STATUS_OPTIONS: {
   value: TransactionStatus;
   label: string;
-  variant: BadgeProps['variant'];
+  tone: StatusTone;
 }[] = [
-  { value: 'success',  label: 'Thành công', variant: 'soft-success' },
-  { value: 'pending',  label: 'Đang xử lý', variant: 'soft-warning' },
-  { value: 'failed',   label: 'Thất bại',   variant: 'soft-danger'  },
-  { value: 'refunded', label: 'Hoàn tiền',  variant: 'soft-primary' },
-  { value: 'review', label: 'Chờ duyệt', variant: 'soft-warning' },
-  { value: 'cancelled', label: 'Đã hủy', variant: 'soft-danger' },
-  { value: 'created', label: 'Mới tạo', variant: 'soft-primary' },
-  { value: 'expired', label: 'Hết hạn', variant: 'outline' },
+  { value: 'success',   label: 'Thành công', tone: 'success' },
+  { value: 'pending',   label: 'Đang xử lý', tone: 'warning' },
+  { value: 'failed',    label: 'Thất bại',   tone: 'danger'  },
+  { value: 'refunded',  label: 'Hoàn tiền',  tone: 'info'    },
+  { value: 'review',    label: 'Chờ duyệt',  tone: 'warning' },
+  { value: 'cancelled', label: 'Đã hủy',     tone: 'danger'  },
+  { value: 'created',   label: 'Mới tạo',    tone: 'info'    },
+  { value: 'expired',   label: 'Hết hạn',    tone: 'neutral' },
 ];
 
 export const TRANSACTION_TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
