@@ -5,6 +5,8 @@ import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page/PageHeader";
+import { ResultCard } from "@/components/page/ResultCard";
 import { Button } from "@/components/ui/button/Button";
 import { QueryListState } from "@/features/sample-data/components/QueryListState";
 import { complaintQueries } from "../complaint-queries";
@@ -35,49 +37,52 @@ export function ComplaintsContainer({ filter, abilities }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{getRouteTitle("/complaint")}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Theo dõi và xử lý khiếu nại từ các nguồn</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
-            onClick={() => toast.info("Chức năng xuất Excel chưa được hỗ trợ")}
-          >
-            Tải Excel
-          </Button>
-          {abilities.canCreate && (
-            <Button type="button" variant="solid" leftIcon={<Plus className="h-4 w-4" />} onClick={() => create.setOpen(true)}>
-              Tạo khiếu nại mới
+      <PageHeader
+        title={getRouteTitle("/complaint")}
+        description="Theo dõi và xử lý khiếu nại từ các nguồn"
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
+              onClick={() => toast.info("Chức năng xuất Excel chưa được hỗ trợ")}
+            >
+              Xuất Excel
             </Button>
-          )}
+            {abilities.canCreate && (
+              <Button type="button" variant="solid" leftIcon={<Plus className="h-4 w-4" />} onClick={() => create.setOpen(true)}>
+                Tạo khiếu nại mới
+              </Button>
+            )}
+          </div>
+        }
+      />
+      <ComplaintFilter
+        key={JSON.stringify(filter)}
+        defaultValues={filterToFormValues(filter)}
+        onSearch={handleSearch}
+      />
+      <ResultCard>
+        <h2 className="px-4 pb-1 pt-4 font-semibold">
+          Kết quả
+          {list.data ? <span className="ml-2 text-sm font-normal text-muted-foreground">{list.data.total} khiếu nại</span> : null}
+        </h2>
+        <div className="p-4 pt-2">
+          <QueryListState query={list} emptyText="Không tìm thấy khiếu nại nào phù hợp">
+            {(data) => (
+              <ComplaintTable
+                rows={data.rows}
+                total={data.total}
+                page={filter.page}
+                pageSize={filter.pageSize}
+                onPageChange={navigation.changePage}
+                onViewDetail={setSelected}
+              />
+            )}
+          </QueryListState>
         </div>
-      </header>
-      <section className="rounded-xl border bg-card p-4" aria-label="Bộ lọc tìm kiếm">
-        <ComplaintFilter
-          key={JSON.stringify(filter)}
-          defaultValues={filterToFormValues(filter)}
-          onSearch={handleSearch}
-        />
-      </section>
-      <section className="rounded-xl border bg-card p-4" aria-label="Kết quả tìm kiếm">
-        <h2 className="mb-3 font-semibold">Kết quả {list.data ? `(${list.data.total} khiếu nại)` : ""}</h2>
-        <QueryListState query={list} emptyText="Không tìm thấy khiếu nại nào phù hợp">
-          {(data) => (
-            <ComplaintTable
-              rows={data.rows}
-              total={data.total}
-              page={filter.page}
-              pageSize={filter.pageSize}
-              onPageChange={navigation.changePage}
-              onViewDetail={setSelected}
-            />
-          )}
-        </QueryListState>
-      </section>
+      </ResultCard>
       <ComplaintDetail
         complaint={selected}
         open={selected !== null}

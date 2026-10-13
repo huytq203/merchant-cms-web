@@ -1,9 +1,5 @@
 'use client';
-import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button/Button';
-import { Textarea } from '@/components/ui/textarea/Textarea';
-import { Send } from 'lucide-react';
+import React from 'react';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/helper';
 import type { ComplaintMessage } from '../types/types';
@@ -11,7 +7,6 @@ import { Text } from '@/components/ui';
 
 interface ComplaintChatPanelProps {
   messages: ComplaintMessage[];
-  canReply: boolean;
 }
 
 function MessageBubble({ message }: { message: ComplaintMessage }) {
@@ -44,65 +39,15 @@ function MessageBubble({ message }: { message: ComplaintMessage }) {
   );
 }
 
-export function ComplaintChatPanel({ messages, canReply }: ComplaintChatPanelProps) {
-  const [draft, setDraft] = useState('');
-
-  const handleSend = () => {
-    if (!draft.trim()) return;
-    // Chưa có API BE: báo rõ và giữ nguyên nội dung đang soạn thay vì giả vờ đã gửi.
-    toast.info('Chức năng gửi phản hồi chưa được hỗ trợ');
-  };
-
-  const handleReject = () => {
-    toast.info('Chức năng từ chối khiếu nại chưa được hỗ trợ');
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      handleSend();
-    }
-  };
-
+export function ComplaintChatPanel({ messages }: ComplaintChatPanelProps) {
+  if (messages.length === 0) {
+    return <Text color='muted' size='sm' className="py-6 text-center">Chưa có tin nhắn nào.</Text>;
+  }
   return (
     <div className="space-y-4">
-      {messages.length === 0 ? (
-        <Text color='muted' size='sm'  className=" text-center py-6">Chưa có tin nhắn nào.</Text>
-      ) : (
-        messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))
-      )}
-
-      {canReply && (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-3 flex flex-col gap-2.5">
-          <Text as='p' size='sm' color='warning' weight='semibold' >
-            • Bạn đang giữ nhiệm vụ xử lý
-          </Text>
-          <Textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Nhập nội dung phản hồi cho Cổng... (Ctrl+Enter để gửi)"
-            rows={3}
-            maxLength={500}
-            showCount
-          />
-          <div className="flex gap-2">
-            <Button variant="danger-outline" className="flex-1" onClick={handleReject}>
-              Từ chối
-            </Button>
-            <Button
-              variant="solid"
-              className="flex-1"
-              leftIcon={<Send className="h-4 w-4" />}
-              onClick={handleSend}
-              disabled={!draft.trim()}
-            >
-              Gửi phản hồi
-            </Button>
-          </div>
-        </div>
-      )}
+      {messages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
     </div>
   );
 }

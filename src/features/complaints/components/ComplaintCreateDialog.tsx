@@ -28,6 +28,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, onSubmit }: Props) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tạo khiếu nại mới</DialogTitle>
+          <p className="text-sm text-muted-foreground">Gửi yêu cầu tra soát một giao dịch tới Cổng thanh toán.</p>
         </DialogHeader>
         <form
           className="mt-5 space-y-4"
@@ -38,7 +39,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, onSubmit }: Props) {
         >
           <Input
             label="Mã giao dịch cần khiếu nại"
-            placeholder="Nhập Mã GD"
+            placeholder="Nhập mã giao dịch, ví dụ GD2610120409"
             required
           />
           <Select
@@ -51,7 +52,8 @@ export function ComplaintCreateDialog({ open, onOpenChange, onSubmit }: Props) {
           />
           <Textarea
             label="Ghi chú chi tiết"
-            placeholder="Mô tả nội dung khiếu nại, mã giao dịch liên quan (nếu có)"
+            placeholder="Mô tả nội dung khiếu nại và thông tin liên quan"
+            description="Càng chi tiết càng được xử lý nhanh."
             rows={3}
             maxLength={500}
             required
