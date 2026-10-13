@@ -7,6 +7,7 @@ import {
   confirmResetOtp,
   forgotPassword,
   requestResetOtp,
+  retryResetPassword,
   validateResetToken,
 } from "@/server/modules/auth/merchant-password.service";
 import { mswServer } from "@/test/msw";
@@ -86,5 +87,19 @@ describe("merchant password service", () => {
     );
     expect(started).toMatchObject({ success: true, data: challenge });
     expect(await confirmResetOtp("r-9", "123456", client)).toMatchObject({ success: true, data: undefined });
+  });
+
+  it("retries the set-password with another password for the same request, without a bearer token", async () => {
+    let body: unknown;
+    let auth: string | null = "unset";
+    mswServer.use(http.post(`${AUTH}/reset-password/retry`, async ({ request }) => {
+      body = await request.json();
+      auth = request.headers.get("authorization");
+      return HttpResponse.json(envelope(null));
+    }));
+    const result = await retryResetPassword({ requestId: "r-9", newPassword: "Another@2026x", confirmPassword: "Another@2026x" }, client);
+    expect(result).toMatchObject({ success: true, data: undefined });
+    expect(body).toEqual({ requestId: "r-9", newPassword: "Another@2026x", confirmPassword: "Another@2026x" });
+    expect(auth).toBeNull();
   });
 });

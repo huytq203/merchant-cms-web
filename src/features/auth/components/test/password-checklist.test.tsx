@@ -10,6 +10,15 @@ const list = () => screen.getByRole("list", { name: "Yêu cầu mật khẩu" })
 const rule = (name: RegExp) => within(list()).getByText(name).closest("li") as HTMLElement;
 
 describe("PasswordChecklist", () => {
+  it("counts how many of the five conditions are met", () => {
+    const { rerender } = render(<PasswordChecklist value="" />);
+    expect(screen.getByText(/Mật khẩu cần đạt đủ 5 điều kiện/)).toHaveTextContent("(0/5)");
+    rerender(<PasswordChecklist value="Abcdefghi1" />);
+    expect(screen.getByText(/Mật khẩu cần đạt đủ 5 điều kiện/)).toHaveTextContent("(4/5)");
+    rerender(<PasswordChecklist value="Abcdefghi1@" />);
+    expect(screen.getByText(/Mật khẩu cần đạt đủ 5 điều kiện/)).toHaveTextContent("(5/5)");
+  });
+
   it("lists each requirement once", () => {
     render(<PasswordChecklist value="" />);
     expect(within(list()).getAllByRole("listitem")).toHaveLength(5);

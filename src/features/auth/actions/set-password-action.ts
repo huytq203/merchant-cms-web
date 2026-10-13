@@ -2,7 +2,7 @@
 
 import { otpSchema, setPasswordSchema, type SetPasswordInput } from "@/features/auth/schemas";
 import { fail, ok, type Result } from "@/lib/http/result";
-import { confirmResetOtp, requestResetOtp, validateResetToken } from "@/server/modules/auth/merchant-password.service";
+import { confirmResetOtp, requestResetOtp, retryResetPassword, validateResetToken } from "@/server/modules/auth/merchant-password.service";
 import { resendOtp } from "@/server/modules/auth/merchant-auth.service";
 import type { OtpChallengeView } from "./login-action";
 
@@ -42,6 +42,17 @@ export async function confirmSetPasswordOtpAction(input: { requestId: string; ot
     return fail(parsed.success ? "Phiên xác thực không hợp lệ" : "Mã OTP gồm 6 chữ số", "VALIDATION");
   }
   const result = await confirmResetOtp(input.requestId, parsed.data.otp);
+  return result.success ? ok(true) : fail(result.error.message, result.error.code);
+}
+
+/** After a policy rejection at step 2: another password for the same session, without a new code. */
+export async function retrySetPasswordAction(
+  input: SetPasswordInput & { requestId: string },
+): Promise<Result<true>> {
+  const parsed = setPasswordSchema.safeParse({ newPassword: input.newPassword, confirmPassword: input.confirmPassword });
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Dữ liệu không hợp lệ", "VALIDATION");
+  if (!input.requestId) return fail("Phiên xác thực không hợp lệ", "VALIDATION");
+  const result = await retryResetPassword({ requestId: input.requestId, ...parsed.data });
   return result.success ? ok(true) : fail(result.error.message, result.error.code);
 }
 

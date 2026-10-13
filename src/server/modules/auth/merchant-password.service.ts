@@ -90,3 +90,22 @@ export function confirmResetOtp(
     auth: false,
   });
 }
+
+export interface RetryResetPasswordInput {
+  requestId: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Another password for a set-password session whose OTP was already accepted but whose password the policy rejected. */
+export function retryResetPassword(
+  input: RetryResetPasswordInput,
+  client: BeClient = identityClient(),
+): Promise<BeResult<undefined>> {
+  return client.post({
+    path: `${MERCHANT_AUTH_PATH}/reset-password/retry`,
+    body: input,
+    schema: emptySchema,
+    auth: false,
+  });
+}

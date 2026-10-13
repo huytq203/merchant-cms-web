@@ -14,10 +14,12 @@ type Props = {
   initialValues: SetPasswordInput | null;
   isSubmitting: boolean;
   errorMessage: string | null;
+  /** The code was already accepted; only another password is needed. */
+  isRetry?: boolean;
   onSubmit: (values: SetPasswordInput) => void;
 };
 
-export function SetPasswordForm({ maskedEmail, initialValues, isSubmitting, errorMessage, onSubmit }: Props) {
+export function SetPasswordForm({ maskedEmail, initialValues, isSubmitting, errorMessage, isRetry = false, onSubmit }: Props) {
   const form = useForm<SetPasswordInput>({
     resolver: zodResolver(setPasswordSchema),
     defaultValues: initialValues ?? { newPassword: "", confirmPassword: "" },
@@ -27,10 +29,12 @@ export function SetPasswordForm({ maskedEmail, initialValues, isSubmitting, erro
   return (
     <div className="w-full max-w-sm space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Đặt mật khẩu</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{isRetry ? "Chọn mật khẩu khác" : "Đặt mật khẩu"}</h1>
         <p className="text-sm text-muted-foreground">
           {maskedEmail ? <>Tài khoản <b className="font-semibold text-foreground">{maskedEmail}</b>. </> : null}
-          Sau bước này, bạn nhập mã OTP gửi về email để xác nhận.
+          {isRetry
+            ? "Mã OTP đã được xác nhận. Bạn chỉ cần nhập một mật khẩu khác, không phải nhận mã mới."
+            : "Sau bước này, bạn nhập mã OTP gửi về email để xác nhận."}
         </p>
       </div>
       <Form {...form}>
@@ -72,7 +76,7 @@ export function SetPasswordForm({ maskedEmail, initialValues, isSubmitting, erro
             </p>
           ) : null}
           <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting} disabled={isSubmitting}>
-            Tiếp tục
+            {isRetry ? "Đặt mật khẩu" : "Tiếp tục"}
           </Button>
         </form>
       </Form>
