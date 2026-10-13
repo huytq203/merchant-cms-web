@@ -33,6 +33,11 @@ describe("OtpPanel", () => {
     vi.useRealTimers();
   });
 
+  it("splits the six digits into two groups of three with a dash between them", () => {
+    render(<OtpPanel {...baseProps} />);
+    expect(screen.getByText("–")).toBeInTheDocument();
+  });
+
   it("keeps confirm disabled until six digits are entered, then submits the code", async () => {
     const onSubmit = vi.fn();
     render(<OtpPanel {...baseProps} onSubmit={onSubmit} />);

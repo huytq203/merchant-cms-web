@@ -101,7 +101,7 @@ export function OtpPanel(props: OtpPanelProps) {
             length={OTP_LENGTH}
             size="sm"
             separatorAfter={3}
-            separator={<span className="w-2" aria-hidden />}
+            separator="dash"
             className="w-full gap-1.5"
             slotClassName="h-14 min-w-0 flex-1 max-w-[52px] text-2xl"
             value={code}
