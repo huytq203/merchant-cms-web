@@ -105,30 +105,4 @@ describe("set-password actions", () => {
     expect(await confirmSetPasswordOtpAction({ requestId: "req-1", otp: "123456" }))
       .toMatchObject({ success: false, code: "20010" });
   });
-
-  it("retries with another password for the same request, checking the rules and the match first", async () => {
-    let body: unknown;
-    const called = vi.fn();
-    mswServer.use(http.post(`${AUTH}/reset-password/retry`, async ({ request }) => {
-      called();
-      body = await request.json();
-      return HttpResponse.json(envelope(null));
-    }));
-    const { retrySetPasswordAction } = await load();
-    expect(await retrySetPasswordAction({ requestId: "req-1", newPassword: "short", confirmPassword: "short" })).toMatchObject({ success: false });
-    expect(await retrySetPasswordAction({ requestId: "req-1", newPassword: PASSWORD, confirmPassword: PASSWORD + "x" }))
-      .toMatchObject({ success: false, error: "Mật khẩu nhập lại không khớp" });
-    expect(await retrySetPasswordAction({ requestId: "", newPassword: PASSWORD, confirmPassword: PASSWORD })).toMatchObject({ success: false });
-    expect(called).not.toHaveBeenCalled();
-    expect(await retrySetPasswordAction({ requestId: "req-1", newPassword: PASSWORD, confirmPassword: PASSWORD })).toEqual({ success: true, data: true });
-    expect(body).toEqual({ requestId: "req-1", newPassword: PASSWORD, confirmPassword: PASSWORD });
-  });
-
-  it("keeps the code of a retry the policy rejected again", async () => {
-    mswServer.use(http.post(`${AUTH}/reset-password/retry`, () =>
-      HttpResponse.json({ success: false, message: "Mật khẩu không được trùng với email", errorCode: "20018" }, { status: 400 })));
-    const { retrySetPasswordAction } = await load();
-    expect(await retrySetPasswordAction({ requestId: "req-1", newPassword: PASSWORD, confirmPassword: PASSWORD }))
-      .toMatchObject({ success: false, error: "Mật khẩu không được trùng với email", code: "20018" });
-  });
 });

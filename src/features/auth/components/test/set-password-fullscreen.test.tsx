@@ -17,7 +17,6 @@ const actions = vi.hoisted(() => ({
   confirmSetPasswordOtpAction: vi.fn(),
   resendSetPasswordOtpAction: vi.fn(),
   checkSetPasswordLink: vi.fn(),
-  retrySetPasswordAction: vi.fn(),
 }));
 vi.mock("@/features/auth/actions/set-password-action", () => actions);
 
@@ -31,10 +30,10 @@ function renderPage(link: { valid: true; maskedEmail: string | null } | { valid:
   );
 }
 
-async function fillPassword(user: ReturnType<typeof userEvent.setup>, value = PASSWORD, again = value, submit = "Tiếp tục") {
+async function fillPassword(user: ReturnType<typeof userEvent.setup>, value = PASSWORD, again = value) {
   await user.type(screen.getByLabelText("Mật khẩu mới"), value);
   await user.type(screen.getByLabelText("Nhập lại mật khẩu"), again);
-  await user.click(screen.getByRole("button", { name: submit }));
+  await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
 }
 
 afterEach(() => {
@@ -131,52 +130,37 @@ describe("SetPasswordFullScreen", () => {
       await user.click(screen.getByRole("button", { name: "Xác nhận" }));
     }
 
-    it("asks for another password with the reason, without asking for a new code", async () => {
+    it("goes back to the password form with the reason and an empty field", async () => {
       const user = userEvent.setup();
       await reachRejection(user);
-      expect(await screen.findByRole("heading", { name: "Chọn mật khẩu khác" })).toBeInTheDocument();
-      expect(screen.getByRole("alert")).toHaveTextContent("đã sử dụng gần đây");
-      expect(screen.getByLabelText("Mật khẩu mới")).toHaveValue("");
-      expect(actions.requestSetPasswordOtpAction).toHaveBeenCalledTimes(1);
-    });
-
-    it("finishes with the same code session once an acceptable password is sent", async () => {
-      const user = userEvent.setup();
-      actions.retrySetPasswordAction.mockResolvedValue({ success: true, data: true });
-      await reachRejection(user);
-      await screen.findByRole("heading", { name: "Chọn mật khẩu khác" });
-      await fillPassword(user, "KhacHan@2026y", "KhacHan@2026y", "Đặt mật khẩu");
-      expect(await screen.findByRole("heading", { name: "Đã đặt mật khẩu" })).toBeInTheDocument();
-      expect(actions.retrySetPasswordAction).toHaveBeenCalledWith({
-        requestId: "r1",
-        newPassword: "KhacHan@2026y",
-        confirmPassword: "KhacHan@2026y",
-      });
-      expect(actions.requestSetPasswordOtpAction).toHaveBeenCalledTimes(1);
-    });
-
-    it("keeps asking while the policy keeps rejecting, with the new reason", async () => {
-      const user = userEvent.setup();
-      actions.retrySetPasswordAction.mockResolvedValue({ success: false, error: "Mật khẩu không được trùng với email", code: "20018" });
-      await reachRejection(user);
-      await screen.findByRole("heading", { name: "Chọn mật khẩu khác" });
-      await fillPassword(user, "KhacHan@2026y", "KhacHan@2026y", "Đặt mật khẩu");
-      expect(await screen.findByRole("alert")).toHaveTextContent("trùng với email");
-      expect(screen.getByRole("heading", { name: "Chọn mật khẩu khác" })).toBeInTheDocument();
-    });
-
-    it("starts over with a new code when the retry session has expired", async () => {
-      const user = userEvent.setup();
-      actions.retrySetPasswordAction.mockResolvedValue({ success: false, error: "Phiên OTP đã hết hạn", code: "22105" });
-      await reachRejection(user);
-      await screen.findByRole("heading", { name: "Chọn mật khẩu khác" });
-      await fillPassword(user, "KhacHan@2026y", "KhacHan@2026y", "Đặt mật khẩu");
       expect(await screen.findByRole("heading", { name: "Đặt mật khẩu" })).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(/đã sử dụng gần đây/);
       expect(screen.getByRole("alert")).toHaveTextContent(/mã OTP mới/);
-      actions.requestSetPasswordOtpAction.mockResolvedValue({ success: true, data: challenge });
+      expect(screen.getByLabelText("Mật khẩu mới")).toHaveValue("");
+    });
+
+    it("sends a new code with the next password", async () => {
+      const user = userEvent.setup();
+      await reachRejection(user);
+      await screen.findByRole("heading", { name: "Đặt mật khẩu" });
       await fillPassword(user, "KhacHan@2026y");
       expect(await screen.findByRole("heading", { name: "Nhập mã xác thực" })).toBeInTheDocument();
       expect(actions.requestSetPasswordOtpAction).toHaveBeenCalledTimes(2);
+      expect(actions.requestSetPasswordOtpAction).toHaveBeenLastCalledWith({ token: "tok", newPassword: "KhacHan@2026y", confirmPassword: "KhacHan@2026y" });
+    });
+
+    it("keeps a wrong code on the code step instead of going back", async () => {
+      const user = userEvent.setup();
+      actions.requestSetPasswordOtpAction.mockResolvedValue({ success: true, data: challenge });
+      actions.confirmSetPasswordOtpAction.mockResolvedValue({ success: false, error: "Mã OTP không đúng", code: "22101" });
+      renderPage();
+      await fillPassword(user);
+      await screen.findByRole("heading", { name: "Nhập mã xác thực" });
+      await user.click(screen.getByRole("textbox", { name: "Digit 1 of 6" }));
+      await user.keyboard("000000");
+      await user.click(screen.getByRole("button", { name: "Xác nhận" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Mã OTP không đúng");
+      expect(screen.getByRole("heading", { name: "Nhập mã xác thực" })).toBeInTheDocument();
     });
   });
 });

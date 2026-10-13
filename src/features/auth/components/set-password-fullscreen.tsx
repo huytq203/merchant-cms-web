@@ -39,7 +39,6 @@ export function SetPasswordFullScreen({ token, link }: Props) {
               initialValues={flow.initialValues}
               isSubmitting={flow.isRequesting}
               errorMessage={flow.error}
-              isRetry={flow.isRetrying}
               onSubmit={(values) => void flow.submitPassword(values)}
             />
           ) : null}
