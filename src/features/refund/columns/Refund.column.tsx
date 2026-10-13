@@ -1,10 +1,9 @@
-'use client';
-import { Badge } from '@/components/ui/badge/Badge';
 import { type ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
 import { Eye, Trash2 } from 'lucide-react';
 import { RowAction } from '@/features/sample-data/components/RowAction';
 import { formatAmount } from '@/lib/utils/helper';
-import { REFUND_STATUS_OPTIONS } from '../constants/Refund.constants';
+import { RefundStatusBadge } from '../components/RefundStatusBadge';
 import type { Refund } from '../types/type';
 
 export type RefundColumnActions = {
@@ -39,82 +38,96 @@ function RowActions({ refund, actions }: { refund: Refund; actions: RefundColumn
   );
 }
 
-export function getRefundColumns(actions: RefundColumnActions, pageOffset = 0): ColumnDef<Refund>[] {
+export function getRefundColumns(actions: RefundColumnActions): ColumnDef<Refund>[] {
   return [
     {
-      id: 'index',
-      header: 'STT',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.index + 1 + pageOffset}</span>
-      ),
-      size: 52,
-    },
-    {
       id: 'code',
-      header: 'Mã Hoàn tiền',
-      cell: ({ row }) => (
-        <span className="font-mono font-semibold text-primary text-sm">{row.original.code}</span>
-      ),
-      size: 150,
-    },
-    {
-      id: 'transactionCode',
-      header: 'Mã GD / HĐ',
+      header: 'Mã hoàn tiền',
       cell: ({ row }) => (
         <div>
-          <span className="font-mono text-sm">{row.original.transactionCode}</span>
-          <p className="font-mono text-xs text-muted-foreground">{row.original.invoiceCode ?? '—'}</p>
+          <button
+            type="button"
+            className="font-mono text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            onClick={() => actions.onViewDetail(row.original)}
+          >
+            {row.original.code}
+          </button>
+          <p className="font-mono text-xs text-muted-foreground">{row.original.transactionCode}</p>
         </div>
       ),
-      size: 165,
+      size: 170,
+    },
+    {
+      id: 'invoice',
+      header: 'Hóa đơn / Sub-merchant',
+      cell: ({ row }) => (
+        <div className="min-w-[110px]">
+          <p className="font-mono text-sm">{row.original.invoiceCode ?? '—'}</p>
+          <p className="text-xs text-muted-foreground">{row.original.subMerchantName}</p>
+        </div>
+      ),
+      size: 160,
+    },
+    {
+      id: 'recipient',
+      header: 'Người nhận',
+      cell: ({ row }) => (
+        <div className="whitespace-nowrap">
+          <p className="text-sm font-medium">{row.original.recipientName}</p>
+          <p className="font-mono text-xs text-muted-foreground">{row.original.recipientCard ?? '—'}</p>
+        </div>
+      ),
+      size: 160,
     },
     {
       id: 'requestAmount',
       header: 'Số tiền yêu cầu',
       meta: { align: 'right' },
-      cell: ({ row }) => (
-        <span className="font-mono font-semibold text-sm">{formatAmount(row.original.requestAmount)}</span>
-      ),
-      size: 140,
-    },
-    {
-      id: 'actualAmount',
-      header: 'Số tiền thực hoàn',
-      meta: { align: 'right' },
-      cell: ({ row }) => (
-        <span className="font-mono font-semibold text-sm text-danger">{formatAmount(row.original.actualAmount)}</span>
-      ),
-      size: 150,
-    },
-    {
-      id: 'fees',
-      header: 'Phí hoàn (MB/NM)',
-      cell: ({ row }) => (
-        <div className="font-mono text-xs text-muted-foreground">
-          <p>MB {row.original.feeMb.toLocaleString('vi-VN')}</p>
-          <p>NM {row.original.feeNm.toLocaleString('vi-VN')}</p>
-        </div>
-      ),
-      size: 140,
+      cell: ({ row }) => {
+        const { status, requestAmount, actualAmount } = row.original;
+        return (
+          <div className="whitespace-nowrap text-right">
+            <p className="font-mono text-sm font-semibold tabular-nums">{formatAmount(requestAmount)}</p>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {status === 'rejected' ? 'Không hoàn' : `Nhận ${formatAmount(actualAmount)}`}
+            </p>
+          </div>
+        );
+      },
+      size: 170,
     },
     {
       id: 'createdBy',
-      header: 'User Hoàn / Lý do',
+      header: 'Người tạo / Lý do',
       cell: ({ row }) => (
-        <div>
+        <div className="max-w-[170px]">
           <p className="text-sm font-medium">{row.original.createdBy ?? '—'}</p>
-          <p className="text-xs text-muted-foreground truncate max-w-[160px]">{row.original.reason ?? '—'}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground" title={row.original.reason ?? undefined}>
+            {row.original.reason ?? '—'}
+          </p>
         </div>
       ),
-      size: 180,
+      size: 190,
+    },
+    {
+      id: 'createdAt',
+      header: 'Thời gian',
+      cell: ({ row }) => {
+        const created = new Date(row.original.createdAt);
+        if (Number.isNaN(created.getTime())) return <span className="text-sm text-muted-foreground">—</span>;
+        return (
+          <div className="whitespace-nowrap">
+            <p className="text-sm tabular-nums">{format(created, 'HH:mm')}</p>
+            <p className="text-xs text-muted-foreground tabular-nums">{format(created, 'dd/MM/yyyy')}</p>
+          </div>
+        );
+      },
+      size: 110,
     },
     {
       id: 'status',
       header: 'Trạng thái',
-      cell: ({ row }) => {
-        const opt = REFUND_STATUS_OPTIONS.find((o) => o.value === row.original.status);
-        return <Badge className="min-w-24 justify-center" variant={opt?.variant ?? 'outline'}>{opt?.label ?? row.original.status}</Badge>;
-      },
+      cell: ({ row }) => <RefundStatusBadge status={row.original.status} />,
       size: 130,
     },
     {

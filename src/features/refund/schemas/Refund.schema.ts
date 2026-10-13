@@ -56,8 +56,6 @@ export const refundListQuerySchema = z
 export const refundFilterSchema = z
   .object({
     keyword: z.string().trim(),
-    invoiceCode: z.string().trim(),
-    transactionCode: z.string().trim(),
     status: z.array(refundStatusSchema),
     subMerchantId: z.string().trim(),
     createdFromDate: z.date().nullable().optional(),

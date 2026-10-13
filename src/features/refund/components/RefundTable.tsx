@@ -16,7 +16,7 @@ export function RefundTable(props: RefundTableProps) {
   return (
     <Table
       data={rows}
-      columns={getRefundColumns(actions, (page - 1) * pageSize)}
+      columns={getRefundColumns(actions)}
       labels={{ empty: 'Không tìm thấy yêu cầu hoàn tiền nào phù hợp' }}
       pagination={{ total, current: page, pageSize, pageSizeOptions: [10, 20, 50, 100], onChange: onPageChange }}
     />

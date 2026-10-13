@@ -15,15 +15,11 @@ function endOfDay(date: Date): Date {
 /** Form values to the URL filter: back to the first page, empty values dropped. */
 export function formValuesToFilter(values: RefundFilterValue, pageSize: number): RefundListFilter {
   const keyword = cleanText(values.keyword);
-  const invoiceCode = cleanText(values.invoiceCode);
-  const transactionCode = cleanText(values.transactionCode);
   const subMerchantId = cleanText(values.subMerchantId);
   return {
     page: 1,
     pageSize,
     ...(keyword ? { keyword } : {}),
-    ...(invoiceCode ? { invoiceCode } : {}),
-    ...(transactionCode ? { transactionCode } : {}),
     ...(values.status.length ? { status: values.status } : {}),
     ...(subMerchantId ? { subMerchantId } : {}),
     ...(values.createdFromDate ? { createdFromDate: values.createdFromDate.toISOString() } : {}),
@@ -35,8 +31,6 @@ export function formValuesToFilter(values: RefundFilterValue, pageSize: number):
 export function filterToFormValues(filter: RefundListFilter): RefundFilterValue {
   return {
     keyword: filter.keyword ?? "",
-    invoiceCode: filter.invoiceCode ?? "",
-    transactionCode: filter.transactionCode ?? "",
     status: filter.status ?? [],
     subMerchantId: filter.subMerchantId ?? "",
     createdFromDate: filter.createdFromDate ? new Date(filter.createdFromDate) : null,

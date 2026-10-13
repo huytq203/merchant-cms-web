@@ -1,14 +1,14 @@
-import type { BadgeProps } from "@/components/ui/badge/Badge";
+import type { StatusTone } from "@/components/page/StatusBadge";
 import type { RefundStatus } from "../types/type";
 
 export const REFUND_STATUS_OPTIONS: {
   value: RefundStatus;
   label: string;
-  variant: BadgeProps["variant"];
+  tone: StatusTone;
 }[] = [
-  { value: "pending", label: "Chờ phê duyệt", variant: "soft-warning" },
-  { value: "approved", label: "Đã duyệt", variant: "soft-primary" },
-  { value: "rejected", label: "Từ chối", variant: "soft-danger" },
-  { value: "success", label: "Thành công", variant: "soft-success" },
-  { value: "cancelled", label: "Đã hủy", variant: "soft-danger" },
+  { value: "pending", label: "Chờ phê duyệt", tone: "warning" },
+  { value: "approved", label: "Đã duyệt", tone: "info" },
+  { value: "rejected", label: "Từ chối", tone: "danger" },
+  { value: "success", label: "Thành công", tone: "success" },
+  { value: "cancelled", label: "Đã hủy", tone: "neutral" },
 ];

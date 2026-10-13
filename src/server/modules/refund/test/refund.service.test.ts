@@ -35,6 +35,19 @@ describe("listRefunds in fixture mode", () => {
     expect(none).toEqual({ success: true, data: { rows: [], total: 0 } });
   });
 
+  it("finds a refund by its code, its transaction code or its invoice code with one keyword", async () => {
+    useFixtureMode();
+    const all = await listRefunds({ ...base, pageSize: 100 });
+    if (!all.success) throw new Error("expected success");
+    const sample = all.data.rows.find((row) => row.invoiceCode);
+    if (!sample?.invoiceCode) throw new Error("expected a row with an invoice code");
+    for (const keyword of [sample.code, sample.transactionCode, sample.invoiceCode]) {
+      const found = await listRefunds({ ...base, keyword });
+      if (!found.success) throw new Error("expected success");
+      expect(found.data.rows.map((row) => row.id)).toContain(sample.id);
+    }
+  });
+
   it("ignores a BE sub-merchant id because sample ids are not BE ids", async () => {
     useFixtureMode();
     const all = await listRefunds({ ...base, pageSize: 100 });

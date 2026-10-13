@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filterToFormValues, formValuesToFilter } from "../refund-filter";
 
-const empty = { keyword: "", invoiceCode: "", transactionCode: "", status: [], subMerchantId: "" };
+const empty = { keyword: "", status: [], subMerchantId: "" };
 
 describe("formValuesToFilter", () => {
   it("drops empty values, trims text and restarts at the first page", () => {

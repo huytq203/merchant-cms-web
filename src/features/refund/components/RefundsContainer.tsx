@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page/PageHeader";
+import { ResultCard } from "@/components/page/ResultCard";
 import { Button } from "@/components/ui/button/Button";
 import { QueryListState } from "@/features/sample-data/components/QueryListState";
 import { useRefundDialogs } from "../hooks/use-refund-dialogs";
@@ -40,51 +42,54 @@ export function RefundsContainer({ filter, abilities, showSubMerchantFilter = tr
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{getRouteTitle("/refund")}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Kiểm tra, xử lý các yêu cầu hoàn tiền của cửa hàng.</p>
+      <PageHeader
+        title={getRouteTitle("/refund")}
+        description="Kiểm tra, xử lý các yêu cầu hoàn tiền của cửa hàng."
+        action={
+          <Button
+            type="button"
+            variant="outline"
+            leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
+            onClick={() => toast.info("Chức năng xuất Excel chưa được hỗ trợ")}
+          >
+            Xuất Excel
+          </Button>
+        }
+      />
+      <RefundFilter
+        key={JSON.stringify(filter)}
+        defaultValues={filterToFormValues(filter)}
+        onSearch={handleSearch}
+        showSubMerchant={showSubMerchantFilter}
+      />
+      <ResultCard>
+        <h2 className="px-4 pb-1 pt-4 font-semibold">
+          Kết quả tìm kiếm
+          {list.data ? <span className="ml-2 text-sm font-normal text-muted-foreground">{list.data.total} yêu cầu</span> : null}
+        </h2>
+        <div className="p-4 pt-2">
+          <QueryListState query={list} emptyText="Không tìm thấy yêu cầu hoàn tiền nào phù hợp">
+            {(data) => (
+              <RefundTable
+                rows={data.rows}
+                total={data.total}
+                page={filter.page}
+                pageSize={filter.pageSize}
+                onPageChange={navigation.changePage}
+                canCancel={abilities.canCancel}
+                onViewDetail={(refund) => dialogs.openFor("detail", refund)}
+                onCancelRefund={(refund) => dialogs.openFor("cancel", refund)}
+              />
+            )}
+          </QueryListState>
         </div>
-      </header>
-      <section className="rounded-xl border bg-card p-4" aria-label="Bộ lọc tìm kiếm">
-        <RefundFilter
-          key={JSON.stringify(filter)}
-          defaultValues={filterToFormValues(filter)}
-          onSearch={handleSearch}
-          showSubMerchant={showSubMerchantFilter}
-        />
-        <div className="mt-4 flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          leftIcon={<Download className="h-4 w-4" aria-hidden="true" />}
-          onClick={() => toast.info("Chức năng xuất Excel chưa được hỗ trợ")}
-        >
-          Xuất Excel
-        </Button>
-        </div>
-      </section>
-      <section className="rounded-xl border bg-card p-4" aria-label="Kết quả tìm kiếm">
-        <h2 className="mb-3 font-semibold">Kết quả tìm kiếm {list.data ? `(${list.data.total} yêu cầu)` : ""}</h2>
-        <QueryListState query={list} emptyText="Không tìm thấy yêu cầu hoàn tiền nào phù hợp">
-          {(data) => (
-            <RefundTable
-              rows={data.rows}
-              total={data.total}
-              page={filter.page}
-              pageSize={filter.pageSize}
-              onPageChange={navigation.changePage}
-              canCancel={abilities.canCancel}
-              onViewDetail={(refund) => dialogs.openFor("detail", refund)}
-              onCancelRefund={(refund) => dialogs.openFor("cancel", refund)}
-            />
-          )}
-        </QueryListState>
-      </section>
+      </ResultCard>
       <RefundDetail
         refund={target}
         open={activeDialog === "detail"}
         onOpenChange={(open) => !open && dialogs.close()}
+        canCancel={abilities.canCancel}
+        onCancel={() => target && dialogs.openFor("cancel", target)}
       />
       <DialogCancelRefund
         refund={target}

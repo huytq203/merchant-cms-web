@@ -106,6 +106,50 @@ describe("refunds container behavior", () => {
     expect(url.searchParams.get("page")).toBe("1");
   });
 
+  it("searches every code with one field and the created date with one range", async () => {
+    renderContainer();
+    await screen.findByText("REF-1");
+    const filters = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
+    expect(within(filters).getByRole("textbox", { name: "Mã hoàn tiền / GD / hóa đơn" })).toBeInTheDocument();
+    expect(within(filters).getByText("Ngày tạo")).toBeInTheDocument();
+    expect(within(filters).queryByText("Mã hóa đơn")).not.toBeInTheDocument();
+    expect(within(filters).queryByText("Thời gian từ")).not.toBeInTheDocument();
+  });
+
+  it("offers the export button in the page header", async () => {
+    renderContainer();
+    await screen.findByText("REF-1");
+    expect(within(screen.getByRole("banner")).getByRole("button", { name: /Xuất Excel/ })).toBeInTheDocument();
+  });
+
+  it("opens the detail from the refund code", async () => {
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "REF-2" }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent("REF-2");
+  });
+
+  it("offers cancel in the detail only for a pending refund the user may cancel", async () => {
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "REF-1" }));
+    const pending = await screen.findByRole("dialog");
+    expect(within(pending).getByRole("button", { name: "Hủy yêu cầu" })).toBeInTheDocument();
+    cleanup();
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "REF-2" }));
+    expect(within(await screen.findByRole("dialog")).queryByRole("button", { name: "Hủy yêu cầu" })).not.toBeInTheDocument();
+    cleanup();
+    renderContainer(false);
+    await userEvent.click(await screen.findByRole("button", { name: "REF-1" }));
+    expect(within(await screen.findByRole("dialog")).queryByRole("button", { name: "Hủy yêu cầu" })).not.toBeInTheDocument();
+  });
+
+  it("asks for confirmation when cancelling from the detail", async () => {
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "REF-1" }));
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Hủy yêu cầu" }));
+    expect(await screen.findByRole("alertdialog")).toHaveTextContent("REF-1");
+  });
+
   it("opens the cancel confirmation for the chosen refund", async () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Hủy yêu cầu hoàn tiền REF-1/ }));
@@ -138,12 +182,12 @@ describe("refunds container behavior", () => {
     }));
     renderContainer(true, true);
     await screen.findByText("REF-1");
-    expect(within(screen.getByRole("region", { name: "Bộ lọc tìm kiếm" })).getByText("Sub-merchant")).toBeInTheDocument();
+    expect(within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).getByText("Sub-merchant")).toBeInTheDocument();
     cleanup();
     requested.mockClear();
     renderContainer(true, false);
     await screen.findByText("REF-1");
-    expect(within(screen.getByRole("region", { name: "Bộ lọc tìm kiếm" })).queryByText("Sub-merchant")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).queryByText("Sub-merchant")).not.toBeInTheDocument();
     expect(requested).not.toHaveBeenCalled();
   });
 });

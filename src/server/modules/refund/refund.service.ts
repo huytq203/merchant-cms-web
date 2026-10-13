@@ -32,7 +32,8 @@ function isWithinRange(row: Refund, filter: RefundListFilter): boolean {
 function matchesFilter(row: Refund, filter: RefundListFilter): boolean {
   return (
     (includesText(row.code, filter.keyword) ||
-      includesText(row.transactionCode, filter.keyword)) &&
+      includesText(row.transactionCode, filter.keyword) ||
+      includesText(row.invoiceCode, filter.keyword)) &&
     includesText(row.transactionCode, filter.transactionCode) &&
     includesText(row.invoiceCode, filter.invoiceCode) &&
     (!filter.status?.length || filter.status.includes(row.status)) &&
