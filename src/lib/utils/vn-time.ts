@@ -31,3 +31,17 @@ export function formatVnDate(value: string | null | undefined): string {
   const parts = vnParts(value);
   return parts ? `${parts.day}/${parts.month}/${parts.year}` : EMPTY;
 }
+
+const DAY_PARTS = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" });
+
+/** Today's calendar date in Vietnam as `yyyy-MM-dd`, the format BE date filters take. */
+export function vnToday(now = new Date()): string {
+  return DAY_PARTS.format(now);
+}
+
+/** Moves a `yyyy-MM-dd` date by whole days; calendar arithmetic, so no time zone applies. */
+export function shiftVnDate(date: string, days: number): string {
+  const moved = new Date(`${date}T00:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
+}

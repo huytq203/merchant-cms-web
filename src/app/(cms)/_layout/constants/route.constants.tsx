@@ -16,6 +16,7 @@ import {
   Landmark,
   BadgeCheck,
   PiggyBank,
+  ListChecks,
 } from "lucide-react";
 
 export interface SubPage {
@@ -197,6 +198,12 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_BALANCE",
         href: "/sub-balances",
         icon: <PiggyBank className="w-4 h-4" />,
+      },
+      {
+        title: "Dòng quyết toán",
+        permission: "VIEW_BALANCE",
+        href: "/settlement-items",
+        icon: <ListChecks className="w-4 h-4" />,
       },
     ],
   },
