@@ -8,19 +8,22 @@ import { canLockTerminal, canUnlockTerminal } from "../utils/terminal-mapper";
 
 type Actions = {
   onView: (row: TerminalRow) => void;
-  onEdit: (row: TerminalRow) => void;
-  onLock: (row: TerminalRow) => void;
-  onUnlock: (row: TerminalRow) => void;
+  /** Write handlers are left out for a session that may only view; their actions then disappear. */
+  onEdit?: (row: TerminalRow) => void;
+  onLock?: (row: TerminalRow) => void;
+  onUnlock?: (row: TerminalRow) => void;
 };
 
 function TerminalRowActions({ item, actions }: { item: TerminalRow; actions: Actions }) {
+  const { onEdit, onLock, onUnlock } = actions;
   const lockAction = canLockTerminal(item)
-    ? { label: "Khóa", icon: <Lock size={16} />, onClick: () => actions.onLock(item) }
+    ? { label: "Khóa", icon: <Lock size={16} />, visible: !!onLock, onClick: () => onLock?.(item) }
     : canUnlockTerminal(item)
-      ? { label: "Mở khóa", icon: <Unlock size={16} />, onClick: () => actions.onUnlock(item) }
+      ? { label: "Mở khóa", icon: <Unlock size={16} />, visible: !!onUnlock, onClick: () => onUnlock?.(item) }
       : {
         label: "Mở khóa",
         icon: <Unlock size={16} />,
+        visible: !!onUnlock,
         disabled: true,
         disabledReason: item.lockSource === "CASCADE" ? "Không thể mở khóa vì Master đang khóa" : "Không thể thay đổi trạng thái",
       };
@@ -30,7 +33,7 @@ function TerminalRowActions({ item, actions }: { item: TerminalRow; actions: Act
       subject={item.name}
       actions={[
         { label: "Xem chi tiết", icon: <Eye size={16} />, onClick: () => actions.onView(item) },
-        { label: "Sửa", icon: <Edit size={16} />, onClick: () => actions.onEdit(item) },
+        { label: "Sửa", icon: <Edit size={16} />, visible: !!onEdit, onClick: () => onEdit?.(item) },
         lockAction,
       ]}
     />

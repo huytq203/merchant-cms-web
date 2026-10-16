@@ -38,7 +38,7 @@ const send = (method: string, body?: unknown) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [], permissions: ["MANAGE_SUB_MERCHANT"] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [], permissions: ["MANAGE_BANK_ACCOUNT"] });
   getBankAccount.mockResolvedValue({ success: true, data: account });
 });
 

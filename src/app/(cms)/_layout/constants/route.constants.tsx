@@ -1,5 +1,6 @@
 import React from "react";
-import type { MerchantPermission } from "@/features/auth/permissions";
+import { hasAnyPermission, type MerchantPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -28,7 +29,8 @@ export interface SidebarItem {
   icon?: React.ReactNode;
   badge?: string;
   subPages?: SubPage[];
-  permission?: MerchantPermission;
+  /** One permission, or a list of which any one is enough. */
+  permission?: MerchantPermission | readonly MerchantPermission[];
   /** Page works on the session's own Master; hidden for a session limited to Subs. */
   requiresMerchant?: boolean;
 }
@@ -124,13 +126,13 @@ export const routesConfig: SidebarSection[] = [
       },
       {
         title: "Danh sách Terminal",
-        permission: "MANAGE_SUB_MERCHANT",
+        permission: PERMISSION_GATES.terminalRead,
         href: "/terminals",
         icon: <MonitorSmartphone className="w-4 h-4" />,
       },
       {
         title: "Danh sách tài khoản ngân hàng",
-        permission: "MANAGE_SUB_MERCHANT",
+        permission: PERMISSION_GATES.bankAccountRead,
         href: "/bank-accounts",
         requiresMerchant: true,
         icon: <Landmark className="w-4 h-4" />,
@@ -221,7 +223,7 @@ export function filterRoutesByAccess(
       ...section,
       items: section.items.filter(
         (item) =>
-          (!item.permission || permissions.includes(item.permission)) &&
+          (!item.permission || hasAnyPermission(permissions, typeof item.permission === "string" ? [item.permission] : item.permission)) &&
           (!item.requiresMerchant || hasMerchant),
       ),
     }))

@@ -7,7 +7,7 @@ import { requireOwnedSubMerchant, requireSubMerchantAccess } from "@/server/modu
 
 type Context = { params: Promise<{ id: string }> };
 export async function POST(request: Request, context: Context) {
-  const access = await requireSubMerchantAccess();
+  const access = await requireSubMerchantAccess("lock");
   if (!access.ok) return access.response;
   const body = reasonBodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });

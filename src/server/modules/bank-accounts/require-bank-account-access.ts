@@ -1,15 +1,12 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import type { MerchantPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
 import { domainErrorMessage, toDomainHttpStatus, type BeError } from "@/lib/be/errors";
 import type { SessionUser } from "@/types/auth";
 import type { BankAccount } from "@/features/bank-accounts/types";
 import { getBankAccount } from "./bank-account.service";
-
-/** Temporary: the FE permission list has no bank-account permission yet. */
-export const BANK_ACCOUNT_PERMISSION: MerchantPermission = "MANAGE_SUB_MERCHANT";
 
 const json = (message: string, status: number, code?: string) =>
   NextResponse.json(code ? { message, code } : { message }, { status });
@@ -22,8 +19,9 @@ export function bankErrorResponse(error: BeError): NextResponse {
   return json(domainErrorMessage(error), toDomainHttpStatus(error), error.code);
 }
 
-export function requireBankAccountAccess(): Promise<PermissionAccess> {
-  return requirePermission(BANK_ACCOUNT_PERMISSION, { requireMerchant: true });
+export function requireBankAccountAccess(mode: "read" | "write"): Promise<PermissionAccess> {
+  const gate = mode === "read" ? PERMISSION_GATES.bankAccountRead : PERMISSION_GATES.bankAccountWrite;
+  return requirePermission(gate, { requireMerchant: true });
 }
 
 /** The Master is always taken from the session; a requested one must belong to it. */

@@ -12,7 +12,7 @@ import {
 type Context = { params: Promise<{ id: string }> };
 
 export async function PUT(request: Request, context: Context) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("write");
   if (!access.ok) return access.response;
   const body = bankReasonBodySchema.safeParse(await request.json().catch(() => ({})));
   if (!body.success) return badRequest(body.error.issues[0]?.message);

@@ -8,6 +8,11 @@ const categoryLabels: Record<string, string> = {
   FINANCE: "Tài chính",
   ADMINISTRATION: "Quản trị",
   WALLET: "Ví",
+  APPROVAL: "Phê duyệt",
+  SUB_MERCHANT_TERMINAL: "Điểm bán và Terminal",
+  CONNECTION_PAYMENT: "Kết nối và thanh toán",
+  FINANCIAL_TERMS: "Điều khoản tài chính",
+  ESCROW_HOLD: "Ký quỹ và tạm giữ",
 };
 
 export function groupPermissionsByCategory(catalog: PermissionCatalogItem[]) {

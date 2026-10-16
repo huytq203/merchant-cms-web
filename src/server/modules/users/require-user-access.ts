@@ -1,6 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
 import { API_MESSAGE_HEADER } from "@/lib/http/api-message";
 import { merchantDomainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
@@ -9,8 +10,8 @@ import type { MerchantUser } from "@/features/users/schemas/user.schema";
 import { getUser } from "./user.service";
 import { getPermissionGroup } from "@/server/modules/permissions/permission.service";
 
-export function requireUserAccess(): Promise<PermissionAccess> {
-  return requirePermission("MANAGE_USER");
+export function requireUserAccess(action: "manage" | "approveScope" = "manage"): Promise<PermissionAccess> {
+  return requirePermission(action === "approveScope" ? PERMISSION_GATES.userScopeApprove : "MANAGE_USER");
 }
 
 export function requireMerchantScope(user: SessionUser, ids: string[]): NextResponse | null {

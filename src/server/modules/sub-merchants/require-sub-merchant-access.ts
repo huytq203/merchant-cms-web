@@ -1,6 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
 import type { SessionUser } from "@/types/auth";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
@@ -12,8 +13,8 @@ function reject(message: string, status: number): NextResponse {
   return NextResponse.json({ message }, { status });
 }
 
-export function requireSubMerchantAccess(): Promise<PermissionAccess> {
-  return requirePermission("MANAGE_SUB_MERCHANT");
+export function requireSubMerchantAccess(action: "manage" | "lock" = "manage"): Promise<PermissionAccess> {
+  return requirePermission(action === "lock" ? PERMISSION_GATES.subMerchantLock : PERMISSION_GATES.subMerchantManage);
 }
 
 export function selectMerchantId(user: SessionUser, requested?: string | null): string | NextResponse {

@@ -13,7 +13,7 @@ import { BankAccountDialogs } from "./BankAccountDialogs";
 import { BankAccountFilters } from "./BankAccountFilters";
 import { BankAccountResults } from "./BankAccountResults";
 
-type Props = { filter: BankAccountFilter };
+type Props = { filter: BankAccountFilter; canManage: boolean };
 
 function toSearchParams(filter: BankAccountFilter): string {
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
@@ -22,7 +22,7 @@ function toSearchParams(filter: BankAccountFilter): string {
   return params.toString();
 }
 
-export function BankAccountsContainer({ filter }: Props) {
+export function BankAccountsContainer({ filter, canManage }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const dialogs = useBankAccountDialogs();
@@ -34,11 +34,11 @@ export function BankAccountsContainer({ filter }: Props) {
       <PageHeader
         title={getRouteTitle("/bank-accounts")}
         description="Tài khoản dùng để nhận quyết toán và rút tiền"
-        action={(
+        action={canManage ? (
           <Button type="button" variant="solid" onClick={dialogs.openCreate}>
             <Plus size={16} aria-hidden="true" /> Thêm tài khoản
           </Button>
-        )}
+        ) : undefined}
       />
       <div>
         <BankAccountFilters
@@ -53,9 +53,9 @@ export function BankAccountsContainer({ filter }: Props) {
         pageSize={filter.pageSize}
         onPageChange={(page, pageSize) => navigate({ ...filter, page, pageSize })}
         onView={(account) => dialogs.openFor("detail", account)}
-        onEdit={(account) => dialogs.openFor("edit", account)}
-        onSetDefault={(account) => dialogs.openFor("default", account)}
-        onDelete={(account) => dialogs.openFor("delete", account)}
+        onEdit={canManage ? (account) => dialogs.openFor("edit", account) : undefined}
+        onSetDefault={canManage ? (account) => dialogs.openFor("default", account) : undefined}
+        onDelete={canManage ? (account) => dialogs.openFor("delete", account) : undefined}
       />
       <BankAccountDialogs dialogs={dialogs} />
     </div>

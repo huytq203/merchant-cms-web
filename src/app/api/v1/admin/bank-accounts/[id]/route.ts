@@ -13,7 +13,7 @@ import {
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("read");
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);
@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function PUT(request: Request, context: Context) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("write");
   if (!access.ok) return access.response;
   const body = updateBankBodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0]?.message);
@@ -43,7 +43,7 @@ export async function PUT(request: Request, context: Context) {
 }
 
 export async function DELETE(request: Request, context: Context) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("write");
   if (!access.ok) return access.response;
   const body = bankReasonBodySchema.safeParse(await request.json().catch(() => ({})));
   if (!body.success) return badRequest(body.error.issues[0]?.message);

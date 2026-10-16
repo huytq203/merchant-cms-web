@@ -12,9 +12,9 @@ import { SubMerchantDialogs } from './SubMerchantDialogs';
 import { SubMerchantFilters } from './SubMerchantFilters';
 import { SubMerchantList } from './SubMerchantList';
 
-type Props = { filter: SubMerchantListFilter };
+type Props = { filter: SubMerchantListFilter; canLock: boolean };
 
-export function SubMerchantsContainer({ filter }: Props) {
+export function SubMerchantsContainer({ filter, canLock }: Props) {
   const dialogs = useSubMerchantDialogs();
   const actions = useSubMerchantActions(dialogs);
   const navigation = useSubMerchantListNavigation();
@@ -39,10 +39,10 @@ export function SubMerchantsContainer({ filter }: Props) {
         onPageChange={navigation.changePage}
         onViewDetail={(row) => dialogs.openFor('detail', row)}
         onEdit={(row) => dialogs.openFor('edit', row)}
-        onLock={(row) => dialogs.openFor('lock', row)}
-        onUnlock={(row) => dialogs.openFor('unlock', row)}
+        onLock={canLock ? (row) => dialogs.openFor('lock', row) : undefined}
+        onUnlock={canLock ? (row) => dialogs.openFor('unlock', row) : undefined}
       />
-      <SubMerchantDialogs dialogs={dialogs} actions={actions} />
+      <SubMerchantDialogs dialogs={dialogs} actions={actions} canLock={canLock} />
     </div>
   );
 }

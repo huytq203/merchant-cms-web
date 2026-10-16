@@ -25,6 +25,7 @@ interface Props {
   proposal: ScopeProposal | null;
   proposalError?: string;
   isPending: boolean;
+  canApproveScope: boolean;
   onApprove: () => void;
   onReject: (reason: string) => void;
   onReset: () => void;
@@ -66,6 +67,7 @@ function Sections({ user, ...props }: Omit<Props, "open" | "onOpenChange" | "onE
         proposal={props.proposal}
         error={props.proposalError}
         isPending={props.isPending}
+        canApproveScope={props.canApproveScope}
         onApprove={props.onApprove}
         onReject={props.onReject}
       />

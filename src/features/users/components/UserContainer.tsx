@@ -18,9 +18,10 @@ interface Props {
   merchantIds: string[];
   merchants?: SessionMerchant[];
   actorId: string;
+  canApproveScope: boolean;
 }
 
-export function UserContainer({ filter, merchantIds, merchants, actorId }: Props) {
+export function UserContainer({ filter, merchantIds, merchants, actorId, canApproveScope }: Props) {
   const dialogs = useUserDialogs();
   const actions = useUserActions(dialogs.close);
   const navigation = useUserListNavigation(filter);
@@ -60,6 +61,7 @@ export function UserContainer({ filter, merchantIds, merchants, actorId }: Props
         merchantIds={merchantIds}
         merchants={merchants}
         actorId={actorId}
+        canApproveScope={canApproveScope}
       />
     </div>
   );

@@ -33,7 +33,7 @@ describe("filterRoutesByAccess", () => {
   it("hides items that need a Master when the session has none, even with the permission", () => {
     const visible = titles(
       filterRoutesByAccess(routesConfig, {
-        permissions: ["MANAGE_USER", "VIEW_ORDER", "VIEW_TRANSACTION", "MANAGE_SUB_MERCHANT"],
+        permissions: ["MANAGE_USER", "VIEW_ORDER", "VIEW_TRANSACTION", "MANAGE_SUB_MERCHANT", "VIEW_BANK_ACCOUNT"],
         hasMerchant: false,
       }),
     );
@@ -43,12 +43,26 @@ describe("filterRoutesByAccess", () => {
     expect(visible).not.toContain("Danh sách giao dịch");
     expect(visible).not.toContain("Danh sách Sub-merchant");
     expect(visible).not.toContain("Hồ sơ KYB và ĐVCNTT");
+    expect(visible).not.toContain("Danh sách tài khoản ngân hàng");
+  });
+
+  it("gates Terminal and bank accounts by their own read permissions, not by MANAGE_SUB_MERCHANT", () => {
+    const subOnly = titles(filterRoutesByAccess(routesConfig, { permissions: ["MANAGE_SUB_MERCHANT"], hasMerchant: true }));
+    expect(subOnly).toContain("Danh sách Sub-merchant");
+    expect(subOnly).not.toContain("Danh sách Terminal");
+    expect(subOnly).not.toContain("Danh sách tài khoản ngân hàng");
+    const readers = titles(filterRoutesByAccess(routesConfig, { permissions: ["VIEW_TERMINAL", "CREATE_WITHDRAWAL"], hasMerchant: true }));
+    expect(readers).toContain("Danh sách Terminal");
+    expect(readers).toContain("Danh sách tài khoản ngân hàng");
+    expect(titles(filterRoutesByAccess(routesConfig, { permissions: ["MANAGE_TERMINAL", "MANAGE_BANK_ACCOUNT"], hasMerchant: true }))).toEqual(
+      expect.arrayContaining(["Danh sách Terminal", "Danh sách tài khoản ngân hàng"]),
+    );
   });
 
   it("keeps items scoped to Subs or the audit log for a session without a Master", () => {
     const visible = titles(
       filterRoutesByAccess(routesConfig, {
-        permissions: ["MANAGE_SUB_MERCHANT", "VIEW_AUDIT_LOG"],
+        permissions: ["VIEW_TERMINAL", "VIEW_AUDIT_LOG"],
         hasMerchant: false,
       }),
     );
@@ -63,7 +77,7 @@ describe("findLandingPath", () => {
   });
 
   it("lands on the first page a Sub-only session may open", () => {
-    expect(findLandingPath({ permissions: ["MANAGE_SUB_MERCHANT", "VIEW_AUDIT_LOG"], hasMerchant: false })).toBe("/terminals");
+    expect(findLandingPath({ permissions: ["VIEW_TERMINAL", "VIEW_AUDIT_LOG"], hasMerchant: false })).toBe("/terminals");
     expect(findLandingPath({ permissions: ["VIEW_AUDIT_LOG"], hasMerchant: false })).toBe("/audit-logs");
   });
 

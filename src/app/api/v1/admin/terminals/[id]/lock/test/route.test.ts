@@ -13,7 +13,7 @@ const id = "33333333-3333-4333-8333-333333333333";
 const subMerchantId = "11111111-1111-4111-8111-111111111111";
 const foreignId = "22222222-2222-4222-8222-222222222222";
 const reason = "Lý do hợp lệ";
-const session = { subMerchantIds: [subMerchantId], permissions: ["MANAGE_SUB_MERCHANT"] };
+const session = { subMerchantIds: [subMerchantId], permissions: ["MANAGE_TERMINAL"] };
 const detail = { id, subMerchantId, status: "ACTIVE", lockSource: null };
 const context = { params: Promise.resolve({ id }) };
 const request = (body: unknown = { reason }) => new Request(`http://localhost/api/v1/admin/terminals/${id}/lock`, {

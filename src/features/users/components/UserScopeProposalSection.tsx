@@ -13,6 +13,8 @@ interface Props {
   proposal: ScopeProposal | null;
   error?: string;
   isPending: boolean;
+  /** APPROVE_USER_SCOPE; without it the proposal is shown but cannot be decided. */
+  canApproveScope: boolean;
   onApprove: () => void;
   onReject: (reason: string) => void;
 }
@@ -43,7 +45,7 @@ function ReviewControls({ isPending, onApprove, onReject }: Pick<Props, "isPendi
   );
 }
 
-function ProposalBody({ proposal, isPending, onApprove, onReject }: Omit<Props, "error"> & { proposal: ScopeProposal }) {
+function ProposalBody({ proposal, isPending, canApproveScope, onApprove, onReject }: Omit<Props, "error"> & { proposal: ScopeProposal }) {
   return (
     <div className="space-y-2">
       <Badge variant={statusVariant[proposal.status]}>{proposalStatusLabels[proposal.status]}</Badge>
@@ -52,7 +54,7 @@ function ProposalBody({ proposal, isPending, onApprove, onReject }: Omit<Props, 
         Phạm vi đề xuất: {proposal.merchantIds.length} merchant, {proposal.subMerchantIds.length} sub-merchant.
       </p>
       {proposal.decisionReason ? <p className="text-sm text-muted-foreground">{proposal.decisionReason}</p> : null}
-      {proposal.status === "PENDING_APPROVAL" ? (
+      {canApproveScope && proposal.status === "PENDING_APPROVAL" ? (
         <ReviewControls isPending={isPending} onApprove={onApprove} onReject={onReject} />
       ) : null}
     </div>
@@ -60,14 +62,14 @@ function ProposalBody({ proposal, isPending, onApprove, onReject }: Omit<Props, 
 }
 
 /** Rendered only when the user has a scope proposal or loading it failed. */
-export function UserScopeProposalSection({ proposal, error, isPending, onApprove, onReject }: Props) {
+export function UserScopeProposalSection({ proposal, error, isPending, canApproveScope, onApprove, onReject }: Props) {
   if (!proposal && !error) return null;
 
   return (
     <DetailSection title="Đề xuất phạm vi" icon={<FileClock className="h-4 w-4" />}>
       <div role="region" aria-label="Đề xuất phạm vi" className="space-y-2">
         {proposal ? (
-          <ProposalBody proposal={proposal} isPending={isPending} onApprove={onApprove} onReject={onReject} />
+          <ProposalBody proposal={proposal} isPending={isPending} canApproveScope={canApproveScope} onApprove={onApprove} onReject={onReject} />
         ) : null}
         {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       </div>

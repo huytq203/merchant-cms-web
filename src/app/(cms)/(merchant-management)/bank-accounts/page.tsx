@@ -1,11 +1,11 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/session";
-import { hasPermission } from "@/features/auth/permissions";
+import { hasAnyPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { listBankAccounts } from "@/server/modules/bank-accounts/bank-account.service";
-import { BANK_ACCOUNT_PERMISSION } from "@/server/modules/bank-accounts/require-bank-account-access";
 import { bankAccountQueries, parseBankAccountSearchParams } from "@/features/bank-accounts/bank-account-queries";
 import { BankAccountsContainer } from "@/features/bank-accounts/components/BankAccountsContainer";
 
@@ -15,7 +15,7 @@ export default async function BankAccountsPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
   const merchantId = user.merchantIds[0];
-  if (!hasPermission(user.permissions, BANK_ACCOUNT_PERMISSION) || !merchantId) {
+  if (!hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountRead) || !merchantId) {
     return <AccessDenied />;
   }
   const filter = { ...parseBankAccountSearchParams(await searchParams), merchantId };
@@ -27,7 +27,7 @@ export default async function BankAccountsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <BankAccountsContainer filter={filter} />
+      <BankAccountsContainer filter={filter} canManage={hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountWrite)} />
     </HydrationBoundary>
   );
 }

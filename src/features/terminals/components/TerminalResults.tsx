@@ -11,10 +11,11 @@ import { TerminalTable } from "./TerminalTable";
 type Props = {
   filter: TerminalListFilter;
   dialogs: TerminalDialogs;
+  canManage: boolean;
   onPageChange: (page: number, pageSize: number) => void;
 };
 
-export function TerminalResults({ filter, dialogs, onPageChange }: Props) {
+export function TerminalResults({ filter, dialogs, canManage, onPageChange }: Props) {
   const list = useQuery(terminalQueries.list(filter));
 
   return (
@@ -33,9 +34,9 @@ export function TerminalResults({ filter, dialogs, onPageChange }: Props) {
           pageSize={filter.pageSize}
           onPageChange={onPageChange}
           onView={(row) => dialogs.openFor("detail", row)}
-          onEdit={(row) => dialogs.openFor("edit", row)}
-          onLock={(row) => dialogs.openFor("lock", row)}
-          onUnlock={(row) => dialogs.openFor("unlock", row)}
+          onEdit={canManage ? (row) => dialogs.openFor("edit", row) : undefined}
+          onLock={canManage ? (row) => dialogs.openFor("lock", row) : undefined}
+          onUnlock={canManage ? (row) => dialogs.openFor("unlock", row) : undefined}
         />
       )}
     </ResultCard>

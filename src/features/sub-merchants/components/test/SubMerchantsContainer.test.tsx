@@ -45,15 +45,23 @@ const detail: SubMerchantDetail = {
   updatedAt: null,
 };
 const base = '/api/v1/admin/sub-merchants';
-function renderContainer(data?: { rows: SubMerchantRow[]; total: number }) {
+function renderContainer(data?: { rows: SubMerchantRow[]; total: number }, canLock = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (data) mswServer.use(http.get(base, () => HttpResponse.json(data)));
-  return render(<QueryClientProvider client={client}><SubMerchantsContainer filter={filter} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><SubMerchantsContainer filter={filter} canLock={canLock} /></QueryClientProvider>);
 }
 beforeEach(() => mswServer.use(http.get(base, () => HttpResponse.json({ rows: [row], total: 1 }))));
 afterEach(() => { cleanup(); push.mockClear(); vi.clearAllMocks(); currentSearch = ''; });
 
 describe('sub merchants container', () => {
+  it('hides lock and unlock when the session lacks LOCK_SUB_MERCHANT but keeps edit', async () => {
+    renderContainer({ rows: [row, { ...row, id: 'two', code: 'SM002', name: 'Locked', status: 'INACTIVE', lockSource: 'DIRECT' }], total: 2 }, false);
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sửa Shop/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Khóa|Mở khóa/ })).not.toBeInTheDocument();
+  });
+
+
   it('shows loading, error, empty, and data states', async () => {
     mswServer.use(http.get(base, () => new Promise(() => {})));
     const loading = renderContainer();

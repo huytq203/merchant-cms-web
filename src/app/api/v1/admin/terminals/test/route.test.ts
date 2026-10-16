@@ -10,7 +10,7 @@ vi.mock("@/server/modules/terminals/terminal.service", () => ({ listTerminals, c
 import { GET, POST } from "../route";
 
 const subMerchantId = "11111111-1111-4111-8111-111111111111";
-const session = { subMerchantIds: [subMerchantId], permissions: ["MANAGE_SUB_MERCHANT"] };
+const session = { subMerchantIds: [subMerchantId], permissions: ["MANAGE_TERMINAL"] };
 const values = { subMerchantId, name: "Quầy", terminalType: "POS", address: "Hà Nội", contactPerson: "", inheritContactPhone: true, contactPhone: "", note: "" };
 const get = (query = "") => new Request(`http://localhost/api/v1/admin/terminals${query}`);
 const post = (body: unknown) => new Request("http://localhost/api/v1/admin/terminals", { method: "POST", body: JSON.stringify(body) });
@@ -31,6 +31,19 @@ describe("terminal collection route", () => {
     getServerSession.mockResolvedValue({ ...session, permissions: [] });
     expect((await GET(get())).status).toBe(403);
     expect(listTerminals).not.toHaveBeenCalled();
+  });
+
+  it("lets a VIEW_TERMINAL session read but not create", async () => {
+    getServerSession.mockResolvedValue({ ...session, permissions: ["VIEW_TERMINAL"] });
+    listTerminals.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    expect((await GET(get())).status).toBe(200);
+    expect((await POST(post(values))).status).toBe(403);
+    expect(createTerminal).not.toHaveBeenCalled();
+  });
+
+  it("rejects a session that only manages sub merchants", async () => {
+    getServerSession.mockResolvedValue({ ...session, permissions: ["MANAGE_SUB_MERCHANT"] });
+    expect((await GET(get())).status).toBe(403);
   });
 
   it("rejects invalid pagination", async () => {

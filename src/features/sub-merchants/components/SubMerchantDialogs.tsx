@@ -13,9 +13,10 @@ import { SubMerchantFormModal } from './SubMerchantFormModal';
 type Props = {
   dialogs: Dialogs;
   actions: ReturnType<typeof useSubMerchantActions>;
+  canLock: boolean;
 };
 
-export function SubMerchantDialogs({ dialogs, actions }: Props) {
+export function SubMerchantDialogs({ dialogs, actions, canLock: mayLock }: Props) {
   const { activeDialog, target } = dialogs;
   const needsDetail = activeDialog === 'detail' || activeDialog === 'edit';
   const detail = useQuery({
@@ -33,8 +34,8 @@ export function SubMerchantDialogs({ dialogs, actions }: Props) {
         onOpenChange={closeOnDismiss}
         detail={detail.data ?? null}
         onEdit={target && (canLock(target) || canUnlock(target)) ? () => dialogs.openFor('edit', target) : undefined}
-        onLock={target ? () => dialogs.openFor('lock', target) : undefined}
-        onUnlock={target ? () => dialogs.openFor('unlock', target) : undefined}
+        onLock={mayLock && target ? () => dialogs.openFor('lock', target) : undefined}
+        onUnlock={mayLock && target ? () => dialogs.openFor('unlock', target) : undefined}
       />
       <SubMerchantFormModal
         open={activeDialog === 'create' || activeDialog === 'edit'}

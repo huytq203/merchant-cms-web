@@ -2,7 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth/session";
-import { hasPermission, type MerchantPermission } from "@/features/auth/permissions";
+import { hasAnyPermission, type MerchantPermission } from "@/features/auth/permissions";
 import type { SessionUser } from "@/types/auth";
 
 export type PermissionAccess =
@@ -20,15 +20,15 @@ function reject(message: string, status: number): PermissionAccess {
 
 /**
  * Guard dùng chung cho route handler: 401 khi chưa đăng nhập,
- * 403 khi thiếu quyền (bỏ `permission` nếu chỉ cần session) hoặc khi thiếu merchant (nếu yêu cầu).
+ * 403 khi thiếu quyền (một mã hoặc any-of một danh sách; bỏ `permission` nếu chỉ cần session) hoặc khi thiếu merchant (nếu yêu cầu).
  */
 export async function requirePermission(
-  permission?: MerchantPermission,
+  permission?: MerchantPermission | readonly MerchantPermission[],
   options: RequirePermissionOptions = {},
 ): Promise<PermissionAccess> {
   const user = await getServerSession();
   if (!user) return reject("Vui lòng đăng nhập", 401);
-  const permitted = !permission || hasPermission(user.permissions, permission);
+  const permitted = !permission || hasAnyPermission(user.permissions, typeof permission === "string" ? [permission] : permission);
   const hasMerchant = !options.requireMerchant || user.merchantIds.length > 0;
   if (!permitted || !hasMerchant) return reject("Không có quyền truy cập", 403);
   return { ok: true, user };

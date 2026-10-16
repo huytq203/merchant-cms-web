@@ -31,11 +31,11 @@ const row: TerminalRow = {
 const base = "/api/v1/admin/terminals";
 const filter = { page: 1, pageSize: 10, subMerchantId };
 
-function renderContainer() {
+function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <TerminalsContainer filter={filter} />
+      <TerminalsContainer filter={filter} canManage={canManage} />
     </QueryClientProvider>,
   );
 }
@@ -127,6 +127,18 @@ describe("terminals container", () => {
     await userEvent.type(screen.getByRole("textbox", { name: /Địa chỉ đặt máy POS/ }), "Hà Nội");
     await userEvent.click(within(dialog).getByRole("button", { name: "Thêm Terminal" }));
     await waitFor(() => expect(body).toMatchObject({ subMerchantId, terminalType: "POS", address: "Hà Nội" }));
+  });
+
+  it("hides create, edit, lock and unlock when the session may only view", async () => {
+    renderContainer(false);
+    expect(await screen.findByRole("button", { name: "Xem chi tiết Quầy 1" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Thêm Terminal/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sửa/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Khóa|Mở khóa/ })).not.toBeInTheDocument();
+    mswServer.use(http.get(`${base}/${row.id}`, () => HttpResponse.json({ ...row, note: null, updatedAt: null })));
+    await userEvent.click(screen.getByRole("button", { name: "Xem chi tiết Quầy 1" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: /Sửa|Khóa|Mở khóa/ })).not.toBeInTheDocument();
   });
 
   it("disables a cascade unlock", async () => {

@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getServerSession.mockResolvedValue({
     merchantIds: [merchantId],
-    permissions: ["MANAGE_SUB_MERCHANT"],
+    permissions: ["LOCK_SUB_MERCHANT"],
   });
   getSubMerchant.mockResolvedValue({ success: true, data: { id, merchantId } });
 });
@@ -33,6 +33,12 @@ it("returns 404 for another merchant without calling lock", async () => {
   getSubMerchant.mockResolvedValue({ success: true, data: { id, merchantId: "other" } });
   expect((await POST(request("Lý do hợp lệ"), ctx)).status).toBe(404);
   expect(lockSubMerchant).not.toHaveBeenCalled();
+});
+
+it("requires LOCK_SUB_MERCHANT, not MANAGE_SUB_MERCHANT", async () => {
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
+  expect((await POST(request("Lý do hợp lệ"), ctx)).status).toBe(403);
+  expect(getSubMerchant).not.toHaveBeenCalled();
 });
 
 it("validates reason", async () => {

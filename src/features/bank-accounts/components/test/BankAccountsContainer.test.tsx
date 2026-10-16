@@ -32,11 +32,11 @@ const editable = { ...account, accountNumber: "1234567890" };
 const challenge = { otpSessionId: "session-1", maskedRecipient: "0912•••678", expiresInSeconds: 300, canResendAfterSeconds: 60 };
 const filter = { page: 1, pageSize: 10, merchantId };
 
-function renderContainer() {
+function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <BankAccountsContainer filter={filter} />
+      <BankAccountsContainer filter={filter} canManage={canManage} />
     </QueryClientProvider>,
   );
 }
@@ -70,6 +70,16 @@ afterEach(() => {
 });
 
 describe("bank accounts container", () => {
+  it("only lets a read-only session view accounts", async () => {
+    renderContainer(false);
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Thêm tài khoản/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Sửa tài khoản/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /mặc định/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Xoá tài khoản/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Xem tài khoản/ })).toBeInTheDocument();
+  });
+
   it("shows loading, error, empty and data states", async () => {
     mswServer.use(http.get(base, () => new Promise(() => {})));
     renderContainer();

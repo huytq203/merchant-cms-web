@@ -16,7 +16,7 @@ import { GET, POST } from "../route";
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const foreignMerchantId = "22222222-2222-4222-8222-222222222222";
 const subMerchantId = "33333333-3333-4333-8333-333333333333";
-const session = { merchantIds: [merchantId], subMerchantIds: [subMerchantId], permissions: ["MANAGE_SUB_MERCHANT"] };
+const session = { merchantIds: [merchantId], subMerchantIds: [subMerchantId], permissions: ["MANAGE_BANK_ACCOUNT"] };
 const otp = { otpSessionId: "session-1", otp: "123456" };
 const values = { bankCode: "VCB", accountNumber: "1234567890", accountName: "CONG TY A", branchName: "Ha Noi", otp };
 const get = (query = "") => new Request(`http://localhost/api/v1/admin/bank-accounts${query}`);
@@ -37,6 +37,21 @@ describe("bank account collection route", () => {
     expect((await POST(post(values))).status).toBe(403);
     expect(listBankAccounts).not.toHaveBeenCalled();
     expect(createBankAccount).not.toHaveBeenCalled();
+  });
+
+  it("lets read-only permissions list but never create", async () => {
+    listBankAccounts.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    for (const permission of ["VIEW_BANK_ACCOUNT", "CREATE_WITHDRAWAL"]) {
+      getServerSession.mockResolvedValue({ ...session, permissions: [permission] });
+      expect((await GET(get())).status).toBe(200);
+      expect((await POST(post(values))).status).toBe(403);
+    }
+    expect(createBankAccount).not.toHaveBeenCalled();
+  });
+
+  it("no longer accepts MANAGE_SUB_MERCHANT alone", async () => {
+    getServerSession.mockResolvedValue({ ...session, permissions: ["MANAGE_SUB_MERCHANT"] });
+    expect((await GET(get())).status).toBe(403);
   });
 
   it("rejects page sizes above 100", async () => {

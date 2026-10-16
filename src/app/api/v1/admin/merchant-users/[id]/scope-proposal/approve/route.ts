@@ -6,7 +6,7 @@ import { requireOwnedUser, requireUserAccess, serviceResponse } from "@/server/m
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, context: Context) {
-  const access = await requireUserAccess();
+  const access = await requireUserAccess("approveScope");
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);

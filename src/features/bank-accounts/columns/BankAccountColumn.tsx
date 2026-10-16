@@ -10,9 +10,10 @@ import type { BankAccount } from "../types";
 
 export type BankAccountColumnOptions = {
   onView: (account: BankAccount) => void;
-  onEdit: (account: BankAccount) => void;
-  onSetDefault: (account: BankAccount) => void;
-  onDelete: (account: BankAccount) => void;
+  /** Write handlers are left out for a session without MANAGE_BANK_ACCOUNT; their actions then disappear. */
+  onEdit?: (account: BankAccount) => void;
+  onSetDefault?: (account: BankAccount) => void;
+  onDelete?: (account: BankAccount) => void;
 };
 
 function StatusCell({ account }: { account: BankAccount }) {
@@ -50,18 +51,20 @@ function BankAccountRowActions({ account, options }: { account: BankAccount; opt
         {
           label: "Sửa tài khoản",
           icon: <Pencil size={16} />,
+          visible: !!onEdit,
           disabled: !editable,
           disabledReason: editLabel(account, editable),
-          onClick: () => onEdit(account),
+          onClick: () => onEdit?.(account),
         },
         {
           label: "Đặt làm mặc định",
           icon: <Star size={16} />,
+          visible: !!onSetDefault,
           disabled: account.isDefault || account.status === "INACTIVE" || account.pendingChangeRequest?.status === "PENDING",
           disabledReason: defaultLabel(account),
-          onClick: () => onSetDefault(account),
+          onClick: () => onSetDefault?.(account),
         },
-        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, onClick: () => onDelete(account) },
+        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, visible: !!onDelete, onClick: () => onDelete?.(account) },
       ]}
     />
   );

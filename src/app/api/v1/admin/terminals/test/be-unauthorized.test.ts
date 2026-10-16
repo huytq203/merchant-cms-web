@@ -15,7 +15,7 @@ const id = "11111111-1111-4111-8111-111111111111";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [], permissions: ["MANAGE_SUB_MERCHANT"] });
+  getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [], permissions: ["MANAGE_TERMINAL"] });
   listTerminals.mockResolvedValue(unauthorized);
   getTerminal.mockResolvedValue(unauthorized);
 });

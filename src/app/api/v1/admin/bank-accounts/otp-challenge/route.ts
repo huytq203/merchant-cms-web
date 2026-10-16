@@ -11,7 +11,7 @@ import {
 
 /** The operation is fixed here: the approval operation must never be requestable from the portal. */
 export async function POST(request: Request) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("write");
   if (!access.ok) return access.response;
   const body = bankChallengeBodySchema.safeParse(await request.json().catch(() => ({})));
   if (!body.success) return badRequest();

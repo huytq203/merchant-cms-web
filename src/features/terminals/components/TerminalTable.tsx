@@ -12,9 +12,9 @@ type Props = {
   pageSize: number;
   onPageChange: (page: number, pageSize: number) => void;
   onView: (row: TerminalRow) => void;
-  onEdit: (row: TerminalRow) => void;
-  onLock: (row: TerminalRow) => void;
-  onUnlock: (row: TerminalRow) => void;
+  onEdit?: (row: TerminalRow) => void;
+  onLock?: (row: TerminalRow) => void;
+  onUnlock?: (row: TerminalRow) => void;
 };
 
 export function TerminalTable(props: Props) {

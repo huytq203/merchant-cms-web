@@ -19,7 +19,7 @@ const request = (body: unknown) => new Request(`http://localhost/api/v1/admin/te
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ subMerchantIds: [subMerchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
+  getServerSession.mockResolvedValue({ subMerchantIds: [subMerchantId], permissions: ["MANAGE_TERMINAL"] });
   getTerminal.mockResolvedValue({ success: true, data: detail });
 });
 

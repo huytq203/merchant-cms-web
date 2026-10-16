@@ -8,7 +8,7 @@ type Context = { params: Promise<{ id: string }> };
 const bodySchema = z.object({ reason: z.string().trim().min(1).max(500) });
 
 export async function POST(request: Request, context: Context) {
-  const access = await requireUserAccess();
+  const access = await requireUserAccess("approveScope");
   if (!access.ok) return access.response;
   const body = bodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ message: "Cần nhập lý do từ chối" }, { status: 400 });

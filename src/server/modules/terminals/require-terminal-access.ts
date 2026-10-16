@@ -1,14 +1,15 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import type { SessionUser } from "@/types/auth";
 import type { TerminalDetail } from "@/features/terminals/types";
 import { getTerminal } from "./terminal.service";
 
-export function requireTerminalAccess(): Promise<PermissionAccess> {
-  return requirePermission("MANAGE_SUB_MERCHANT");
+export function requireTerminalAccess(mode: "read" | "write"): Promise<PermissionAccess> {
+  return requirePermission(mode === "read" ? PERMISSION_GATES.terminalRead : PERMISSION_GATES.terminalWrite);
 }
 
 export function selectSubMerchantId(

@@ -59,6 +59,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserDetailModal>
         user={user}
         actorId={actorId}
         proposal={null}
+        canApproveScope
         isPending={false}
         {...handlers}
         {...props}
@@ -111,6 +112,16 @@ describe("user detail modal", () => {
     renderModal({ user: { ...user, subMerchantIds: [subMerchantId] } });
     expect(await screen.findByText(/Cửa hàng 1/)).toBeInTheDocument();
     expect(screen.queryByText("Tất cả sub-merchant")).not.toBeInTheDocument();
+  });
+
+  it("shows the review controls of a pending scope proposal only to a user who may approve scope", () => {
+    renderModal({ proposal });
+    expect(screen.getByRole("button", { name: "Duyệt đề xuất" })).toBeInTheDocument();
+    cleanup();
+    renderModal({ proposal, canApproveScope: false });
+    expect(screen.getByText("Cần thêm cửa hàng để vận hành")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Duyệt đề xuất" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Từ chối đề xuất" })).not.toBeInTheDocument();
   });
 
   it("offers reset password and lock for an active user and reports the clicks", async () => {

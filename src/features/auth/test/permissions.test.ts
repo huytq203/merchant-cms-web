@@ -8,9 +8,15 @@ import {
 } from "@/features/auth/permissions";
 
 describe("merchant permissions", () => {
-  it("lists the 27 permissions the BE defines", () => {
-    expect(MERCHANT_PERMISSIONS).toHaveLength(27);
-    expect(new Set(MERCHANT_PERMISSIONS).size).toBe(27);
+  it("lists the 48 permissions the BE defines", () => {
+    expect(MERCHANT_PERMISSIONS).toHaveLength(48);
+    expect(new Set(MERCHANT_PERMISSIONS).size).toBe(48);
+  });
+
+  it("knows the permissions added with the portal catalogue", () => {
+    for (const code of ["VIEW_TERMINAL", "MANAGE_TERMINAL", "LOCK_SUB_MERCHANT", "VIEW_BANK_ACCOUNT", "MANAGE_BANK_ACCOUNT", "APPROVE_USER_SCOPE", "VIEW_ESCROW", "VIEW_HOLD"]) {
+      expect(isMerchantPermission(code)).toBe(true);
+    }
   });
 
   it("recognises known names and rejects unknown ones", () => {

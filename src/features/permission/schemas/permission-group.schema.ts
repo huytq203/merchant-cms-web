@@ -8,6 +8,11 @@ export const permissionCategorySchema = z.enum([
   "FINANCE",
   "ADMINISTRATION",
   "WALLET",
+  "APPROVAL",
+  "SUB_MERCHANT_TERMINAL",
+  "CONNECTION_PAYMENT",
+  "FINANCIAL_TERMS",
+  "ESCROW_HOLD",
 ]);
 
 export const permissionCatalogSchema = z.array(z.object({

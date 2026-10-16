@@ -10,7 +10,7 @@ import {
 } from "@/server/modules/bank-accounts/require-bank-account-access";
 
 export async function GET(request: Request) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("read");
   if (!access.ok) return access.response;
   const query = bankListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return badRequest("Tham số không hợp lệ");
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireBankAccountAccess();
+  const access = await requireBankAccountAccess("write");
   if (!access.ok) return access.response;
   const body = createBankBodySchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0]?.message);

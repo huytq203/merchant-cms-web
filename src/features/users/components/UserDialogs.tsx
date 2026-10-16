@@ -23,6 +23,7 @@ interface Props {
   merchantIds: string[];
   merchants?: SessionMerchant[];
   actorId: string;
+  canApproveScope: boolean;
 }
 
 interface SectionProps extends Pick<Props, "dialogs" | "actions" | "openFor" | "actorId"> {
@@ -50,7 +51,7 @@ function UserFormDialog({ dialogs, actions, onOpenChange, merchantId, merchantId
   );
 }
 
-function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, merchants }: SectionProps & Pick<Props, "merchants">) {
+function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, merchants, canApproveScope }: SectionProps & Pick<Props, "merchants" | "canApproveScope">) {
   const { target } = dialogs;
   const { commandAction } = actions;
   const shown = usePreservedValue(target);
@@ -68,6 +69,7 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
       proposal={proposal.data ?? null}
       proposalError={loadError ?? commandAction.error}
       isPending={commandAction.isScopePending}
+      canApproveScope={canApproveScope}
       onApprove={() => {
         if (reviewId) void commandAction.approveScopeProposal(reviewId);
       }}
@@ -139,7 +141,7 @@ function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: Section
   );
 }
 
-export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds, merchants, actorId }: Props) {
+export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds, merchants, actorId, canApproveScope }: Props) {
   const onOpenChange = (open: boolean) => {
     if (!open) actions.closeDialogs();
   };
@@ -148,7 +150,7 @@ export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds
   return (
     <>
       <UserFormDialog {...section} merchantId={merchantId} merchantIds={merchantIds} merchants={merchants} />
-      <UserDetailDialog {...section} merchants={merchants} />
+      <UserDetailDialog {...section} merchants={merchants} canApproveScope={canApproveScope} />
       <UserCommandDialogs {...section} />
     </>
   );

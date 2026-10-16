@@ -2,7 +2,8 @@ import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { getServerSession } from "@/lib/auth/session";
-import { hasPermission } from "@/features/auth/permissions";
+import { hasAnyPermission, hasPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { listUsers as getUsersOnServer } from "@/server/modules/users/user.service";
 import { parseUserSearchParams, userQueries } from "@/features/users/user-queries";
@@ -33,7 +34,7 @@ export default async function UsersPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <UserContainer filter={filter} merchantIds={session.merchantIds} merchants={session.merchants} actorId={session.userId} />
+      <UserContainer filter={filter} merchantIds={session.merchantIds} merchants={session.merchants} actorId={session.userId} canApproveScope={hasAnyPermission(session.permissions, PERMISSION_GATES.userScopeApprove)} />
     </HydrationBoundary>
   );
 }

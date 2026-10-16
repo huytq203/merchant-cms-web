@@ -31,6 +31,14 @@ describe("requirePermission", () => {
     expect(result).toEqual({ ok: true, user });
   });
 
+  it("cho qua khi có một trong các quyền (any-of)", async () => {
+    expect(await statusOf(requirePermission(["VIEW_ORDER", "MANAGE_USER"]))).toBe(200);
+  });
+
+  it("trả 403 khi không có quyền nào trong danh sách any-of", async () => {
+    expect(await statusOf(requirePermission(["VIEW_ORDER", "VIEW_REFUND"]))).toBe(403);
+  });
+
   it("chỉ cần session khi không truyền quyền", async () => {
     getServerSession.mockResolvedValue({ ...user, permissions: [] });
     expect(await statusOf(requirePermission())).toBe(200);

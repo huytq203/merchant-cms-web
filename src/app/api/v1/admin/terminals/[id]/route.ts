@@ -8,7 +8,7 @@ import { requireOwnedTerminal, requireTerminalAccess } from "@/server/modules/te
 type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
-  const access = await requireTerminalAccess();
+  const access = await requireTerminalAccess("read");
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);
@@ -18,7 +18,7 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function PUT(request: Request, context: Context) {
-  const access = await requireTerminalAccess();
+  const access = await requireTerminalAccess("write");
   if (!access.ok) return access.response;
   const body = terminalFormSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });

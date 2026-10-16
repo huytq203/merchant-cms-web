@@ -11,9 +11,10 @@ import { TerminalLockModal } from "./TerminalLockModal";
 type Props = {
   dialogs: Dialogs;
   actions: ReturnType<typeof useTerminalActions>;
+  canManage: boolean;
 };
 
-export function TerminalDialogs({ dialogs, actions }: Props) {
+export function TerminalDialogs({ dialogs, actions, canManage }: Props) {
   const { activeDialog, target } = dialogs;
   const detail = useQuery({
     ...terminalQueries.detail(target?.id ?? ""),
@@ -34,9 +35,9 @@ export function TerminalDialogs({ dialogs, actions }: Props) {
         onOpenChange={onOpenChange}
         detail={detail.data}
         error={detail.error?.message}
-        onEdit={target ? () => dialogs.openFor("edit", target) : undefined}
-        onLock={target ? () => dialogs.openFor("lock", target) : undefined}
-        onUnlock={target ? () => dialogs.openFor("unlock", target) : undefined}
+        onEdit={canManage && target ? () => dialogs.openFor("edit", target) : undefined}
+        onLock={canManage && target ? () => dialogs.openFor("lock", target) : undefined}
+        onUnlock={canManage && target ? () => dialogs.openFor("unlock", target) : undefined}
       />
       {(activeDialog === "create" || (isEditing && detail.data)) && (
         <TerminalFormModal

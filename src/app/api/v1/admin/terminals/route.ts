@@ -14,7 +14,7 @@ const listQuerySchema = paginationQuerySchema.extend({
 });
 
 export async function GET(request: Request) {
-  const access = await requireTerminalAccess();
+  const access = await requireTerminalAccess("read");
   if (!access.ok) return access.response;
   const query = listQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireTerminalAccess();
+  const access = await requireTerminalAccess("write");
   if (!access.ok) return access.response;
   const body = terminalFormSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });

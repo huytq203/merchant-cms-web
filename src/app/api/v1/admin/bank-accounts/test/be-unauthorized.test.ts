@@ -20,7 +20,7 @@ const merchantId = "22222222-2222-4222-8222-222222222222";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [], permissions: ["MANAGE_SUB_MERCHANT"] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [], permissions: ["MANAGE_BANK_ACCOUNT"] });
   listBankAccounts.mockResolvedValue(unauthorized);
   getBankAccount.mockResolvedValue(unauthorized);
 });

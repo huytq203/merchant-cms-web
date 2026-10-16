@@ -12,9 +12,9 @@ import { TerminalDialogs } from "./TerminalDialogs";
 import { TerminalFilters } from "./TerminalFilters";
 import { TerminalResults } from "./TerminalResults";
 
-type Props = { filter: TerminalListFilter };
+type Props = { filter: TerminalListFilter; canManage: boolean };
 
-export function TerminalsContainer({ filter }: Props) {
+export function TerminalsContainer({ filter, canManage }: Props) {
   const dialogs = useTerminalDialogs();
   const actions = useTerminalActions(dialogs);
   const navigation = useTerminalListNavigation(filter);
@@ -23,11 +23,11 @@ export function TerminalsContainer({ filter }: Props) {
     <div className="space-y-5">
       <PageHeader
         title={getRouteTitle("/terminals")}
-        action={
-        <Button type="button" variant="solid" onClick={dialogs.openCreate}>
-          <Plus size={16} aria-hidden="true" /> Thêm Terminal
-        </Button>
-        }
+        action={canManage ? (
+          <Button type="button" variant="solid" onClick={dialogs.openCreate}>
+            <Plus size={16} aria-hidden="true" /> Thêm Terminal
+          </Button>
+        ) : undefined}
       />
       <div>
         <TerminalFilters
@@ -36,8 +36,8 @@ export function TerminalsContainer({ filter }: Props) {
           onSearch={navigation.search}
         />
       </div>
-      <TerminalResults filter={filter} dialogs={dialogs} onPageChange={navigation.changePage} />
-      <TerminalDialogs dialogs={dialogs} actions={actions} />
+      <TerminalResults filter={filter} dialogs={dialogs} canManage={canManage} onPageChange={navigation.changePage} />
+      <TerminalDialogs dialogs={dialogs} actions={actions} canManage={canManage} />
     </div>
   );
 }

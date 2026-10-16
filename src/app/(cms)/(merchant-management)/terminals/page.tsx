@@ -1,7 +1,8 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth/session";
-import { hasPermission } from "@/features/auth/permissions";
+import { hasAnyPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { listTerminals } from "@/server/modules/terminals/terminal.service";
@@ -13,7 +14,7 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function TerminalsPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
-  if (!hasPermission(user.permissions, "MANAGE_SUB_MERCHANT")) {
+  if (!hasAnyPermission(user.permissions, PERMISSION_GATES.terminalRead)) {
     return <AccessDenied />;
   }
   const requested = parseTerminalSearchParams(await searchParams);
@@ -33,7 +34,7 @@ export default async function TerminalsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <TerminalsContainer filter={filter} />
+      <TerminalsContainer filter={filter} canManage={hasAnyPermission(user.permissions, PERMISSION_GATES.terminalWrite)} />
     </HydrationBoundary>
   );
 }

@@ -33,7 +33,7 @@ function renderWithClient(actorId = "actor") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <UserContainer filter={{ page: 1, pageSize: 10 }} merchantIds={[merchantId]} actorId={actorId} />
+      <UserContainer filter={{ page: 1, pageSize: 10 }} merchantIds={[merchantId]} actorId={actorId} canApproveScope />
     </QueryClientProvider>,
   );
 }
@@ -49,6 +49,7 @@ function renderWithNamedMerchants() {
         merchantIds={[merchantId, merchantB]}
         merchants={[{ id: merchantId, code: "MC000001", name: "Halo tech" }, { id: merchantB, code: "MC000002", name: "Green mart" }]}
         actorId="actor"
+        canApproveScope
       />
     </QueryClientProvider>,
   );

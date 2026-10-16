@@ -8,20 +8,21 @@ import { canLock, canUnlock } from '../utils/sub-merchant-mapper';
 export type SubMerchantRowHandlers = {
   onViewDetail: (row: SubMerchantRow) => void;
   onEdit: (row: SubMerchantRow) => void;
-  onLock: (row: SubMerchantRow) => void;
-  onUnlock: (row: SubMerchantRow) => void;
+  /** Left out for a session without LOCK_SUB_MERCHANT; the lock actions then disappear. */
+  onLock?: (row: SubMerchantRow) => void;
+  onUnlock?: (row: SubMerchantRow) => void;
 };
 
 export function SubMerchantRowActions({ item, ...handlers }: { item: SubMerchantRow } & SubMerchantRowHandlers) {
   const canEdit = canLock(item) || canUnlock(item);
   const lockAction = canLock(item)
-    ? { label: 'Khóa', icon: <Lock size={16} />, onClick: () => handlers.onLock(item) }
+    ? { label: 'Khóa', icon: <Lock size={16} />, visible: !!handlers.onLock, onClick: () => handlers.onLock?.(item) }
     : canUnlock(item)
-      ? { label: 'Mở khóa', icon: <Unlock size={16} />, onClick: () => handlers.onUnlock(item) }
+      ? { label: 'Mở khóa', icon: <Unlock size={16} />, visible: !!handlers.onUnlock, onClick: () => handlers.onUnlock?.(item) }
       : {
         label: 'Mở khóa',
         icon: <Unlock size={16} />,
-        visible: item.lockSource === 'CASCADE',
+        visible: !!handlers.onUnlock && item.lockSource === 'CASCADE',
         disabled: true,
         disabledReason: item.lockSource === 'CASCADE' ? 'Không thể mở khóa vì Master đang khóa' : 'Không thể thay đổi trạng thái',
       };
