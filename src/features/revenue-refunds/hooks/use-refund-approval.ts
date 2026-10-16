@@ -14,7 +14,7 @@ const path = (id: string, action: string) => `/v1/admin/revenue-refunds/${encode
 export function useRefundApproval() {
   const client = useQueryClient();
   const [target, setTarget] = useState<RevenueRefund | null>(null);
-  const otp = useRefundOtpStep(() => apiClient.post<SensitiveOtpChallenge>(path(target?.id ?? "", "otp-challenge"), undefined, { toast: false }));
+  const otp = useRefundOtpStep((id: string) => apiClient.post<SensitiveOtpChallenge>(path(id, "otp-challenge"), undefined, { toast: false }));
   const approval = useMutation({
     mutationFn: ({ id, code, challenge }: { id: string; code: string; challenge: SensitiveOtpChallenge }) =>
       apiClient.post<RevenueRefund>(path(id, "approve"), { sensitiveOtp: { otpSessionId: challenge.otpSessionId, otp: code } }, { toast: false }),
@@ -40,7 +40,16 @@ export function useRefundApproval() {
     }
   };
 
-  return { target, open, close, otp, approve, isApproving: approval.isPending, backToReview: otp.reset };
+  return {
+    target,
+    open,
+    close,
+    otp,
+    sendCode: () => (target ? otp.send(target.id) : Promise.resolve(false)),
+    approve,
+    isApproving: approval.isPending,
+    backToReview: otp.reset,
+  };
 }
 
 export type RefundApproval = ReturnType<typeof useRefundApproval>;

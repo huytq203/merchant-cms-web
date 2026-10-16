@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
@@ -18,13 +19,16 @@ import { DialogOrderDetail } from "./DialogOrderDetail";
 import { OrderFilter } from "./OrderFilter";
 import { OrderCreateDialog } from "./OrderCreateDialog";
 import { OrderTable } from "./OrderTable";
+import { RefundCreateDialog, type RefundOrder } from "@/features/revenue-refunds/components/RefundCreateDialog";
+import type { Order } from "../types/types";
 
 const orderFilterKey = (filter: OrderListFilter) =>
   [filter.orderCode, filter.status, filter.subMerchantId, filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
 
 type Props = {
   filter: OrderListFilter;
-  abilities: { canCreate: boolean };
+  /** canRefund: CREATE_REFUND; canViewRefunds: VIEW_REFUND. */
+  abilities: { canCreate: boolean; canRefund: boolean; canViewRefunds: boolean };
 };
 
 export function OrdersContainer({ filter, abilities }: Props) {
@@ -33,6 +37,11 @@ export function OrdersContainer({ filter, abilities }: Props) {
   const navigation = useOrderListNavigation(filter);
   const list = useQuery(orderQueries.list(filter));
   const { activeDialog, target } = dialogs;
+  const [refundOrder, setRefundOrder] = useState<RefundOrder | null>(null);
+  const startRefund = (order: Order) => {
+    actions.closeDialog();
+    setRefundOrder({ id: order.id, orderCode: order.orderCode, amount: order.amount, subMerchantName: order.subMerchantName });
+  };
   // The list row has no QR, so both the QR and the detail dialog read the order by id.
   const fresh = useQuery({
     ...orderQueries.detail(target?.id ?? ""),
@@ -97,7 +106,13 @@ export function OrdersContainer({ filter, abilities }: Props) {
           }}
         />
       )}
-      <DialogOrderDetail open={activeDialog === "detail"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />
+      <DialogOrderDetail
+        open={activeDialog === "detail"}
+        onOpenChange={(open) => !open && actions.closeDialog()}
+        refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
+        {...qrDialog}
+      />
+      {refundOrder ? <RefundCreateDialog order={refundOrder} onClose={() => setRefundOrder(null)} /> : null}
       <DialogOderQR open={activeDialog === "qr"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />
     </div>
   );

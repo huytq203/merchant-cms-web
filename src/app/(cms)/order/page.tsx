@@ -23,7 +23,11 @@ export default async function OrdersPage({ searchParams }: Props) {
       queryFn: async () => unwrapOrRedirect(await listOrders(filter)),
     });
   });
-  const abilities = { canCreate: hasPermission(user.permissions, "CREATE_ORDER") };
+  const abilities = {
+    canCreate: hasPermission(user.permissions, "CREATE_ORDER"),
+    canRefund: hasPermission(user.permissions, "CREATE_REFUND"),
+    canViewRefunds: hasPermission(user.permissions, "VIEW_REFUND"),
+  };
   return (
     <HydrationBoundary state={state}>
       <OrdersContainer filter={filter} abilities={abilities} />

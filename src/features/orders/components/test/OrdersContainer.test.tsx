@@ -15,7 +15,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const base = "/api/v1/admin/orders";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const filter: OrderListFilter = { page: 1, pageSize: 10 };
-const abilities = { canCreate: true };
+const abilities = { canCreate: true, canRefund: true, canViewRefunds: true };
 const makeOrder = (overrides: Partial<Order>): Order => ({
   id: "33333333-3333-4333-8333-333333333333",
   merchantId,
@@ -87,7 +87,7 @@ describe("orders container states", () => {
   });
 
   it("hides the create button without CREATE_ORDER", async () => {
-    renderContainer({ abilities: { canCreate: false } });
+    renderContainer({ abilities: { ...abilities, canCreate: false } });
     await screen.findByText("INV-1");
     expect(screen.queryByRole("button", { name: /Tạo đơn hàng/ })).not.toBeInTheDocument();
   });
@@ -292,6 +292,18 @@ describe("order detail", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
     expect(await screen.findByText(/không cần làm gì/)).toBeInTheDocument();
     expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
+  });
+
+  it("starts a revenue refund from a paid order, closing the detail first", async () => {
+    const order = makeOrder({ status: "SUCCESS" });
+    listReturns([order]);
+    mswServer.use(http.get(`${base}/${order.id}`, () => HttpResponse.json(order)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Hoàn tiền" }));
+    const dialog = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
+    expect(dialog).toHaveTextContent("Giao dịch INV-1");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
   it("shows the QR with its countdown for an unpaid order", async () => {

@@ -37,7 +37,7 @@ export function RefundApproveDialog({ approval, subNames }: Props) {
               submitLabel="Phê duyệt"
               backLabel="Quay lại"
               onSubmit={(code) => void approval.approve(code)}
-              onResend={() => void otp.send()}
+              onResend={() => void otp.resend()}
               onBack={approval.backToReview}
             />
           </DialogBody>
@@ -57,7 +57,7 @@ export function RefundApproveDialog({ approval, subNames }: Props) {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={approval.close}>Hủy</Button>
-              <Button type="button" variant="solid" isLoading={otp.isRequesting} onClick={() => void otp.send()}>Gửi mã OTP</Button>
+              <Button type="button" variant="solid" isLoading={otp.isRequesting} onClick={() => void approval.sendCode()}>Gửi mã OTP</Button>
             </DialogFooter>
           </>
         )}

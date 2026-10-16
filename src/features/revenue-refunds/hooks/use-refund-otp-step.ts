@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ApiError } from "@/lib/http/api-client";
 import type { SensitiveOtpChallenge } from "@/lib/schemas/sensitive-otp";
 
@@ -13,17 +13,22 @@ export function describeRefundError(error: unknown): string {
   return error.message;
 }
 
-/** The challenge, the last failure and the send/resend calls shared by creating and approving a refund. */
-export function useRefundOtpStep(requestCode: () => Promise<SensitiveOtpChallenge>) {
+/**
+ * The challenge, the last failure and the send/resend calls shared by creating and approving a refund.
+ * `send` takes what the code is bound to (a refund id, or an order and amount); `resend` reuses it.
+ */
+export function useRefundOtpStep<TTarget>(requestCode: (target: TTarget) => Promise<SensitiveOtpChallenge>) {
   const [challenge, setChallenge] = useState<SensitiveOtpChallenge | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
+  const lastTarget = useRef<TTarget | null>(null);
 
-  const send = async (): Promise<boolean> => {
+  const send = async (target: TTarget): Promise<boolean> => {
+    lastTarget.current = target;
     setFailure(null);
     setIsRequesting(true);
     try {
-      setChallenge(await requestCode());
+      setChallenge(await requestCode(target));
       return true;
     } catch (error) {
       setFailure(describeRefundError(error));
@@ -33,10 +38,14 @@ export function useRefundOtpStep(requestCode: () => Promise<SensitiveOtpChalleng
     }
   };
 
+  const resend = () => (lastTarget.current === null ? Promise.resolve(false) : send(lastTarget.current));
+
   const reset = () => {
     setChallenge(null);
     setFailure(null);
   };
 
-  return { challenge, failure, setFailure, isRequesting, send, reset };
+  return { challenge, failure, setFailure, isRequesting, send, resend, reset };
 }
+
+export type RefundOtpStep = ReturnType<typeof useRefundOtpStep>;
