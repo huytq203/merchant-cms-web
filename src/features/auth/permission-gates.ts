@@ -12,4 +12,5 @@ export const PERMISSION_GATES = {
   bankAccountRead: ["VIEW_BANK_ACCOUNT", "MANAGE_BANK_ACCOUNT", "CREATE_WITHDRAWAL"],
   bankAccountWrite: ["MANAGE_BANK_ACCOUNT"],
   userScopeApprove: ["APPROVE_USER_SCOPE"],
+  sensitiveOtp: ["MANAGE_SUB_MERCHANT", "MANAGE_BANK_ACCOUNT"],
 } as const satisfies Record<string, readonly MerchantPermission[]>;

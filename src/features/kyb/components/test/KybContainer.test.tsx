@@ -48,11 +48,11 @@ function serve(profile: MerchantProfile) {
   );
 }
 
-function renderContainer() {
+function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <KybContainer merchantId={merchantId} />
+      <KybContainer merchantId={merchantId} canManage={canManage} />
     </QueryClientProvider>,
   );
 }
@@ -106,6 +106,21 @@ describe("KYB container states", () => {
     expect(screen.getByRole("list", { name: "Tiến trình xử lý hồ sơ" })).toBeInTheDocument();
     expect(screen.getByText("0123456789")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Tiếp tục|Lưu nháp|Cập nhật hồ sơ/ })).not.toBeInTheDocument();
+  });
+
+  it("shows a draft read only, with no way to change or submit it, without MANAGE_SUB_MERCHANT", async () => {
+    serve(profileOf(draftWallet));
+    renderContainer(false);
+    expect(await screen.findByText("0123456789")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Tiếp tục|Lưu nháp|Cập nhật hồ sơ/ })).not.toBeInTheDocument();
+  });
+
+  it("hides the update action on a verified dossier without MANAGE_SUB_MERCHANT", async () => {
+    serve(profileOf({ ...draftWallet, verificationStatus: "VERIFIED" }, "ACTIVE"));
+    renderContainer(false);
+    await userEvent.click(await screen.findByRole("tab", { name: "Xác thực KYB" }));
+    expect(screen.getByText("0123456789")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cập nhật hồ sơ" })).not.toBeInTheDocument();
   });
 
   it("shows the rejection reason above the form and no draft save", async () => {

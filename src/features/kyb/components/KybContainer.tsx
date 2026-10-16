@@ -10,11 +10,12 @@ import { kybQueries } from "../kyb-queries";
 import { KybTab } from "./KybTab";
 import { MerchantTab } from "./MerchantTab";
 
-type Props = { merchantId: string };
+/** `canManage` is MANAGE_SUB_MERCHANT, read on the server: without it the dossier is shown read only. */
+type Props = { merchantId: string; canManage: boolean };
 
 type TabName = "kyb" | "merchant";
 
-export function KybContainer({ merchantId }: Props) {
+export function KybContainer({ merchantId, canManage }: Props) {
   const profile = useQuery(kybQueries.profile(merchantId));
   const merchant = profile.data;
   const wallet = merchant?.enterpriseWallet;
@@ -41,10 +42,10 @@ export function KybContainer({ merchantId }: Props) {
             <TabsTrigger value="merchant">Đăng ký ĐVCNTT</TabsTrigger>
           </TabsList>
           <TabsContent value="kyb" className="mt-4 rounded-xl border border-border bg-background p-5">
-            <KybTab merchantId={merchantId} wallet={wallet} onRefreshLinks={() => void profile.refetch()} />
+            <KybTab merchantId={merchantId} wallet={wallet} canManage={canManage} onRefreshLinks={() => void profile.refetch()} />
           </TabsContent>
           <TabsContent value="merchant" className="mt-4 rounded-xl border border-border bg-background p-5">
-            <MerchantTab merchant={merchant} onRefreshLinks={() => void profile.refetch()} />
+            <MerchantTab merchant={merchant} canManage={canManage} onRefreshLinks={() => void profile.refetch()} />
           </TabsContent>
         </Tabs>
       )}

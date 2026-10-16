@@ -24,7 +24,7 @@ const pdf = () => new File(["pdf"], "license.pdf", { type: "application/pdf" });
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
   uploadDocument.mockResolvedValue({ success: true, data: { stagingId } });
 });
 
@@ -36,7 +36,13 @@ describe("KYB document upload route", () => {
   });
 
   it("returns 403 when the session has no merchant scope", async () => {
-    getServerSession.mockResolvedValue({ merchantIds: [] });
+    getServerSession.mockResolvedValue({ merchantIds: [], permissions: ["MANAGE_SUB_MERCHANT"] });
+    expect((await POST(upload(pdf()))).status).toBe(403);
+    expect(uploadDocument).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 without MANAGE_SUB_MERCHANT", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["VIEW_ORDER"] });
     expect((await POST(upload(pdf()))).status).toBe(403);
     expect(uploadDocument).not.toHaveBeenCalled();
   });

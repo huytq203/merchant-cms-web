@@ -13,8 +13,8 @@ import { MerchantProcessSteps } from "./MerchantProcessSteps";
 
 type Props = {
   wallet: EnterpriseWallet;
-  /** Offered for a verified dossier: opens the form to change it (identity changes go back to review). */
-  onEdit: () => void;
+  /** Offered for a verified dossier the session may manage: opens the form (identity changes go back to review). */
+  onEdit?: () => void;
 };
 
 function storedDocuments(wallet: EnterpriseWallet): string {
@@ -26,7 +26,7 @@ function storedDocuments(wallet: EnterpriseWallet): string {
   return names.filter(Boolean).join(", ");
 }
 
-/** A dossier that is under review or verified: read only, with the review progress while it is pending. */
+/** A dossier shown read only (under review, verified, or to a session that cannot manage it), with the review progress while pending. */
 export function KybOverview({ wallet, onEdit }: Props) {
   const status = WALLET_STATUS_LABELS[wallet.verificationStatus];
   const steps = kybTimeline(wallet);
@@ -41,7 +41,7 @@ export function KybOverview({ wallet, onEdit }: Props) {
             <span className="text-xs text-muted-foreground">Gửi lúc {formatDate(wallet.updatedAt)}</span>
           )}
         </div>
-        {!pending && <Button type="button" variant="outline" onClick={onEdit}>Cập nhật hồ sơ</Button>}
+        {!pending && onEdit && <Button type="button" variant="outline" onClick={onEdit}>Cập nhật hồ sơ</Button>}
       </header>
       {pending && (
         <>

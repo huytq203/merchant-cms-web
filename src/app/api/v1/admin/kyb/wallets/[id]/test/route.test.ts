@@ -32,7 +32,7 @@ function put(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
   getMerchant.mockResolvedValue({
     success: true,
     data: { id: merchantId, status: "ACTIVE", enterpriseWalletId: walletId },
@@ -42,6 +42,14 @@ beforeEach(() => {
 });
 
 describe("KYB wallet routes", () => {
+  it("returns 403 without MANAGE_SUB_MERCHANT and does not forward", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["VIEW_ORDER"] });
+    expect((await PUT(put({}), context(walletId))).status).toBe(403);
+    expect((await SUBMIT(submitRequest(), context(walletId))).status).toBe(403);
+    expect(updateWallet).not.toHaveBeenCalled();
+    expect(submitWallet).not.toHaveBeenCalled();
+  });
+
   it("returns 401 without a session", async () => {
     getServerSession.mockResolvedValue(null);
     expect((await PUT(put({}), context(walletId))).status).toBe(401);

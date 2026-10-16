@@ -4,7 +4,7 @@ import { sensitiveOtpSchema } from "@/lib/schemas/sensitive-otp";
 import { invalidIdResponse } from "@/lib/be/route-id";
 import { updateWallet } from "@/server/modules/kyb/kyb.service";
 import {
-  requireKybAccess,
+  requireKybWriteAccess,
   requireOwnedWallet,
   toRouteResponse,
 } from "@/server/modules/kyb/require-kyb-access";
@@ -12,7 +12,7 @@ import {
 type Context = { params: Promise<{ id: string }> };
 
 export async function PUT(request: Request, context: Context) {
-  const access = await requireKybAccess();
+  const access = await requireKybWriteAccess();
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);

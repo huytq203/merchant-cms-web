@@ -40,11 +40,11 @@ function profileOf(status: MerchantProfile["status"], wallet: EnterpriseWallet =
   return { id: merchantId, status, name: "Quán A", enterpriseWalletId: walletId, enterpriseWallet: wallet };
 }
 
-function renderContainer() {
+function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <KybContainer merchantId={merchantId} />
+      <KybContainer merchantId={merchantId} canManage={canManage} />
     </QueryClientProvider>,
   );
 }
@@ -68,6 +68,13 @@ describe("ĐVCNTT profile", () => {
     expect(screen.getAllByText("Công ty A").length).toBeGreaterThan(0);
     expect(screen.getByText("0312345678")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the ĐVCNTT dossier without the form when the session cannot manage it", async () => {
+    serve(profileOf("DRAFT"));
+    renderContainer(false);
+    expect(await screen.findByRole("tab", { name: "Đăng ký ĐVCNTT", selected: true })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Gửi duyệt|Lưu nháp/ })).not.toBeInTheDocument();
   });
 
   it("does not open the form while a registration condition is unmet, and points to the missing step", async () => {

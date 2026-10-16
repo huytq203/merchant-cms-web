@@ -4,6 +4,7 @@ import { invalidIdResponse } from "@/lib/be/route-id";
 import { getMerchant, updateMerchant } from "@/server/modules/kyb/kyb.service";
 import {
   requireKybAccess,
+  requireKybWriteAccess,
   requireMerchantScope,
   toRouteResponse,
 } from "@/server/modules/kyb/require-kyb-access";
@@ -24,7 +25,7 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function PUT(request: Request, context: Context) {
-  const access = await requireKybAccess();
+  const access = await requireKybWriteAccess();
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);

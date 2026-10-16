@@ -1,6 +1,7 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
 import { requirePermission, type PermissionAccess } from "@/server/auth/require-permission";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import type { BeError } from "@/lib/be/errors";
@@ -13,12 +14,19 @@ type ServiceResult<T> =
 
 const NOT_FOUND_MESSAGE = "Không tìm thấy hồ sơ";
 
-/**
- * The BE has no KYB-specific permission in `MerchantPermission` yet, so the guard asks for a valid
- * session that is scoped to at least one merchant; ownership is checked per resource below.
- */
+/** Reading a dossier needs no permission, only a session scoped to a merchant; ownership is checked per resource below. */
 export function requireKybAccess(): Promise<PermissionAccess> {
   return requirePermission(undefined, { requireMerchant: true });
+}
+
+/** Changing, submitting or uploading for a dossier is MANAGE_SUB_MERCHANT on the BE. */
+export function requireKybWriteAccess(): Promise<PermissionAccess> {
+  return requirePermission(PERMISSION_GATES.subMerchantManage, { requireMerchant: true });
+}
+
+/** The shared sensitive-operation code is issued to whoever may change a dossier or a bank account. */
+export function requireKybOtpAccess(): Promise<PermissionAccess> {
+  return requirePermission(PERMISSION_GATES.sensitiveOtp, { requireMerchant: true });
 }
 
 function notFound() {

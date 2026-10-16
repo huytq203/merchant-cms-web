@@ -20,12 +20,18 @@ const request = (taxCode: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: [] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
   getMerchant.mockResolvedValue({ success: true, data: { id: merchantId, status: "ACTIVE", enterpriseWalletId: walletId } });
   getTaxCodeUsage.mockResolvedValue({ success: true, data: ["Công ty Khác"] });
 });
 
 describe("KYB tax code usage route", () => {
+  it("returns 403 without MANAGE_SUB_MERCHANT", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["VIEW_ORDER"] });
+    expect((await GET(request("0123456789"), context(walletId))).status).toBe(403);
+    expect(getTaxCodeUsage).not.toHaveBeenCalled();
+  });
+
   it("returns 401 without a session", async () => {
     getServerSession.mockResolvedValue(null);
     expect((await GET(request("0123456789"), context(walletId))).status).toBe(401);

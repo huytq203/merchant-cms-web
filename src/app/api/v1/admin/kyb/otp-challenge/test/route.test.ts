@@ -14,7 +14,7 @@ const challenge = { otpSessionId: "s-1", maskedRecipient: "ow***@example.com", e
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: ["11111111-1111-4111-8111-111111111111"], permissions: [] });
+  getServerSession.mockResolvedValue({ merchantIds: ["11111111-1111-4111-8111-111111111111"], permissions: ["MANAGE_SUB_MERCHANT"] });
   requestKybOtp.mockResolvedValue({ success: true, data: challenge });
 });
 
@@ -23,6 +23,17 @@ describe("KYB OTP challenge route", () => {
     getServerSession.mockResolvedValue(null);
     expect((await POST()).status).toBe(401);
     expect(requestKybOtp).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 without MANAGE_SUB_MERCHANT or MANAGE_BANK_ACCOUNT", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: ["11111111-1111-4111-8111-111111111111"], permissions: ["VIEW_ORDER"] });
+    expect((await POST()).status).toBe(403);
+    expect(requestKybOtp).not.toHaveBeenCalled();
+  });
+
+  it("also issues the code for a session holding only MANAGE_BANK_ACCOUNT", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: ["11111111-1111-4111-8111-111111111111"], permissions: ["MANAGE_BANK_ACCOUNT"] });
+    expect((await POST()).status).toBe(200);
   });
 
   it("returns the challenge for a signed-in merchant user", async () => {

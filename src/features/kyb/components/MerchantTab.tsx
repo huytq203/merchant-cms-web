@@ -9,12 +9,13 @@ import { canEditMerchant, registrationConditions } from "../utils/merchant-mappe
 
 type Props = {
   merchant: MerchantProfile;
+  canManage: boolean;
   onRefreshLinks: () => void;
 };
 
 /** Register as a payment acceptor: blocked until KYB and bank are done, then the form, then read only. */
-export function MerchantTab({ merchant, onRefreshLinks }: Props) {
-  if (!canEditMerchant(merchant)) return <MerchantOverview merchant={merchant} />;
+export function MerchantTab({ merchant, canManage, onRefreshLinks }: Props) {
+  if (!canManage || !canEditMerchant(merchant)) return <MerchantOverview merchant={merchant} />;
   const { kybVerified, bankLinked } = registrationConditions(merchant);
   const ready = kybVerified && bankLinked;
   return (

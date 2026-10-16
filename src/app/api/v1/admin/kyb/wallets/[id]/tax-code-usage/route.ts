@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { invalidIdResponse } from "@/lib/be/route-id";
 import { getTaxCodeUsage } from "@/server/modules/kyb/kyb.service";
 import {
-  requireKybAccess,
+  requireKybWriteAccess,
   requireOwnedWallet,
   toRouteResponse,
 } from "@/server/modules/kyb/require-kyb-access";
@@ -13,7 +13,7 @@ const TAX_CODE = /^[0-9-]{10,13}$/;
 
 /** The warning under the tax-code field: which other wallets already hold this code. */
 export async function GET(request: Request, context: Context) {
-  const access = await requireKybAccess();
+  const access = await requireKybWriteAccess();
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);

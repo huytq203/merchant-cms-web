@@ -15,10 +15,11 @@ import { KybOverview } from "./KybOverview";
 type Props = {
   merchantId: string;
   wallet: EnterpriseWallet;
+  canManage: boolean;
   onRefreshLinks: () => void;
 };
 
-type FormProps = Props & { onSent: (outcome: "sent" | "saved") => void; onCancel?: () => void };
+type FormProps = Omit<Props, "canManage"> & { onSent: (outcome: "sent" | "saved") => void; onCancel?: () => void };
 
 function RejectionNotice({ wallet }: { wallet: EnterpriseWallet }) {
   return (
@@ -63,16 +64,18 @@ function KybFlow({ merchantId, wallet, onRefreshLinks, onSent, onCancel }: FormP
 
 /** Which view of the KYB dossier fits its status: the form to fill, the OTP, or the read-only overview. */
 export function KybTab(props: Props) {
-  const { wallet } = props;
+  const { wallet, canManage, ...flowProps } = props;
   const [editing, setEditing] = useState(false);
   const [sent, setSent] = useState(false);
 
   if (sent) return <KybDone onContinue={() => setSent(false)} />;
+  if (!canManage) return <KybOverview wallet={wallet} />;
   const showForm = canEditKyb(wallet) || editing;
   if (!showForm) return <KybOverview wallet={wallet} onEdit={() => setEditing(true)} />;
   return (
     <KybFlow
-      {...props}
+      {...flowProps}
+      wallet={wallet}
       key={wallet.verificationStatus}
       onCancel={() => setEditing(false)}
       onSent={(outcome) => {

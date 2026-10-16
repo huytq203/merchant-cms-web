@@ -32,13 +32,22 @@ function put(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getServerSession.mockResolvedValue({ merchantIds: [merchantId] });
+  getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] });
   getMerchant.mockResolvedValue({ success: true, data: { id: merchantId, status: "DRAFT" } });
   updateMerchant.mockResolvedValue({ success: true, data: { id: merchantId, status: "DRAFT" } });
   submitMerchant.mockResolvedValue({ success: true, data: { id: merchantId, status: "PENDING_APPROVAL" } });
 });
 
 describe("KYB merchant routes", () => {
+  it("lets a session without MANAGE_SUB_MERCHANT read the dossier but not change or submit it", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [merchantId], permissions: ["VIEW_ORDER"] });
+    expect((await GET(new Request(url), context(merchantId))).status).toBe(200);
+    expect((await PUT(put(values), context(merchantId))).status).toBe(403);
+    expect((await SUBMIT(new Request(url, { method: "POST" }), context(merchantId))).status).toBe(403);
+    expect(updateMerchant).not.toHaveBeenCalled();
+    expect(submitMerchant).not.toHaveBeenCalled();
+  });
+
   it("returns 401 without a session", async () => {
     getServerSession.mockResolvedValue(null);
     expect((await GET(new Request(url), context(merchantId))).status).toBe(401);

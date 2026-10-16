@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { DOCUMENT_RULES } from "@/features/kyb/constants/document-rules";
 import { isDocumentType, validateDocumentFile } from "@/features/kyb/utils/document-validation";
 import { uploadDocument } from "@/server/modules/kyb/kyb.service";
-import { requireKybAccess, toRouteResponse } from "@/server/modules/kyb/require-kyb-access";
+import { requireKybWriteAccess, toRouteResponse } from "@/server/modules/kyb/require-kyb-access";
 
 /** Largest allowed file plus room for the multipart envelope; bigger bodies are refused unread. */
 const MAX_BODY_BYTES = Math.max(...Object.values(DOCUMENT_RULES).map((rule) => rule.maxBytes)) + 1024 * 1024;
@@ -12,7 +12,7 @@ function badRequest(message: string) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireKybAccess();
+  const access = await requireKybWriteAccess();
   if (!access.ok) return access.response;
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) return badRequest("Tệp vượt quá dung lượng cho phép");

@@ -1,6 +1,8 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { AccessDenied } from "@/features/auth/components/access-denied";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
+import { hasAnyPermission } from "@/features/auth/permissions";
 import { KybContainer } from "@/features/kyb/components/KybContainer";
 import { kybQueries } from "@/features/kyb/kyb-queries";
 import { getServerSession } from "@/lib/auth/session";
@@ -31,7 +33,7 @@ export default async function MerchantsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <KybContainer merchantId={merchantId} />
+      <KybContainer merchantId={merchantId} canManage={hasAnyPermission(session.permissions, PERMISSION_GATES.subMerchantManage)} />
     </HydrationBoundary>
   );
 }
