@@ -25,5 +25,6 @@ export async function POST(request: Request, context: Context) {
   if (user instanceof NextResponse) return user;
   const forbidden = requireSubMerchantScope(access.user, body.data.subMerchantIds);
   if (forbidden) return forbidden;
-  return serviceResponse(await createScopeProposal(id, body.data), 201);
+  const result = await createScopeProposal(id, body.data);
+  return serviceResponse(result, result.success && result.data.status === "APPROVED" ? 200 : 201);
 }

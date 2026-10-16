@@ -5,7 +5,7 @@ import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
 import type { BeResult } from "@/lib/be/client";
-import { merchantUserSchema, scopeProposalSchema, type MerchantUser, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
+import { merchantUserSchema, scopeChangeResultSchema, scopeProposalSchema, type MerchantUser, type ScopeChangeResult, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
 import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils/user-mapper";
 import { userPaths } from "./user.paths";
 
@@ -69,11 +69,11 @@ export function resendUserActivation(id: string): Promise<BeResult<{ id: string 
   return merchantClient().post({ path: userPaths.resendActivation(id), schema: z.object({ id: z.uuid() }) });
 }
 
-/** The BE answers with a portal-shaped proposal, so only the id is checked; the page refetches the proposal itself. */
-export async function createScopeProposal(id: string, values: ScopeProposalFormValues): Promise<BeResult<{ id: string }>> {
+/** Only the id and status are read; the page refetches the proposal itself. A narrowing is applied at once and has no id. */
+export async function createScopeProposal(id: string, values: ScopeProposalFormValues): Promise<BeResult<ScopeChangeResult>> {
   return merchantClient().post({
     path: userPaths.createScopeProposal(id),
-    schema: z.object({ id: z.uuid() }),
+    schema: scopeChangeResultSchema,
     body: { subMerchantIds: values.subMerchantIds, reason: values.reason },
   });
 }

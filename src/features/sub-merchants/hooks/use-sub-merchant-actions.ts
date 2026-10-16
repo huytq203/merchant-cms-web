@@ -15,9 +15,10 @@ export function useSubMerchantActions(dialogs: SubMerchantDialogs) {
 
   const saveForm = async (values: SubMerchantSubmitValues) => {
     try {
-      await save.mutateAsync({ ...values, phone: values.phone ?? '', address: values.address ?? '' });
+      const saved = await save.mutateAsync({ ...values, phone: values.phone ?? '', address: values.address ?? '' });
       dialogs.close();
       toast.success('Lưu Sub-merchant thành công');
+      if (saved.settlementBankAccountWarning) toast.warning(saved.settlementBankAccountWarning);
     } catch {
       // The form stays open and shows the save error so the user can retry.
     }

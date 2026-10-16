@@ -8,6 +8,9 @@ import { mswServer } from "@/test/msw";
 import type { MerchantUser } from "../../schemas/user.schema";
 import { UserModal } from "../UserModal";
 
+const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast }));
+
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const groupId = "33333333-3333-4333-8333-333333333333";
 const otherGroupId = "66666666-6666-4666-8666-666666666666";
@@ -268,6 +271,29 @@ describe("user modal: update, name and scope", () => {
     await userEvent.type(screen.getByRole("textbox", { name: /Lý do đề xuất/ }), "Phụ trách thêm cửa hàng mới");
     await userEvent.click(screen.getByRole("button", { name: "Gửi đề xuất" }));
     await waitFor(() => expect(body).toEqual({ subMerchantIds: [subMerchantId], reason: "Phụ trách thêm cửa hàng mới" }));
+  });
+
+  it("says a narrowed scope is already in force instead of waiting for approval", async () => {
+    mswServer.use(http.post("/api/v1/merchant/merchant-users/:id/scope-proposals", () =>
+      HttpResponse.json({ id: null, status: "APPROVED" }, { status: 200, headers: { "X-Api-Message": "Scope%20narrowing%20applied" } })));
+    renderModal({ user: { ...existingUser, subMerchantIds: [subMerchantId] }, actorId: "someone-else" });
+    await userEvent.click(await screen.findByRole("button", { name: "Đề xuất đổi phạm vi" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: /Lý do đề xuất/ }), "Thu hẹp bớt cửa hàng phụ trách");
+    await userEvent.click(screen.getByRole("button", { name: "Gửi đề xuất" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/có hiệu lực ngay/)));
+    expect(toast.success).not.toHaveBeenCalledWith("Scope narrowing applied");
+  });
+
+  it("tells the user a scope increase was sent for approval", async () => {
+    mswServer.use(http.post("/api/v1/merchant/merchant-users/:id/scope-proposals", () =>
+      HttpResponse.json({ id: existingUser.id, status: "PENDING_APPROVAL" }, { status: 201 })));
+    renderModal({ user: existingUser, actorId: "someone-else" });
+    await userEvent.click(await screen.findByRole("button", { name: "Đề xuất đổi phạm vi" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: /Lý do đề xuất/ }), "Phụ trách thêm cửa hàng mới");
+    await userEvent.click(screen.getByRole("button", { name: "Gửi đề xuất" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/chờ duyệt/)));
   });
 
   it("shows a pending proposal and blocks a second one", async () => {

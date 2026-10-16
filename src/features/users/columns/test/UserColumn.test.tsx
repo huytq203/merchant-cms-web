@@ -41,6 +41,16 @@ function renderTable(user: MerchantUser, onReset = vi.fn()) {
 afterEach(cleanup);
 
 describe("user columns", () => {
+  it("flags a user who no longer belongs to any merchant or sub-merchant", () => {
+    renderTable({ ...base, noMerchantScope: true });
+    expect(screen.getByText("Không còn phạm vi")).toBeInTheDocument();
+  });
+
+  it("does not flag a user who still has a scope", () => {
+    renderTable({ ...base, noMerchantScope: false });
+    expect(screen.queryByText("Không còn phạm vi")).not.toBeInTheDocument();
+  });
+
   it("shows name, email, two group labels and the remaining count", () => {
     renderTable(base);
     expect(screen.getByText("Nguyễn Văn Kiên")).toBeInTheDocument();

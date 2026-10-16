@@ -22,6 +22,8 @@ export const merchantUserSchema = z.object({
   subMerchantIds: z.array(z.uuid()),
   rolesText: z.string(),
   createdAt: z.string(),
+  /** True when the user no longer holds any merchant or sub-merchant, e.g. after a termination; an admin must reassign or lock them. */
+  noMerchantScope: z.boolean().optional(),
 });
 
 export const scopeProposalSchema = z.object({
@@ -34,6 +36,15 @@ export const scopeProposalSchema = z.object({
   decisionReason: z.string().nullable(),
   createdAt: z.string(),
   decidedAt: z.string().nullable(),
+});
+
+/**
+ * Answer to a scope change. Adding access waits for approval and carries the proposal id; a change that only
+ * narrows the scope is applied at once (`APPROVED`) and has no proposal, so `id` is null.
+ */
+export const scopeChangeResultSchema = z.object({
+  id: z.uuid().nullable(),
+  status: scopeProposalStatusSchema.optional(),
 });
 
 export const SCOPE_REASON_MIN_LENGTH = 10;
@@ -56,5 +67,6 @@ export const userFormSchema = z.object({
 export type MerchantUser = z.infer<typeof merchantUserSchema>;
 export type MerchantUserStatus = z.infer<typeof merchantUserStatusSchema>;
 export type ScopeProposal = z.infer<typeof scopeProposalSchema>;
+export type ScopeChangeResult = z.infer<typeof scopeChangeResultSchema>;
 export type ScopeProposalFormValues = z.input<typeof scopeProposalFormSchema>;
 export type UserFormValues = z.input<typeof userFormSchema>;

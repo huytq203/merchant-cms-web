@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/sub-merchants',
   useSearchParams: () => new URLSearchParams(currentSearch),
 }));
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: { success: vi.fn(), warning: vi.fn() } }));
 const filter = { page: 1, pageSize: 10 };
 const row: SubMerchantRow = {
   id: 'one',
@@ -89,6 +89,28 @@ describe('sub merchants container', () => {
     await waitFor(() => expect(body).toMatchObject({ name: 'New shop' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('keeps the created sub merchant and surfaces the settlement bank account warning as a warning, not an error', async () => {
+    const warning = 'Master chưa có tài khoản nhận doanh thu mặc định. Sub-merchant này chưa tạo được lệnh rút.';
+    mswServer.use(http.post(base, () => HttpResponse.json({ ...detail, settlementBankAccountId: null, settlementBankAccountWarning: warning })));
+    renderContainer({ rows: [row], total: 1 });
+    await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
+    await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(toast.success).toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith(warning);
+  });
+
+  it('does not warn when the created sub merchant can already withdraw', async () => {
+    mswServer.use(http.post(base, () => HttpResponse.json({ ...detail, settlementBankAccountId: '99999999-9999-4999-8999-999999999999', settlementBankAccountWarning: null })));
+    renderContainer({ rows: [row], total: 1 });
+    await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
+    await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+    await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(toast.warning).not.toHaveBeenCalled();
   });
 
   it('loads detail for viewing and editing, then sends an update', async () => {

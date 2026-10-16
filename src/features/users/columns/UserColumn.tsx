@@ -102,7 +102,12 @@ export function buildUserColumns(actions: Actions, page: number, pageSize: numbe
       id: "status",
       meta: { align: "center" },
       header: "Trạng thái",
-      cell: ({ row }) => <UserStatusBadge status={userStatusOf(row.original)} />,
+      cell: ({ row }) => (
+        <div className="flex flex-col items-center gap-1">
+          <UserStatusBadge status={userStatusOf(row.original)} />
+          {row.original.noMerchantScope ? <StatusBadge label="Không còn phạm vi" tone="warning" /> : null}
+        </div>
+      ),
     },
     {
       id: "actions",

@@ -56,4 +56,16 @@ describe("scope proposal create route (POST)", () => {
     expect(createScopeProposal).toHaveBeenCalledWith(userId, valid);
     expect(response.headers.get("X-Api-Message")).toBe(encodeURIComponent("Create scope proposal success"));
   });
+
+  it("answers 200 and keeps the null id when the change only narrows the scope and is applied at once", async () => {
+    createScopeProposal.mockResolvedValue({ success: true, data: { id: null, status: "APPROVED" }, message: "Scope narrowing applied" });
+    const response = await post(valid);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: null, status: "APPROVED" });
+  });
+
+  it("still answers 201 for a proposal that waits for approval", async () => {
+    createScopeProposal.mockResolvedValue({ success: true, data: { id: "p-1", status: "PENDING_APPROVAL" } });
+    expect((await post(valid)).status).toBe(201);
+  });
 });

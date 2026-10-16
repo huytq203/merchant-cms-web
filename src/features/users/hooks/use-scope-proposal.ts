@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { ApiError, apiClient } from "@/lib/http/api-client";
-import type { ScopeProposal, ScopeProposalFormValues } from "../schemas/user.schema";
+import type { ScopeChangeResult, ScopeProposal, ScopeProposalFormValues } from "../schemas/user.schema";
 
 const root = "/v1/merchant/merchant-users";
 
@@ -33,9 +34,14 @@ export function useCreateScopeProposal() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: ScopeProposalFormValues }) =>
-      apiClient.post<{ id: string }>(itemPath(id, "scope-proposals"), values, {
-        toast: { fallback: "Đã gửi đề xuất đổi phạm vi" },
-      }),
-    onSuccess: (_created, { id }) => client.invalidateQueries({ queryKey: ["users", "scope-proposal", id] }),
+      apiClient.post<ScopeChangeResult>(itemPath(id, "scope-proposals"), values, { toast: false }),
+    onSuccess: (created, { id }) => {
+      // The BE message is English, and narrowing and adding mean different things to the user, so the text is chosen here.
+      toast.success(created.status === "APPROVED"
+        ? "Đã thu hẹp phạm vi, có hiệu lực ngay"
+        : "Đã gửi đề xuất đổi phạm vi, chờ duyệt");
+      void client.invalidateQueries({ queryKey: ["users", "list"] });
+      return client.invalidateQueries({ queryKey: ["users", "scope-proposal", id] });
+    },
   });
 }

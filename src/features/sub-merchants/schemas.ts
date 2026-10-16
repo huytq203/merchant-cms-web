@@ -48,6 +48,9 @@ export const subMerchantDetailSchema = z.object({
   address: inheritedFieldSchema(z.string()),
   createdAt: z.string().nullish(),
   updatedAt: z.string().nullish(),
+  /** Only a create response carries these; a later read returns null for both. */
+  settlementBankAccountId: z.uuid().nullish(),
+  settlementBankAccountWarning: z.string().nullish(),
 });
 
 export const subMerchantFilterSchema = z.object({
