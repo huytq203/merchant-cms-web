@@ -18,6 +18,7 @@ import {
   PiggyBank,
   ListChecks,
   Vault,
+  CalendarClock,
 } from "lucide-react";
 
 export interface SubPage {
@@ -212,6 +213,12 @@ export const routesConfig: SidebarSection[] = [
         href: "/escrow",
         requiresMerchant: true,
         icon: <Vault className="w-4 h-4" />,
+      },
+      {
+        title: "Lịch giải phóng tạm giữ",
+        permission: "VIEW_HOLD",
+        href: "/hold-calendar",
+        icon: <CalendarClock className="w-4 h-4" />,
       },
     ],
   },
