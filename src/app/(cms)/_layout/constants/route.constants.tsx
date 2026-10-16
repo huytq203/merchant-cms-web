@@ -17,6 +17,7 @@ import {
   BadgeCheck,
   PiggyBank,
   ListChecks,
+  Vault,
 } from "lucide-react";
 
 export interface SubPage {
@@ -204,6 +205,13 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_BALANCE",
         href: "/settlement-items",
         icon: <ListChecks className="w-4 h-4" />,
+      },
+      {
+        title: "Ký quỹ",
+        permission: "VIEW_ESCROW",
+        href: "/escrow",
+        requiresMerchant: true,
+        icon: <Vault className="w-4 h-4" />,
       },
     ],
   },
