@@ -19,6 +19,7 @@ import {
   ListChecks,
   Vault,
   CalendarClock,
+  Undo2,
 } from "lucide-react";
 
 export interface SubPage {
@@ -219,6 +220,12 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_HOLD",
         href: "/hold-calendar",
         icon: <CalendarClock className="w-4 h-4" />,
+      },
+      {
+        title: "Hoàn tiền doanh thu",
+        permission: "VIEW_REFUND",
+        href: "/revenue-refunds",
+        icon: <Undo2 className="w-4 h-4" />,
       },
     ],
   },
