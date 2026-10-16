@@ -1,8 +1,8 @@
-'use client';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
+"use client";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -13,20 +13,20 @@ import {
   Textarea,
   FileUpload,
   Select,
-} from '@/components/ui';
-import type { Transaction } from '../types';
+} from "@/components/ui";
+import type { Transaction } from "../types";
 
 const RECONCILIATION_REASONS = [
-  { label: 'Giao dịch bị tính phí nhầm', value: 'wrong_charge' },
-  { label: 'Giao dịch không được xử lý', value: 'not_processed' },
-  { label: 'Giao dịch trùng lặp', value: 'duplicate' },
-  { label: 'Số tiền không khớp', value: 'amount_mismatch' },
-  { label: 'Lý do khác', value: 'other' },
+  { label: "Giao dịch bị tính phí nhầm", value: "wrong_charge" },
+  { label: "Giao dịch không được xử lý", value: "not_processed" },
+  { label: "Giao dịch trùng lặp", value: "duplicate" },
+  { label: "Số tiền không khớp", value: "amount_mismatch" },
+  { label: "Lý do khác", value: "other" },
 ];
 
 const reconciliationSchema = z.object({
-  reason: z.string().min(1, 'Vui lòng chọn lý do tra soát'),
-  note: z.string().min(10, 'Ghi chú phải có ít nhất 10 ký tự'),
+  reason: z.string().min(1, "Vui lòng chọn lý do tra soát"),
+  note: z.string().min(10, "Ghi chú phải có ít nhất 8 ký tự"),
   files: z.array(z.instanceof(File)).optional(),
 });
 
@@ -38,7 +38,11 @@ export interface DialogReconciliationProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function DialogReconciliation({ transaction, open, onOpenChange }: DialogReconciliationProps) {
+export function DialogReconciliation({
+  transaction,
+  open,
+  onOpenChange,
+}: DialogReconciliationProps) {
   const {
     control,
     handleSubmit,
@@ -46,7 +50,7 @@ export function DialogReconciliation({ transaction, open, onOpenChange }: Dialog
     formState: { errors, isSubmitting },
   } = useForm<ReconciliationFormValues>({
     resolver: zodResolver(reconciliationSchema),
-    defaultValues: { reason: '', note: '', files: [] },
+    defaultValues: { reason: "", note: "", files: [] },
   });
 
   const handleOpenChange = (next: boolean) => {
@@ -56,7 +60,7 @@ export function DialogReconciliation({ transaction, open, onOpenChange }: Dialog
 
   const onSubmit = () => {
     // Chưa có API BE: báo rõ thay vì giả vờ đã gửi thành công.
-    toast.info('Chức năng chưa được hỗ trợ');
+    toast.info("Chức năng chưa được hỗ trợ");
   };
 
   return (
@@ -66,13 +70,18 @@ export function DialogReconciliation({ transaction, open, onOpenChange }: Dialog
           <DialogTitle>Khởi tạo yêu cầu Tra soát</DialogTitle>
           {transaction && (
             <p className="text-sm text-muted-foreground mt-0.5">
-              Giao dịch:{' '}
-              <span className="font-mono font-semibold text-primary">{transaction.code}</span>
+              Giao dịch:{" "}
+              <span className="font-mono font-semibold text-primary">
+                {transaction.code}
+              </span>
             </p>
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 mt-2">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-4 mt-2"
+        >
           <Controller
             name="reason"
             control={control}
@@ -127,7 +136,11 @@ export function DialogReconciliation({ transaction, open, onOpenChange }: Dialog
           />
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => handleOpenChange(false)}
+            >
               Hủy bỏ
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
