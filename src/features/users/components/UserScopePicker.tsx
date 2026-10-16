@@ -50,6 +50,7 @@ export function UserScopePicker({ form, merchantName, merchantOptions }: Props) 
       {merchantOptions && merchantOptions.length > 1 ? (
         <Select
           label="Merchant"
+          placeholder="Chọn merchant"
           value={form.values.merchantId}
           onChange={form.setMerchantId}
           clearable={false}

@@ -15,6 +15,7 @@ import {
   ScrollText,
   Landmark,
   BadgeCheck,
+  PiggyBank,
 } from "lucide-react";
 
 export interface SubPage {
@@ -184,6 +185,18 @@ export const routesConfig: SidebarSection[] = [
         href: "/withdrawal",
         requiresMerchant: true,
         icon: <Wallet className="w-4 h-4" />,
+      },
+    ],
+  },
+  {
+    title: "Tài chính",
+    collapsible: false,
+    items: [
+      {
+        title: "Số dư Sub-merchant",
+        permission: "VIEW_BALANCE",
+        href: "/sub-balances",
+        icon: <PiggyBank className="w-4 h-4" />,
       },
     ],
   },
