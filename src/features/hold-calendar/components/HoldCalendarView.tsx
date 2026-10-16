@@ -32,8 +32,8 @@ export function HoldCalendarView({ calendar, today }: { calendar: HoldCalendar; 
         />
       </Card>
 
-      <Card padding="none" role="region" aria-labelledby="hold-days" className="overflow-hidden">
-        <div className="border-b border-border px-5 py-4">
+      <Card role="region" aria-labelledby="hold-days" className="space-y-4 overflow-hidden">
+        <div>
           <h2 id="hold-days" className="text-base font-semibold">Lịch theo ngày</h2>
           <p className="text-sm text-muted-foreground">Tính lúc {formatVnDateTime(calendar.asOf)}.</p>
         </div>

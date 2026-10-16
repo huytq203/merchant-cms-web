@@ -14,7 +14,7 @@ interface Props {
 export function HoldDayTable({ days, today, peakAmount }: Props) {
   return (
     <div className="max-w-full overflow-x-auto">
-      <Table data={days} columns={holdDayColumns(today, peakAmount)} labels={{ empty: "Không có khoản nào được giải phóng trong khoảng này" }} />
+      <Table data={days} columns={holdDayColumns(today, peakAmount)} labels={{ empty: "Không có khoản nào được giải phóng trong khoảng này" }} pagination={false} />
     </div>
   );
 }

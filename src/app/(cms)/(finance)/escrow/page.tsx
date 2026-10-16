@@ -44,12 +44,12 @@ export default async function EscrowPage({ searchParams }: Props) {
       <EscrowSection id="escrow-contributions" title="Đóng góp theo bên">
         {contributions.success
           ? <EscrowContributionsTable rows={contributions.data} masterName={masterName} />
-          : <ServerResultState state="error" message={domainErrorMessage(contributions.error)} />}
+          : <ServerResultState state="error" message={domainErrorMessage(contributions.error)} bare />}
       </EscrowSection>
       <EscrowSection id="escrow-ledger" title="Sổ ký quỹ">
         {ledger.success
           ? <EscrowLedgerTable rows={ledger.data.rows} total={ledger.data.total} page={page} pageSize={LEDGER_PAGE_SIZE} />
-          : <ServerResultState state="error" message={domainErrorMessage(ledger.error)} />}
+          : <ServerResultState state="error" message={domainErrorMessage(ledger.error)} bare />}
       </EscrowSection>
     </div>
   );
