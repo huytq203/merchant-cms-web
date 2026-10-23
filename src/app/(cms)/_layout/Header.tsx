@@ -6,6 +6,7 @@ import React from 'react'
 import Link from 'next/link'
 import { getBreadcrumbs, homeRoute, routeSearchOptions } from './constants/route.constants';
 import { usePathname, useRouter } from 'next/navigation';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 
 const Header = () => {
   const pathname = usePathname();
@@ -53,6 +54,9 @@ const Header = () => {
           className="ml-auto hidden md:flex md:w-[200px] lg:w-[240px]"
         />
       </nav>
+
+      {/* Inbox bell: polls the unread count; the popover lists the latest rows. */}
+      <NotificationBell />
     </header>
   )
 }
