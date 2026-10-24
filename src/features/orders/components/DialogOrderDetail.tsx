@@ -12,9 +12,12 @@ import { orderNote } from "../utils/order-timeline";
 import { OrderProgress } from "./OrderProgress";
 import { OrderQrSection, type OrderQrSectionProps } from "./OrderQrSection";
 import { OrderRefundActions } from "./OrderRefundActions";
+import { Button } from "@/components/ui/button/Button";
+import { canCancelOrder } from "../utils/order-mapper";
 
 type RefundProps = { canCreate: boolean; canView: boolean; onStart: (order: Order) => void };
-type Props = OrderQrSectionProps & { open: boolean; onOpenChange: (open: boolean) => void; refund: RefundProps };
+type CancelProps = { canCancel: boolean; onStart: (order: Order) => void };
+type Props = OrderQrSectionProps & { open: boolean; onOpenChange: (open: boolean) => void; refund: RefundProps; cancel: CancelProps };
 
 const money = (value: number | null | undefined) => (value == null ? "Chưa có" : formatAmount(value));
 const named = (code: string | null | undefined, name: string | null | undefined, empty: string) =>
@@ -52,7 +55,7 @@ function OrderFields({ order }: { order: Order }) {
   );
 }
 
-function OrderSections({ order, qr, refund }: { order: Order; qr: OrderQrSectionProps; refund: RefundProps }) {
+function OrderSections({ order, qr, refund, cancel }: { order: Order; qr: OrderQrSectionProps; refund: RefundProps; cancel: CancelProps }) {
   const now = useNow(order.status === "ACTIVE");
   const note = orderNote(order.status, isOrderQrExpired(order, now) && !qr.justRefreshed);
   return (
@@ -61,13 +64,16 @@ function OrderSections({ order, qr, refund }: { order: Order; qr: OrderQrSection
       <OrderProgress status={order.status} />
       <Notice tone={note.tone}>{note.text}</Notice>
       <OrderRefundActions orderId={order.id} status={order.status} canCreate={refund.canCreate} canView={refund.canView} onRefund={() => refund.onStart(order)} />
+      {cancel.canCancel && canCancelOrder(order.status) ? (
+        <Button type="button" variant="outline" onClick={() => cancel.onStart(order)}>Hủy đơn</Button>
+      ) : null}
       {order.status === "ACTIVE" ? <OrderQrSection {...qr} /> : null}
       <OrderFields order={order} />
     </div>
   );
 }
 
-export function DialogOrderDetail({ open, onOpenChange, refund, ...qr }: Props) {
+export function DialogOrderDetail({ open, onOpenChange, refund, cancel, ...qr }: Props) {
   const { order } = qr;
   return (
     <DetailModal
@@ -79,7 +85,7 @@ export function DialogOrderDetail({ open, onOpenChange, refund, ...qr }: Props) 
         code: order?.orderCode ?? "Chưa có mã",
         statusBadge: order ? <OrderStatusBadge status={order.status} /> : undefined,
       }}
-      sections={order ? <OrderSections order={order} qr={qr} refund={refund} /> : null}
+      sections={order ? <OrderSections order={order} qr={qr} refund={refund} cancel={cancel} /> : null}
     />
   );
 }

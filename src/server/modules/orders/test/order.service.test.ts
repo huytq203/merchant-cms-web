@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mswServer } from "@/test/msw";
-import { createOrder, getOrder, listOrders, refreshOrderQr } from "../order.service";
+import { cancelOrder, createOrder, getOrder, listOrders, refreshOrderQr } from "../order.service";
 
 const base = "https://merchant.test";
 const path = `${base}/api/v1/merchant/orders`;
@@ -111,6 +111,22 @@ describe("order service", () => {
     }));
     expect(await refreshOrderQr(id)).toMatchObject({ success: true });
     expect(refreshBody).toBe("");
+  });
+
+  it("cancels through the cancel path without a body", async () => {
+    let cancelBody: string | undefined;
+    mswServer.use(http.post(`${path}/${id}/cancel`, async ({ request }) => {
+      cancelBody = await request.text();
+      return HttpResponse.json(envelope({ ...order, status: "CANCELLED", qrCode: null }));
+    }));
+    expect(await cancelOrder(id)).toMatchObject({ success: true, data: { status: "CANCELLED" } });
+    expect(cancelBody).toBe("");
+  });
+
+  it("keeps the BE error name of a refused cancel", async () => {
+    mswServer.use(http.post(`${path}/${id}/cancel`, () =>
+      HttpResponse.json({ success: false, message: "MERCHANT_ORDER_BANK_CANCEL_REJECTED", detail: "x" }, { status: 409 })));
+    expect(await cancelOrder(id)).toMatchObject({ success: false, error: { status: 409, code: "MERCHANT_ORDER_BANK_CANCEL_REJECTED" } });
   });
 
   it("accepts the merchant portal order shape without accounting fields", async () => {

@@ -73,6 +73,9 @@ beforeEach(() => {
     rows: [{ id: groupId, name: "Vận hành", merchantId, permissions: ["A"] }],
     total: 1,
   })));
+  mswServer.use(http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json([
+    { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A"] },
+  ])));
   mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
     rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }],
     total: 1,
@@ -280,6 +283,10 @@ describe("user container", () => {
       rows: [{ id: groupId, name: "Vận hành", merchantId, permissions: ["A"] }, { id: otherGroupId, name: "Kế toán", merchantId, permissions: ["A"] }],
       total: 2,
     })));
+    mswServer.use(http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json([
+      { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A"] },
+      { id: otherGroupId, code: "ACC", name: "Kế toán", system: false, permissions: ["A"] },
+    ])));
     await renderReadyContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Sửa Test User/ }));
     const dialog = await openDialog();

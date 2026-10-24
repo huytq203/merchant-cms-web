@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, QrCode } from "lucide-react";
+import { Ban, Eye, QrCode } from "lucide-react";
 import { DateTimeCell } from "@/components/page/DateTimeCell";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
@@ -7,11 +7,13 @@ import { StatusBadge, type StatusTone } from "@/components/page/StatusBadge";
 import { formatAmount } from "@/lib/utils/helper";
 import { ORDER_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS, labelOf } from "../constants/Order.constants";
 import type { Order } from "../types/types";
-import { canRefreshQr } from "../utils/order-mapper";
+import { canCancelOrder, canRefreshQr } from "../utils/order-mapper";
 
 export type OrderColumnActions = {
   onView: (order: Order) => void;
   onViewQr: (order: Order) => void;
+  /** Present only for a session with CANCEL_ORDER. */
+  onCancel?: (order: Order) => void;
 };
 
 const statusTone: Record<Order["status"], StatusTone> = {
@@ -49,6 +51,7 @@ function OrderRowActions({ order, actions }: { order: Order; actions: OrderColum
   return <RowActions subject={`đơn ${order.orderCode}`} actions={[
     { label: "Xem chi tiết", icon: <Eye size={16} />, onClick: () => actions.onView(order) },
     { label: "Xem mã QR", icon: <QrCode size={16} />, visible: showQr, onClick: () => actions.onViewQr(order) },
+    { label: "Hủy", icon: <Ban size={16} />, visible: Boolean(actions.onCancel) && canCancelOrder(order.status), onClick: () => actions.onCancel?.(order) },
   ]} />;
 }
 

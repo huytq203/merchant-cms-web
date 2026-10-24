@@ -7,5 +7,6 @@ export const orderPaths = {
   list: MERCHANT,
   detail: (id: string) => `${MERCHANT}/${encodeURIComponent(id)}`,
   create: MERCHANT,
+  cancel: (id: string) => `${MERCHANT}/${encodeURIComponent(id)}/cancel`,
   refreshQr: (id: string) => `${MERCHANT}/${encodeURIComponent(id)}/refresh-qr`,
 } as const;

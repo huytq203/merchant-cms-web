@@ -18,6 +18,7 @@ import { DialogOderQR } from "./DialogOderQR";
 import { DialogOrderDetail } from "./DialogOrderDetail";
 import { OrderFilter } from "./OrderFilter";
 import { OrderCreateDialog } from "./OrderCreateDialog";
+import { OrderCancelDialog } from "./OrderCancelDialog";
 import { OrderTable } from "./OrderTable";
 import { RefundCreateDialog, type RefundOrder } from "@/features/revenue-refunds/components/RefundCreateDialog";
 import type { Order } from "../types/types";
@@ -27,8 +28,8 @@ const orderFilterKey = (filter: OrderListFilter) =>
 
 type Props = {
   filter: OrderListFilter;
-  /** canRefund: CREATE_REFUND; canViewRefunds: VIEW_REFUND. */
-  abilities: { canCreate: boolean; canRefund: boolean; canViewRefunds: boolean };
+  /** canCancel: CANCEL_ORDER; canRefund: CREATE_REFUND; canViewRefunds: VIEW_REFUND. */
+  abilities: { canCreate: boolean; canCancel: boolean; canRefund: boolean; canViewRefunds: boolean };
 };
 
 export function OrdersContainer({ filter, abilities }: Props) {
@@ -45,7 +46,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
   // The list row has no QR, so both the QR and the detail dialog read the order by id.
   const fresh = useQuery({
     ...orderQueries.detail(target?.id ?? ""),
-    enabled: (activeDialog === "qr" || activeDialog === "detail") && Boolean(target),
+    enabled: (activeDialog === "qr" || activeDialog === "detail" || activeDialog === "cancel") && Boolean(target),
   });
   const qrDialog = {
     order: fresh.data ?? target,
@@ -88,6 +89,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onPageChange={navigation.changePage}
             onView={(order) => dialogs.openFor("detail", order)}
             onViewQr={(order) => dialogs.openFor("qr", order)}
+            onCancel={abilities.canCancel ? (order) => dialogs.openFor("cancel", order) : undefined}
           />
         ) : null}
       </ResultCard>
@@ -110,7 +112,16 @@ export function OrdersContainer({ filter, abilities }: Props) {
         open={activeDialog === "detail"}
         onOpenChange={(open) => !open && actions.closeDialog()}
         refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
+        cancel={{ canCancel: abilities.canCancel, onStart: (order) => dialogs.openFor("cancel", order) }}
         {...qrDialog}
+      />
+      <OrderCancelDialog
+        order={activeDialog === "cancel" ? (fresh.data ?? target) : null}
+        onClose={actions.closeDialog}
+        onConfirm={() => void actions.submitCancel()}
+        isPending={actions.cancel.isPending}
+        isReloading={fresh.isFetching}
+        error={actions.cancel.error}
       />
       {refundOrder ? <RefundCreateDialog order={refundOrder} onClose={() => setRefundOrder(null)} /> : null}
       <DialogOderQR open={activeDialog === "qr"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />

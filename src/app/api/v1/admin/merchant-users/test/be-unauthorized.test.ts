@@ -7,7 +7,7 @@ const { getServerSession, listUsers, getUser } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/session", () => ({ getServerSession }));
 vi.mock("@/server/modules/users/user.service", () => ({ listUsers, getUser, createUser: vi.fn(), updateUser: vi.fn() }));
-vi.mock("@/server/modules/permissions/permission.service", () => ({ getPermissionGroup: vi.fn() }));
+
 import { GET as list } from "../route";
 import { GET as detail } from "../[id]/route";
 
