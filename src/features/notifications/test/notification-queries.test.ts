@@ -54,6 +54,17 @@ describe("notification queries", () => {
     expect(pages).toEqual([`1:${NOTIFICATION_PAGE_SIZE}:true`, `1:${NOTIFICATION_PAGE_SIZE}:true`, `2:${NOTIFICATION_PAGE_SIZE}:true`]);
   });
 
+  it("keeps the open list fresh on the same interval as the count", () => {
+    expect(notificationQueries.list(false).refetchInterval).toBe(UNREAD_COUNT_REFRESH_MS);
+  });
+
+  it("stops asking for pages once a page comes back empty, even if the total says more", () => {
+    const options = notificationQueries.list(false);
+    const full = { rows: [row(1)], total: 45 };
+    const empty = { rows: [], total: 45 };
+    expect(options.getNextPageParam(empty, [full, empty], 2, [1, 2])).toBeUndefined();
+  });
+
   it("does not send unreadOnly for the full list", async () => {
     let params: URLSearchParams | undefined;
     mswServer.use(http.get("/api/v1/admin/notifications", ({ request }) => {
