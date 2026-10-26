@@ -1,4 +1,4 @@
-import { useCreateOrder, useRefreshOrderQr } from "./use-order-mutations";
+import { useCancelOrder, useCreateOrder, useRefreshOrderQr } from "./use-order-mutations";
 import type { OrderDialogs } from "./use-order-dialogs";
 import type { OrderFormData } from "../schemas/order.schema";
 
@@ -6,6 +6,7 @@ import type { OrderFormData } from "../schemas/order.schema";
 export function useOrderActions(dialogs: OrderDialogs) {
   const create = useCreateOrder();
   const refreshQr = useRefreshOrderQr();
+  const cancel = useCancelOrder();
 
   const submitCreate = async (values: OrderFormData) => {
     try {
@@ -25,11 +26,22 @@ export function useOrderActions(dialogs: OrderDialogs) {
     }
   };
 
+  const submitCancel = async () => {
+    if (!dialogs.target) return;
+    try {
+      await cancel.cancel(dialogs.target.id);
+      dialogs.close();
+    } catch {
+      // The dialog shows the server error and keeps the order open for a retry.
+    }
+  };
+
   const closeDialog = () => {
     create.reset();
     refreshQr.reset();
+    cancel.reset();
     dialogs.close();
   };
 
-  return { create, refreshQr, submitCreate, submitRefreshQr, closeDialog };
+  return { create, refreshQr, cancel, submitCreate, submitRefreshQr, submitCancel, closeDialog };
 }

@@ -46,13 +46,10 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}
   mswServer.use(
     http.get("/api/v1/merchant/merchant-users/:id/scope-proposal", () =>
       proposal ? HttpResponse.json(proposal) : HttpResponse.json(null, { status: 404 })),
-    http.get("/api/v1/merchant/permission-groups", () => HttpResponse.json({
-      rows: [
-        { id: groupId, name: "Vận hành", merchantId, permissions: ["A", "B", "C"] },
-        { id: otherGroupId, name: "Kế toán", merchantId, permissions: ["A"] },
-      ],
-      total: 2,
-    })),
+    http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json([
+      { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A", "B", "C"] },
+      { id: otherGroupId, code: "ACC", name: "Kế toán", system: false, permissions: ["A"] },
+    ])),
     http.get("/api/v1/admin/sub-merchants", ({ request }) => {
       subRequests.push(new URL(request.url));
       return HttpResponse.json({ rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }], total: 1 });

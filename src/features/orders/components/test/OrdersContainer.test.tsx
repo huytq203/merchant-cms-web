@@ -15,7 +15,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const base = "/api/v1/admin/orders";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const filter: OrderListFilter = { page: 1, pageSize: 10 };
-const abilities = { canCreate: true, canRefund: true, canViewRefunds: true };
+const abilities = { canCreate: true, canCancel: true, canRefund: true, canViewRefunds: true };
 const makeOrder = (overrides: Partial<Order>): Order => ({
   id: "33333333-3333-4333-8333-333333333333",
   merchantId,
@@ -311,5 +311,48 @@ describe("order detail", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
     expect(await screen.findByTitle(/Mã QR đơn INV-1/)).toBeInTheDocument();
     expect(screen.getByText(/Mã QR còn hiệu lực/)).toBeInTheDocument();
+  });
+});
+
+describe("cancel order", () => {
+  const openCancel = async () => {
+    await userEvent.click(await screen.findByRole("button", { name: /Hủy đơn INV-1/ }));
+    return screen.findByRole("dialog");
+  };
+
+  it("offers the action only for an ACTIVE order and a session with CANCEL_ORDER", async () => {
+    listReturns([makeOrder({ status: "SUCCESS" })]);
+    const paid = renderContainer();
+    await screen.findByText("INV-1");
+    expect(screen.queryByRole("button", { name: /Hủy đơn INV-1/ })).not.toBeInTheDocument();
+    paid.unmount();
+    listReturns([activeOrder]);
+    renderContainer({ abilities: { ...abilities, canCancel: false } });
+    await screen.findByText("INV-1");
+    expect(screen.queryByRole("button", { name: /Hủy đơn INV-1/ })).not.toBeInTheDocument();
+  });
+
+  it("confirms, posts the cancel and closes the dialog", async () => {
+    const cancelled = vi.fn();
+    mswServer.use(http.post(`${base}/${activeOrder.id}/cancel`, () => {
+      cancelled();
+      return HttpResponse.json({ ...activeOrder, status: "CANCELLED", qrCode: null });
+    }));
+    renderContainer();
+    const dialog = await openCancel();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Hủy đơn" }));
+    await waitFor(() => expect(cancelled).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("keeps the dialog open with the possibly-paid warning when the bank refuses", async () => {
+    mswServer.use(http.post(`${base}/${activeOrder.id}/cancel`, () =>
+      HttpResponse.json({ message: "Đơn hàng có thể đã được thanh toán", code: "BANK_CANCEL_REJECTED" }, { status: 409 }),
+    ));
+    renderContainer();
+    const dialog = await openCancel();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Hủy đơn" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("đã được thanh toán");
+    expect(await within(dialog).findByRole("button", { name: "Thử hủy lại" })).toBeInTheDocument();
   });
 });

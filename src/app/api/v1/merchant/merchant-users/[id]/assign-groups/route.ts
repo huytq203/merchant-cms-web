@@ -18,7 +18,7 @@ export async function POST(request: Request, context: Context) {
   const user = await requireOwnedUser(id, access.user);
   if (user instanceof NextResponse) return user;
   if (id === access.user.userId) return NextResponse.json({ message: "Bạn không thể sửa chính mình" }, { status: 403 });
-  const forbidden = await requireGroupScope(access.user, body.data.ids);
+  const forbidden = await requireGroupScope(body.data.ids);
   if (forbidden) return forbidden;
   return serviceResponse(await assignUserGroups(id, body.data.ids));
 }

@@ -36,5 +36,9 @@ export const createOrder = (values: OrderFormData, merchantId: string): Promise<
     body: toOrderCreateRequest(values, merchantId),
   });
 
+/** Cancels an unpaid order; the BE asks VCB first and refuses when the bank does not confirm. No body, no OTP. */
+export const cancelOrder = (id: string): Promise<BeResult<Order>> =>
+  merchantClient().post({ path: orderPaths.cancel(id), schema: orderResponseSchema });
+
 export const refreshOrderQr = (id: string): Promise<BeResult<Order>> =>
   merchantClient().post({ path: orderPaths.refreshQr(id), schema: orderResponseSchema });

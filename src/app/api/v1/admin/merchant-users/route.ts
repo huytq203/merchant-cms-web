@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (!body.success) return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });
   const merchantId = body.data.merchantIds[0] || access.user.merchantIds[0];
   if (!merchantId) return NextResponse.json({ message: "Không có merchant" }, { status: 403 });
-  const forbidden = requireMerchantScope(access.user, body.data.merchantIds) || requireSubMerchantScope(access.user, body.data.subMerchantIds) || await requireGroupScope(access.user, body.data.groupIds);
+  const forbidden = requireMerchantScope(access.user, body.data.merchantIds) || requireSubMerchantScope(access.user, body.data.subMerchantIds) || await requireGroupScope(body.data.groupIds);
   if (forbidden) return forbidden;
   return serviceResponse(await createUser(body.data, merchantId), 201);
 }

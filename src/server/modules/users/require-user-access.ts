@@ -7,8 +7,7 @@ import { API_MESSAGE_HEADER } from "@/lib/http/api-message";
 import { merchantDomainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import type { SessionUser } from "@/types/auth";
 import type { MerchantUser } from "@/features/users/schemas/user.schema";
-import { getUser } from "./user.service";
-import { getPermissionGroup } from "@/server/modules/permissions/permission.service";
+import { getUser, listAssignableGroups } from "./user.service";
 
 export function requireUserAccess(action: "manage" | "approveScope" = "manage"): Promise<PermissionAccess> {
   return requirePermission(action === "approveScope" ? PERMISSION_GATES.userScopeApprove : "MANAGE_USER");
@@ -22,14 +21,16 @@ export function requireSubMerchantScope(user: SessionUser, ids: string[]): NextR
   return ids.every((id) => user.subMerchantIds.includes(id)) ? null : NextResponse.json({ message: "Không có quyền truy cập" }, { status: 403 });
 }
 
-export async function requireGroupScope(user: SessionUser, ids: string[]): Promise<NextResponse | null> {
-  for (const id of ids) {
-    const result = await getPermissionGroup(id);
-    if (!result.success || (result.data.merchantId && !user.merchantIds.includes(result.data.merchantId))) {
-      return NextResponse.json({ message: "Không có quyền truy cập nhóm quyền" }, { status: 403 });
-    }
-  }
-  return null;
+/**
+ * Every id must be in the list the BE says this caller may assign. That list needs only MANAGE_USER, unlike
+ * GET /permission-groups, so a user manager without MANAGE_PERMISSION_GROUP (a Sub-level manager) can still assign groups.
+ */
+export async function requireGroupScope(ids: string[]): Promise<NextResponse | null> {
+  if (ids.length === 0) return null;
+  const result = await listAssignableGroups();
+  if (!result.success) return NextResponse.json({ message: merchantDomainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
+  const allowed = new Set(result.data.map((group) => group.id));
+  return ids.every((id) => allowed.has(id)) ? null : NextResponse.json({ message: "Không có quyền truy cập nhóm quyền" }, { status: 403 });
 }
 
 export async function requireOwnedUser(id: string, actor: SessionUser): Promise<MerchantUser | NextResponse> {

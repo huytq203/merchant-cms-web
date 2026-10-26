@@ -7,6 +7,11 @@ export function canRefreshQr(status: OrderStatus): boolean {
   return status === "ACTIVE";
 }
 
+/** Only an unpaid order (ACTIVE) can be cancelled; every other status is refused by the BE with 409. */
+export function canCancelOrder(status: OrderStatus): boolean {
+  return status === "ACTIVE";
+}
+
 /** `expiredAt` arrives zone-less in business time (UTC+7); null when absent or unreadable. */
 export function parseExpiredAt(expiredAt: string | null | undefined): Date | null {
   if (!expiredAt) return null;

@@ -17,7 +17,7 @@ export async function PUT(request: Request, context: Context) {
   if (invalidId) return invalidId;
   const user = await requireOwnedUser(id, access.user);
   if (user instanceof NextResponse) return user;
-  const forbidden = await requireGroupScope(access.user, body.data.ids);
+  const forbidden = await requireGroupScope(body.data.ids);
   if (forbidden) return forbidden;
   return serviceResponse(await assignUserGroups(id, body.data.ids));
 }

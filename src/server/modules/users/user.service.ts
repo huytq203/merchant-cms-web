@@ -5,7 +5,7 @@ import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
 import type { BeResult } from "@/lib/be/client";
-import { merchantUserSchema, scopeChangeResultSchema, scopeProposalSchema, type MerchantUser, type ScopeChangeResult, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
+import { assignableGroupSchema, merchantUserSchema, scopeAssignmentResultSchema, scopeChangeResultSchema, scopeProposalSchema, type AssignableGroup, type MerchantUser, type ScopeAssignmentResult, type ScopeChangeResult, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
 import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils/user-mapper";
 import { userPaths } from "./user.paths";
 
@@ -62,6 +62,20 @@ export async function resetUserPassword(id: string): Promise<BeResult<{ success:
 
 export async function assignUserGroups(id: string, groupIds: string[]): Promise<BeResult<MerchantUser>> {
   return readAfterWrite(await merchantClient().post({ path: userPaths.assignGroups(id), schema: writtenUserSchema, body: { ids: groupIds } }));
+}
+
+/** Groups the caller may give to another user (MANAGE_USER is enough); the BE re-checks the same rule on assign. */
+export function listAssignableGroups(): Promise<BeResult<AssignableGroup[]>> {
+  return merchantClient().get({ path: userPaths.assignableGroups, schema: z.array(assignableGroupSchema) });
+}
+
+/** Replaces one scope axis. Adding access becomes a proposal awaiting a second person; only narrowing applies at once. */
+export function assignUserMerchants(id: string, ids: string[]): Promise<BeResult<ScopeAssignmentResult>> {
+  return merchantClient().put({ path: userPaths.replaceMerchants(id), schema: scopeAssignmentResultSchema, body: { ids } });
+}
+
+export function assignUserSubMerchants(id: string, ids: string[]): Promise<BeResult<ScopeAssignmentResult>> {
+  return merchantClient().put({ path: userPaths.replaceSubMerchants(id), schema: scopeAssignmentResultSchema, body: { ids } });
 }
 
 /** The BE queues the mail and answers with the user; only the id is checked, the page refetches the rest. */

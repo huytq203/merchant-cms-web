@@ -8,6 +8,7 @@ import type { Order } from "../types/types";
 function useOrderMutation<TVariables>(
   request: (variables: TVariables) => Promise<Order>,
   successMessage: string,
+  onFailure?: (variables: TVariables) => void,
 ) {
   const client = useQueryClient();
   return useMutation({
@@ -17,6 +18,7 @@ function useOrderMutation<TVariables>(
       await client.invalidateQueries({ queryKey: ["orders", "list"] });
       toast.success(successMessage);
     },
+    onError: (_error, variables) => onFailure?.(variables),
   });
 }
 
@@ -36,6 +38,20 @@ export function useCreateOrder() {
     return request;
   };
   return { create, isPending: mutation.isPending, error: mutation.error, reset: mutation.reset };
+}
+
+/** After a bank refusal or outage the customer may have just paid, so the order is read again before a retry. */
+export function useCancelOrder() {
+  const client = useQueryClient();
+  const mutation = useOrderMutation(
+    (id: string) => orderRequest<Order>(`/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+    "Đã hủy đơn hàng",
+    (id) => {
+      void client.invalidateQueries({ queryKey: ["orders", "detail", id] });
+      void client.invalidateQueries({ queryKey: ["orders", "list"] });
+    },
+  );
+  return { cancel: mutation.mutateAsync, isPending: mutation.isPending, error: mutation.error, reset: mutation.reset };
 }
 
 export function useRefreshOrderQr() {
