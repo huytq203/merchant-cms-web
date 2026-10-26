@@ -22,7 +22,10 @@ export const notificationQueries = {
     queryFn: ({ pageParam }) => apiClient.get<NotificationListResult>(NOTIFICATIONS_ENDPOINT, {
       query: { page: pageParam, pageSize: NOTIFICATION_PAGE_SIZE, unreadOnly: unreadOnly ? true : undefined },
     }),
-    getNextPageParam: (_last, pages, lastPageParam) => {
+    /** The open list refreshes on the count's interval, so a notification that arrives while it is open shows up. */
+    refetchInterval: UNREAD_COUNT_REFRESH_MS,
+    getNextPageParam: (last, pages, lastPageParam) => {
+      if (last.rows.length === 0) return undefined;
       const loaded = pages.reduce((sum, page) => sum + page.rows.length, 0);
       return loaded < (pages[0]?.total ?? 0) ? lastPageParam + 1 : undefined;
     },
