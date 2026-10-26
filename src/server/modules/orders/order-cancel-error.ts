@@ -11,7 +11,7 @@ const BANK_REJECTED_MESSAGE =
 const BANK_UNAVAILABLE_MESSAGE =
   "Chưa kết nối được ngân hàng để hủy mã QR nên đơn hàng chưa được hủy và có thể đã được thanh toán. Vui lòng kiểm tra lại sau ít phút.";
 
-const UPSTREAM_DOWN = new Set([502, 503, 504]);
+const UNCERTAIN_CODES = new Set(["NETWORK", "TIMEOUT", "INVALID_RESPONSE"]);
 
 /**
  * Turns a BE failure of the cancel call into a Vietnamese message plus a stable code. The BE sends a generic 503
@@ -25,7 +25,7 @@ export function toCancelFailure(error: BeError): CancelFailure {
   if (error.code === "MERCHANT_ORDER_NOT_CANCELLABLE") {
     return { status: 409, body: { message: "Chỉ hủy được đơn đang chờ thanh toán", code: ORDER_CANCEL_CODES.notCancellable } };
   }
-  if (UPSTREAM_DOWN.has(error.status) || error.code === "NETWORK" || error.code === "TIMEOUT") {
+  if (error.status >= 500 || UNCERTAIN_CODES.has(error.code)) {
     return { status: 503, body: { message: BANK_UNAVAILABLE_MESSAGE, code: ORDER_CANCEL_CODES.bankUnavailable } };
   }
   if (error.status === 404) return { status: 404, body: { message: "Không tìm thấy đơn hàng" } };

@@ -14,11 +14,13 @@ type Props = {
   isPending: boolean;
   /** The order is being read again after a failed cancel. */
   isReloading: boolean;
+  /** Message when reading the order failed, so its status is unknown. */
+  loadError?: string;
   error: Error | null;
 };
 
 /** Confirms cancelling an unpaid order; a refusal from the bank keeps it open and says the order may have been paid. */
-export function OrderCancelDialog({ order, onClose, onConfirm, isPending, isReloading, error }: Props) {
+export function OrderCancelDialog({ order, onClose, onConfirm, isPending, isReloading, loadError, error }: Props) {
   const cancellable = order ? canCancelOrder(order.status) : false;
   const uncertain = error instanceof ApiError && isCancelOutcomeUncertain(error.code);
   return (
@@ -30,12 +32,13 @@ export function OrderCancelDialog({ order, onClose, onConfirm, isPending, isRelo
       confirmLabel={uncertain ? "Thử hủy lại" : "Hủy đơn"}
       cancelLabel="Giữ đơn"
       isLoading={isPending}
-      confirmDisabled={!cancellable || isReloading}
+      confirmDisabled={!cancellable || isReloading || Boolean(loadError)}
       onConfirm={onConfirm}
     >
       {order && !cancellable ? <Notice tone="warning">Đơn không còn chờ thanh toán nên không hủy được nữa.</Notice> : null}
       {error ? <Notice tone="danger">{error.message}</Notice> : null}
-      {uncertain && isReloading ? <p role="status" className="text-sm text-muted-foreground">Đang tải lại trạng thái đơn...</p> : null}
+      {loadError ? <Notice tone="danger">Không tải được trạng thái đơn: {loadError}</Notice> : null}
+      {isReloading ? <p role="status" className="text-sm text-muted-foreground">Đang tải lại trạng thái đơn...</p> : null}
     </ConfirmModal>
   );
 }

@@ -14,11 +14,12 @@ describe("toCancelFailure", () => {
   });
 
   it("treats a bank outage, whatever 5xx the chain used, as not cancelled but possibly paid", () => {
-    for (const status of [502, 503, 504]) {
+    for (const status of [500, 502, 503, 504]) {
       const failure = toCancelFailure(error(status, `HTTP_${status}`));
       expect(failure).toMatchObject({ status: 503, body: { code: ORDER_CANCEL_CODES.bankUnavailable } });
     }
     expect(toCancelFailure(error(0, "TIMEOUT")).body.code).toBe(ORDER_CANCEL_CODES.bankUnavailable);
+    expect(toCancelFailure(error(200, "INVALID_RESPONSE")).body.code).toBe(ORDER_CANCEL_CODES.bankUnavailable);
   });
 
   it("maps a state conflict and hides the technical 404 text", () => {

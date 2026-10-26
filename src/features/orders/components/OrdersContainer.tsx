@@ -39,6 +39,17 @@ export function OrdersContainer({ filter, abilities }: Props) {
   const list = useQuery(orderQueries.list(filter));
   const { activeDialog, target } = dialogs;
   const [refundOrder, setRefundOrder] = useState<RefundOrder | null>(null);
+  const [cancelFromDetail, setCancelFromDetail] = useState(false);
+  const startCancel = (order: Order, fromDetail: boolean) => {
+    actions.cancel.reset();
+    setCancelFromDetail(fromDetail);
+    dialogs.openFor("cancel", order);
+  };
+  const closeCancel = () => {
+    const back = cancelFromDetail ? target : null;
+    actions.closeDialog();
+    if (back) dialogs.openFor("detail", back);
+  };
   const startRefund = (order: Order) => {
     actions.closeDialog();
     setRefundOrder({ id: order.id, orderCode: order.orderCode, amount: order.amount, subMerchantName: order.subMerchantName });
@@ -89,7 +100,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onPageChange={navigation.changePage}
             onView={(order) => dialogs.openFor("detail", order)}
             onViewQr={(order) => dialogs.openFor("qr", order)}
-            onCancel={abilities.canCancel ? (order) => dialogs.openFor("cancel", order) : undefined}
+            onCancel={abilities.canCancel ? (order) => startCancel(order, false) : undefined}
           />
         ) : null}
       </ResultCard>
@@ -112,15 +123,16 @@ export function OrdersContainer({ filter, abilities }: Props) {
         open={activeDialog === "detail"}
         onOpenChange={(open) => !open && actions.closeDialog()}
         refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
-        cancel={{ canCancel: abilities.canCancel, onStart: (order) => dialogs.openFor("cancel", order) }}
+        cancel={{ canCancel: abilities.canCancel, onStart: (order) => startCancel(order, true) }}
         {...qrDialog}
       />
       <OrderCancelDialog
         order={activeDialog === "cancel" ? (fresh.data ?? target) : null}
-        onClose={actions.closeDialog}
+        onClose={closeCancel}
         onConfirm={() => void actions.submitCancel()}
         isPending={actions.cancel.isPending}
         isReloading={fresh.isFetching}
+        loadError={fresh.error?.message}
         error={actions.cancel.error}
       />
       {refundOrder ? <RefundCreateDialog order={refundOrder} onClose={() => setRefundOrder(null)} /> : null}

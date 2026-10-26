@@ -26,6 +26,7 @@ export function requireSubMerchantScope(user: SessionUser, ids: string[]): NextR
  * GET /permission-groups, so a user manager without MANAGE_PERMISSION_GROUP (a Sub-level manager) can still assign groups.
  */
 export async function requireGroupScope(ids: string[]): Promise<NextResponse | null> {
+  if (ids.length === 0) return null;
   const result = await listAssignableGroups();
   if (!result.success) return NextResponse.json({ message: merchantDomainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
   const allowed = new Set(result.data.map((group) => group.id));

@@ -2,18 +2,17 @@
 
 import { DetailItem, DetailList, DetailModal, DetailSection } from "@/components/modal";
 import { Notice } from "@/components/page/Notice";
+import { Button } from "@/components/ui/button/Button";
 import { formatAmount, formatDate } from "@/lib/utils/helper";
 import { OrderStatusBadge } from "../columns/Order.column";
 import { BANK_OPTIONS, PAYMENT_METHOD_OPTIONS, labelOf } from "../constants/Order.constants";
 import { useNow } from "../hooks/use-now";
 import type { Order } from "../types/types";
-import { isOrderQrExpired } from "../utils/order-mapper";
+import { canCancelOrder, isOrderQrExpired } from "../utils/order-mapper";
 import { orderNote } from "../utils/order-timeline";
 import { OrderProgress } from "./OrderProgress";
 import { OrderQrSection, type OrderQrSectionProps } from "./OrderQrSection";
 import { OrderRefundActions } from "./OrderRefundActions";
-import { Button } from "@/components/ui/button/Button";
-import { canCancelOrder } from "../utils/order-mapper";
 
 type RefundProps = { canCreate: boolean; canView: boolean; onStart: (order: Order) => void };
 type CancelProps = { canCancel: boolean; onStart: (order: Order) => void };
