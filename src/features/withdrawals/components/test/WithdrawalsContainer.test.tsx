@@ -14,6 +14,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 const base = "/api/v1/admin/withdrawals";
 const merchantId = "22222222-2222-4222-8222-222222222222";
+const subMerchantId = "11111111-1111-4111-8111-111111111111";
 const filter: WithdrawalListFilter = { page: 1, pageSize: 10 };
 const abilities = { canCreate: true };
 const bankOption: WithdrawalBankOption = {
@@ -22,7 +23,7 @@ const bankOption: WithdrawalBankOption = {
   accountNumberMasked: "xxxx1789",
   accountName: "CONG TY A",
   isDefault: true,
-  subMerchantId: null,
+  subMerchantId,
 };
 const makeWithdrawal = (overrides: Partial<Withdrawal> = {}): Withdrawal => ({
   id: "33333333-3333-4333-8333-333333333333",
@@ -43,8 +44,13 @@ const makeWithdrawal = (overrides: Partial<Withdrawal> = {}): Withdrawal => ({
   ...overrides,
 });
 const pending = makeWithdrawal();
-const balance = { merchantId, availableBalance: 128_450_000, heldBalance: 200_000, dailyLimitRemaining: 500_000_000, minimumAmount: 10_000, maximumAmount: null };
+const makeBalance = (overrides: Record<string, unknown> = {}) => ({
+  subMerchantId, availableBalance: 128_450_000, heldBalance: 200_000, pendingSettlement: 300_000, readyAmount: 6_000_000,
+  setoff: 1_000, fee: 5_500, netReceived: 5_993_500, zeroNet: false, dailyLimitRemaining: 500_000_000,
+  dailyCountRemaining: null, minimumAmount: 10_000, maximumAmount: null, asOf: "2026-10-26T03:00:00Z", ...overrides,
+});
 const challenge = { otpSessionId: "session-1", maskedRecipient: "ow***@example.com", expiresInSeconds: 300, canResendAfterSeconds: 60 };
+const codeError = (code: string, message: string, status = 409) => HttpResponse.json({ message, code }, { status });
 
 function renderContainer(props: Partial<{ abilities: typeof abilities }> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -59,14 +65,24 @@ function listReturns(rows: Withdrawal[]) {
   mswServer.use(http.get(base, () => HttpResponse.json({ rows, total: rows.length })));
 }
 
+/** Records the Sub of every balance request and answers with the given figures. */
+function balanceReturns(balance = makeBalance()) {
+  const requests: (string | null)[] = [];
+  mswServer.use(http.get(`${base}/balance`, ({ request }) => {
+    requests.push(new URL(request.url).searchParams.get("subMerchantId"));
+    return HttpResponse.json(balance);
+  }));
+  return requests;
+}
+
 beforeEach(() => {
   listReturns([pending]);
   mswServer.use(
-    http.get(`${base}/bank-options`, () => HttpResponse.json({ options: [bankOption], hasHiddenSubMerchantAccounts: false })),
-    http.get(`${base}/balance`, () => HttpResponse.json(balance)),
+    http.get(`${base}/bank-options`, () => HttpResponse.json({ options: [bankOption] })),
     http.post(`${base}/otp-challenge`, () => HttpResponse.json(challenge)),
     http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })),
   );
+  balanceReturns();
 });
 afterEach(() => {
   cleanup();
@@ -78,18 +94,25 @@ async function openCreateModal() {
   return screen.findByRole("dialog");
 }
 
-async function fillStepOne(dialog: HTMLElement, amountText = "250000") {
+async function pickAccount(dialog: HTMLElement) {
   await userEvent.click(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ }));
   await userEvent.click(await screen.findByRole("option", { name: /Vietcombank/ }));
-  const amount = within(dialog).getByRole("textbox", { name: /Số tiền/ });
-  await userEvent.clear(amount);
-  await userEvent.type(amount, amountText);
 }
 
-async function goToCode(dialog: HTMLElement, amountText = "250000") {
-  await fillStepOne(dialog, amountText);
+async function selectAccount(dialog: HTMLElement) {
+  await pickAccount(dialog);
+  await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+}
+
+async function goToReview(dialog: HTMLElement) {
+  await selectAccount(dialog);
   await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
-  await userEvent.click(await within(dialog).findByRole("button", { name: "Tiếp tục" }));
+  await within(dialog).findByText(/xxxx1789/);
+}
+
+async function goToCode(dialog: HTMLElement) {
+  await goToReview(dialog);
+  await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
   await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
 }
 
@@ -130,19 +153,12 @@ describe("withdrawals container states", () => {
   });
 });
 
-describe("balance and filters", () => {
-  it("shows the available balance, what is held and today's limit above the list", async () => {
+describe("filters", () => {
+  it("does not ask for a balance on the list: it belongs to one Sub", async () => {
+    const requests = balanceReturns();
     renderContainer();
     await screen.findByText("WD2601");
-    expect(await screen.findByText(/128\.450\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/500\.000\.000/)).toBeInTheDocument();
-  });
-
-  it("says the balance could not be read instead of showing zero, and still lists the requests", async () => {
-    mswServer.use(http.get(`${base}/balance`, () => HttpResponse.json({ message: "x" }, { status: 503 })));
-    renderContainer();
-    expect(await screen.findByText("WD2601")).toBeInTheDocument();
-    expect(await screen.findByText(/Chưa đọc được số dư ví/)).toBeInTheDocument();
+    expect(requests).toEqual([]);
   });
 
   it("searches by code, stage and day and puts them in the URL", async () => {
@@ -167,66 +183,91 @@ describe("balance and filters", () => {
   });
 });
 
-describe("create withdrawal modal", () => {
-  it("blocks a zero amount on step one without moving on or calling the server", async () => {
-    const posted = vi.fn();
-    mswServer.use(http.post(base, () => {
-      posted();
-      return HttpResponse.json(pending, { status: 201 });
+describe("create withdrawal modal: account and balance", () => {
+  it("asks for no balance until an account is chosen, then asks for the balance of that Sub", async () => {
+    const requests = balanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    expect(await within(dialog).findByText(/Chọn tài khoản nhận để xem/)).toBeInTheDocument();
+    expect(requests).toEqual([]);
+    await selectAccount(dialog);
+    expect(requests).toEqual([subMerchantId]);
+  });
+
+  it("shows the ready amount, setoff, fee and net received, and has no amount to type", async () => {
+    renderContainer();
+    const dialog = await openCreateModal();
+    await selectAccount(dialog);
+    const panel = within(dialog).getByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(within(panel).getByText(/6\.000\.000/)).toBeInTheDocument();
+    expect(within(panel).getByText(/5\.993\.500/)).toBeInTheDocument();
+    expect(within(panel).getByText(/5\.500/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("textbox", { name: /Số tiền/ })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Rút tối đa" })).not.toBeInTheDocument();
+  });
+
+  it("blocks the request and says why when nothing is ready to withdraw", async () => {
+    balanceReturns(makeBalance({ readyAmount: 0, netReceived: 0, fee: 0, setoff: 0 }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickAccount(dialog);
+    expect(await within(dialog).findByText(/Chưa có khoản nào sẵn sàng/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("cannot go to the review step before an account is chosen", async () => {
+    renderContainer();
+    const dialog = await openCreateModal();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("says the ledger could not be read, with a retry that asks again, instead of showing zero", async () => {
+    let calls = 0;
+    mswServer.use(http.get(`${base}/balance`, () => {
+      calls += 1;
+      return calls === 1
+        ? HttpResponse.json({ message: "Hệ thống đang gặp sự cố", code: "HTTP_503" }, { status: 502 })
+        : HttpResponse.json(makeBalance());
     }));
     renderContainer();
     const dialog = await openCreateModal();
-    await fillStepOne(dialog, "0");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
-    expect(await within(dialog).findByText("Số tiền phải lớn hơn 0")).toBeInTheDocument();
-    expect(posted).not.toHaveBeenCalled();
+    await pickAccount(dialog);
+    expect(await within(dialog).findByText(/Chưa đọc được số dư từ sổ cái/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Thử lại" }));
+    expect(await within(dialog).findByText(/6\.000\.000/)).toBeInTheDocument();
   });
+});
 
-  it("requires a bank account before the review step", async () => {
-    renderContainer();
-    const dialog = await openCreateModal();
-    await userEvent.type(within(dialog).getByRole("textbox", { name: /Số tiền/ }), "1000000");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
-    expect(await within(dialog).findByText("Chọn tài khoản ngân hàng nhận tiền")).toBeInTheDocument();
-  });
-
-  it("checks the amount against the balance and the daily limit before asking for a code", async () => {
-    const challenged = vi.fn();
-    mswServer.use(http.post(`${base}/otp-challenge`, () => {
-      challenged();
-      return HttpResponse.json(challenge);
+describe("create withdrawal modal: code and send", () => {
+  it("asks for the code for the account and the ready amount, and asks again with the same pair on resend", async () => {
+    const bodies: unknown[] = [];
+    mswServer.use(http.post(`${base}/otp-challenge`, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json({ ...challenge, canResendAfterSeconds: 0 });
     }));
     renderContainer();
     const dialog = await openCreateModal();
-    await within(dialog).findByText(/128\.450\.000/);
-    await fillStepOne(dialog, "200000000");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
-    expect(await within(dialog).findByText(/vượt số dư khả dụng/)).toBeInTheDocument();
-    expect(challenged).not.toHaveBeenCalled();
+    await goToCode(dialog);
+    await userEvent.click(await within(dialog).findByRole("button", { name: "Gửi lại mã" }));
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies).toEqual([
+      { bankAccountId: bankOption.id, amount: 6_000_000 },
+      { bankAccountId: bankOption.id, amount: 6_000_000 },
+    ]);
   });
 
-  it("groups the amount while typing and fills the most that can be withdrawn", async () => {
-    renderContainer();
-    const dialog = await openCreateModal();
-    const amount = within(dialog).getByRole("textbox", { name: /Số tiền/ });
-    await userEvent.type(amount, "1500000");
-    expect(amount).toHaveValue("1.500.000");
-    await userEvent.click(await within(dialog).findByRole("button", { name: "Rút tối đa" }));
-    expect(amount).toHaveValue("128.450.000");
-  });
-
-  it("goes review, email code, then posts the body with the code once and shows the result", async () => {
+  it("goes review, email code, then posts the ready amount and the code once and shows the result", async () => {
     const bodies: unknown[] = [];
     mswServer.use(http.post(base, async ({ request }) => {
       bodies.push(await request.json());
       await new Promise((resolve) => setTimeout(resolve, 50));
-      return HttpResponse.json(makeWithdrawal({ amount: 250000, fee: 275 }), { status: 201 });
+      return HttpResponse.json(makeWithdrawal({ amount: 6_000_000, fee: 5_500 }), { status: 201 });
     }));
     renderContainer();
     const dialog = await openCreateModal();
-    await fillStepOne(dialog);
-    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
-    expect(await within(dialog).findByText(/xxxx1789/)).toBeInTheDocument();
+    await goToReview(dialog);
+    expect(within(dialog).queryByRole("checkbox")).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
     expect(await within(dialog).findByText(/ow\*\*\*@example\.com/)).toBeInTheDocument();
     await typeCode();
@@ -235,24 +276,35 @@ describe("create withdrawal modal", () => {
     expect(bodies).toHaveLength(1);
     expect(Object.keys(bodies[0] as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "otp"]);
     expect(bodies[0]).toMatchObject({
-      bankAccountId: bankOption.id, amount: 250000, otp: { otpSessionId: "session-1", otp: "123456" },
+      bankAccountId: bankOption.id, amount: 6_000_000, otp: { otpSessionId: "session-1", otp: "123456" },
     });
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
-  it("shows a wrong code on the code step and keeps what was entered", async () => {
-    mswServer.use(http.post(base, () => HttpResponse.json({ message: "Mã OTP không đúng" }, { status: 400 })));
+  it("shows a wrong code (5732) on the code step and keeps the account", async () => {
+    mswServer.use(http.post(base, () => codeError("MERCHANT_SENSITIVE_OTP_INVALID", "Mã OTP không đúng hoặc đã hết hạn", 400)));
     renderContainer();
     const dialog = await openCreateModal();
-    await goToCode(dialog, "999000");
+    await goToCode(dialog);
     await sendWithCode(dialog);
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Mã OTP không đúng");
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Mã OTP không đúng hoặc đã hết hạn");
+    expect(within(dialog).getByRole("textbox", { name: "Digit 1 of 6" })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
     await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
-    expect(within(dialog).getByRole("textbox", { name: /Số tiền/ })).toHaveValue("999.000");
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toHaveTextContent(/Vietcombank/);
   });
 
-  it("retries a failed send with the same key and sends a new key when the amount changed", async () => {
+  it("keeps the code step when BE says the code is missing (5731)", async () => {
+    mswServer.use(http.post(base, () => codeError("5731", "Cần nhập mã OTP để rút tiền", 400)));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Cần nhập mã OTP để rút tiền");
+    expect(within(dialog).getByRole("textbox", { name: "Digit 1 of 6" })).toBeInTheDocument();
+  });
+
+  it("retries a failed send with the same key", async () => {
     const keys: string[] = [];
     mswServer.use(http.post(base, async ({ request }) => {
       keys.push(((await request.json()) as { idempotencyKey: string }).idempotencyKey);
@@ -260,30 +312,117 @@ describe("create withdrawal modal", () => {
     }));
     renderContainer();
     const dialog = await openCreateModal();
-    await goToCode(dialog, "1000000");
+    await goToCode(dialog);
     await sendWithCode(dialog);
     await within(dialog).findByRole("alert");
     await userEvent.click(within(dialog).getByRole("button", { name: "Gửi yêu cầu" }));
     await waitFor(() => expect(keys).toHaveLength(2));
     expect(keys[1]).toBe(keys[0]);
-    await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
-    await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
-    const amount = within(dialog).getByRole("textbox", { name: /Số tiền/ });
-    await userEvent.clear(amount);
-    await userEvent.type(amount, "2000000");
+  });
+
+  it("goes back to the account step with the new total when the statement changed (5781), then sends the new amount with a new key", async () => {
+    const posted: { amount: number; idempotencyKey: string }[] = [];
+    mswServer.use(http.post(base, async ({ request }) => {
+      posted.push((await request.json()) as { amount: number; idempotencyKey: string });
+      return codeError("MERCHANT_WITHDRAWAL_STATEMENT_CHANGED", "Tổng tiền rút đã đổi thành 7.000.000");
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    const requests = balanceReturns(makeBalance({ readyAmount: 7_000_000, netReceived: 6_993_500 }));
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText("Tổng tiền rút đã đổi thành 7.000.000")).toBeInTheDocument();
+    await waitFor(() => expect(requests).toEqual([subMerchantId]));
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
     await userEvent.click(await within(dialog).findByRole("button", { name: "Tiếp tục" }));
     await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
     await sendWithCode(dialog);
-    await waitFor(() => expect(keys).toHaveLength(3));
-    expect(keys[2]).not.toBe(keys[0]);
+    await waitFor(() => expect(posted).toHaveLength(2));
+    expect(posted[0]?.amount).toBe(6_000_000);
+    expect(posted[1]?.amount).toBe(7_000_000);
+    expect(posted[1]?.idempotencyKey).not.toBe(posted[0]?.idempotencyKey);
   });
 
-  it("explains that sub-merchant accounts are hidden only when some were left out", async () => {
-    mswServer.use(http.get(`${base}/bank-options`, () => HttpResponse.json({ options: [bankOption], hasHiddenSubMerchantAccounts: true })));
+  it("returns to the account step when nothing is ready any more (5780)", async () => {
+    mswServer.use(http.post(base, () => codeError("5780", "Không có khoản nào sẵn sàng để rút")));
     renderContainer();
     const dialog = await openCreateModal();
-    expect(await within(dialog).findByText("Tài khoản cấp Sub-merchant chưa dùng được để rút tiền")).toBeInTheDocument();
+    await goToCode(dialog);
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText("Không có khoản nào sẵn sàng để rút")).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+  });
+});
+
+describe("create withdrawal modal: zero net payout", () => {
+  it("warns, needs the checkbox before a code is requested, and sends confirmZeroNet", async () => {
+    balanceReturns(makeBalance({ netReceived: 0, setoff: 5_994_500, zeroNet: true }));
+    const challenged = vi.fn();
+    const bodies: unknown[] = [];
+    mswServer.use(
+      http.post(`${base}/otp-challenge`, () => {
+        challenged();
+        return HttpResponse.json(challenge);
+      }),
+      http.post(base, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(makeWithdrawal(), { status: 201 });
+      }),
+    );
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToReview(dialog);
+    expect(within(dialog).getByText(/Số tiền thực nhận bằng 0/)).toBeInTheDocument();
+    const next = within(dialog).getByRole("button", { name: "Tiếp tục" });
+    expect(next).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /Tôi hiểu/ }));
+    expect(next).toBeEnabled();
+    await userEvent.click(next);
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    await sendWithCode(dialog);
+    await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" });
+    expect(challenged).toHaveBeenCalledTimes(1);
+    expect(bodies[0]).toMatchObject({ confirmZeroNet: true, amount: 6_000_000 });
+  });
+
+  it("does not send confirmZeroNet when the net is not zero", async () => {
+    const bodies: unknown[] = [];
+    mswServer.use(http.post(base, async ({ request }) => {
+      bodies.push(await request.json());
+      return HttpResponse.json(makeWithdrawal(), { status: 201 });
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    await sendWithCode(dialog);
+    await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" });
+    expect(bodies[0]).not.toHaveProperty("confirmZeroNet");
+  });
+
+  it("asks again on the review step when BE answers 5760, then sends confirmZeroNet", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    mswServer.use(http.post(base, async ({ request }) => {
+      const body = (await request.json()) as Record<string, unknown>;
+      bodies.push(body);
+      return body.confirmZeroNet
+        ? HttpResponse.json(makeWithdrawal(), { status: 201 })
+        : codeError("MERCHANT_WITHDRAWAL_ZERO_NET_CONFIRMATION", "Thực nhận bằng 0, cần xác nhận");
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText(/Số tiền thực nhận bằng 0/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /Tôi hiểu/ }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    await sendWithCode(dialog);
+    await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" });
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0]).not.toHaveProperty("confirmZeroNet");
+    expect(bodies[1]).toMatchObject({ confirmZeroNet: true });
   });
 });
 

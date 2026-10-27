@@ -108,7 +108,7 @@ describe("withdrawal service detail and create", () => {
     expect(requested).toBe("/api/v1/merchant/withdrawal-requests/a%2Fb");
   });
 
-  it("posts exactly the five BE fields and nothing about the merchant or the account number", async () => {
+  it("posts exactly the BE fields, with the code under sensitiveOtp and nothing about the merchant or the account number", async () => {
     let body: unknown;
     mswServer.use(http.post(path, async ({ request }) => {
       body = await request.json();
@@ -118,8 +118,21 @@ describe("withdrawal service detail and create", () => {
     expect(await createWithdrawal(input)).toMatchObject({ success: true });
     expect(body).toEqual({
       bankAccountId: input.bankAccountId, amount: 5_000_000, idempotencyKey: "key-1", reason: "Rút",
-      otp: { otpSessionId: "sess-1", otp: "123456" },
+      sensitiveOtp: { otpSessionId: "sess-1", otp: "123456" },
     });
+  });
+
+  it("sends confirmZeroNet only after the merchant accepted it", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    mswServer.use(http.post(path, async ({ request }) => {
+      bodies.push((await request.json()) as Record<string, unknown>);
+      return HttpResponse.json(envelope(record));
+    }));
+    const input = { bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-3", otp: { otpSessionId: "sess-1", otp: "123456" } };
+    await createWithdrawal(input);
+    await createWithdrawal({ ...input, confirmZeroNet: true });
+    expect(bodies[0]).not.toHaveProperty("confirmZeroNet");
+    expect(bodies[1]).toMatchObject({ confirmZeroNet: true });
   });
 
   it("leaves the reason out when there is none", async () => {
@@ -129,7 +142,7 @@ describe("withdrawal service detail and create", () => {
       return HttpResponse.json(envelope(record));
     }));
     await createWithdrawal({ bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-2", otp: { otpSessionId: "sess-1", otp: "123456" } });
-    expect(Object.keys(body as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "otp"]);
+    expect(Object.keys(body as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "sensitiveOtp"]);
   });
 
   it("keeps the BE error when the amount exceeds the balance", async () => {
@@ -146,32 +159,42 @@ describe("withdrawal service detail and create", () => {
 });
 
 describe("withdrawal balance and OTP", () => {
-  it("asks for the balance of the given merchant and keeps a missing limit as null", async () => {
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  const bankAccountId = "44444444-4444-4444-8444-444444444444";
+  const balance = {
+    subMerchantId, availableBalance: 128_450_000, heldBalance: 200_000, pendingSettlement: 300_000, readyAmount: 6_000_000,
+    setoff: 1_000, fee: 5_500, netReceived: 5_993_500, zeroNet: false, dailyLimitRemaining: 500_000_000,
+    dailyCountRemaining: null, asOf: "2026-10-26T03:00:00Z",
+  };
+
+  it("asks for the balance of the Sub, never of the merchant, and keeps a missing limit as null", async () => {
     let query: URLSearchParams | undefined;
     mswServer.use(http.get(`${path}/balance`, ({ request }) => {
       query = new URL(request.url).searchParams;
-      return HttpResponse.json(envelope({ merchantId, availableBalance: 128_450_000, heldBalance: 200_000, dailyLimitRemaining: 500_000_000 }));
+      return HttpResponse.json(envelope(balance));
     }));
-    const result = await getWithdrawalBalance(merchantId);
-    expect(query?.get("merchantId")).toBe(merchantId);
+    const result = await getWithdrawalBalance(subMerchantId);
+    expect(Object.fromEntries(query!)).toEqual({ subMerchantId });
     expect(result).toMatchObject({
       success: true,
-      data: { availableBalance: 128_450_000, heldBalance: 200_000, minimumAmount: null, maximumAmount: null },
+      data: { subMerchantId, readyAmount: 6_000_000, netReceived: 5_993_500, minimumAmount: null, maximumAmount: null, dailyCountRemaining: null },
     });
   });
 
-  it("rejects a balance that is not a number instead of showing it", async () => {
-    mswServer.use(http.get(`${path}/balance`, () => HttpResponse.json(envelope({ merchantId, availableBalance: "x", heldBalance: 0 }))));
-    expect(await getWithdrawalBalance(merchantId)).toMatchObject({ success: false, error: { code: "INVALID_RESPONSE" } });
+  it("rejects a balance that is not a number or still has the old merchant shape", async () => {
+    mswServer.use(http.get(`${path}/balance`, () => HttpResponse.json(envelope({ ...balance, availableBalance: "x" }))));
+    expect(await getWithdrawalBalance(subMerchantId)).toMatchObject({ success: false, error: { code: "INVALID_RESPONSE" } });
+    mswServer.use(http.get(`${path}/balance`, () => HttpResponse.json(envelope({ merchantId, availableBalance: 1, heldBalance: 0 }))));
+    expect(await getWithdrawalBalance(subMerchantId)).toMatchObject({ success: false, error: { code: "INVALID_RESPONSE" } });
   });
 
-  it("requests the code from the withdrawal challenge endpoint with no operation from the caller", async () => {
-    let called = false;
-    mswServer.use(http.post(`${path}/otp-challenge`, () => {
-      called = true;
+  it("posts the account and amount the code is tied to, and nothing else", async () => {
+    let body: unknown;
+    mswServer.use(http.post(`${path}/otp-challenge`, async ({ request }) => {
+      body = await request.json();
       return HttpResponse.json(envelope({ otpSessionId: "s", maskedRecipient: "a***@b.vn", expiresInSeconds: 300, canResendAfterSeconds: 60 }));
     }));
-    expect(await requestWithdrawalOtp()).toMatchObject({ success: true, data: { otpSessionId: "s" } });
-    expect(called).toBe(true);
+    expect(await requestWithdrawalOtp({ bankAccountId, amount: 6_000_000 })).toMatchObject({ success: true, data: { otpSessionId: "s" } });
+    expect(body).toEqual({ bankAccountId, amount: 6_000_000 });
   });
 });

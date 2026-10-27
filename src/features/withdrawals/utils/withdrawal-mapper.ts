@@ -19,16 +19,17 @@ export function toWithdrawalCreateRequest(body: WithdrawalCreateBody) {
     bankAccountId: body.bankAccountId,
     amount: body.amount,
     idempotencyKey: body.idempotencyKey,
-    otp: body.otp,
+    sensitiveOtp: body.otp,
     ...(body.reason ? { reason: body.reason } : {}),
+    ...(body.confirmZeroNet ? { confirmZeroNet: true } : {}),
   };
 }
 
 type PayableAccount = Pick<BankAccount, "linkStatus" | "status" | "payable">;
 
-/** Only a Master account can pay out for now: BE answers BANK_NOT_FOUND for a sub-merchant or terminal account. */
-export function isMasterAccount(account: Pick<BankAccount, "level" | "subMerchantId">): boolean {
-  return account.level === "MASTER" || !account.subMerchantId;
+/** The merchant portal pays out per Sub: BE refuses a Master account with 400 VALIDATION_ERROR. */
+export function isSubMerchantAccount(account: BankAccount): account is BankAccount & { subMerchantId: string } {
+  return Boolean(account.subMerchantId);
 }
 
 /** BE refuses a payout to an account that is not linked, is stopped or is not payable. */
@@ -38,14 +39,14 @@ export function isWithdrawableAccount(account: PayableAccount): boolean {
     && account.payable !== false;
 }
 
-export function toBankOption(account: BankAccount): WithdrawalBankOption {
+export function toBankOption(account: BankAccount & { subMerchantId: string }): WithdrawalBankOption {
   return {
     id: account.id,
     bankCode: account.bankCode,
     accountNumberMasked: account.accountNumber,
     accountName: account.accountName,
     isDefault: account.isDefault,
-    subMerchantId: account.subMerchantId ?? null,
+    subMerchantId: account.subMerchantId,
   };
 }
 

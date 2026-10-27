@@ -26,6 +26,13 @@ describe("withdrawal search params", () => {
     expect(withdrawalQueries.list({ ...filter, page: 3 }).queryKey).not.toEqual(withdrawalQueries.list(filter).queryKey);
   });
 
+  it("keys the balance by Sub, and asks nothing until a Sub is chosen", () => {
+    expect(withdrawalQueries.balance("a").queryKey).toEqual(["withdrawals", "balance", "a"]);
+    expect(withdrawalQueries.balance("a").queryKey).not.toEqual(withdrawalQueries.balance("b").queryKey);
+    expect(withdrawalQueries.balance("a").enabled).toBe(true);
+    expect(withdrawalQueries.balance("").enabled).toBe(false);
+  });
+
   it("keys bank options by sub-merchant so a change refetches", () => {
     expect(withdrawalQueries.bankOptions("a").queryKey).not.toEqual(withdrawalQueries.bankOptions("b").queryKey);
     expect(withdrawalQueries.bankOptions().queryKey).toEqual(["withdrawals", "bank-options", ""]);

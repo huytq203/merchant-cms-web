@@ -10,7 +10,6 @@ import { useWithdrawalListNavigation } from "../hooks/use-withdrawal-list-naviga
 import { withdrawalQueries } from "../withdrawal-queries";
 import type { WithdrawalListFilter } from "../types/types";
 import { WithdrawalCreateModal } from "./WithdrawalCreateModal";
-import { WithdrawalBalanceStrip } from "./WithdrawalBalanceStrip";
 import { WithdrawalDetailModal } from "./WithdrawalDetailModal";
 import { WithdrawalFilter } from "./WithdrawalFilter";
 import { WithdrawalResults } from "./WithdrawalResults";
@@ -38,7 +37,6 @@ export function WithdrawalsContainer({ filter, abilities }: Props) {
           </Button>
         ) : undefined}
       />
-      <WithdrawalBalanceStrip />
       <WithdrawalFilter key={filterKey(filter)} initial={filter} onSearch={navigation.search} />
       <WithdrawalResults
         list={list}

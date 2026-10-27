@@ -72,8 +72,10 @@ export const withdrawalQueries = {
       query: { subMerchantId: subMerchantId || undefined },
     }),
   }),
-  balance: () => queryOptions({
-    queryKey: ["withdrawals", "balance"] as const,
-    queryFn: () => apiClient.get<WithdrawalBalance>(`${WITHDRAWALS_ENDPOINT}/balance`),
+  /** Per Sub: nothing is asked until an account (and so a Sub) is chosen. */
+  balance: (subMerchantId: string) => queryOptions({
+    queryKey: ["withdrawals", "balance", subMerchantId] as const,
+    queryFn: () => apiClient.get<WithdrawalBalance>(`${WITHDRAWALS_ENDPOINT}/balance`, { query: { subMerchantId } }),
+    enabled: subMerchantId !== "",
   }),
 };
