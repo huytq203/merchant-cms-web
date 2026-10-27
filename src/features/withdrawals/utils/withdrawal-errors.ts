@@ -3,6 +3,33 @@ import { ApiError } from "@/lib/http/api-client";
 const DUPLICATE_KEY = "DUPLICATE_KEY_ERROR";
 const BANK_NOT_FOUND = "BANK_NOT_FOUND";
 
+/** Business errors BE answers with a Vietnamese message; the UI branches on the code (numeric or name), never on text. */
+const CODES = {
+  otpRequired: ["5731", "MERCHANT_SENSITIVE_OTP_REQUIRED"],
+  otpInvalid: ["5732", "MERCHANT_SENSITIVE_OTP_INVALID"],
+  otpIssueFailed: ["5733", "MERCHANT_SENSITIVE_OTP_ISSUE_FAILED"],
+  zeroNet: ["5760", "MERCHANT_WITHDRAWAL_ZERO_NET_CONFIRMATION"],
+  nothingReady: ["5780", "MERCHANT_WITHDRAWAL_NOTHING_READY"],
+  statementChanged: ["5781", "MERCHANT_WITHDRAWAL_STATEMENT_CHANGED"],
+  ledgerUnavailable: ["5753", "MERCHANT_ESCROW_BALANCE_UNAVAILABLE"],
+} as const;
+
+export type WithdrawalFailureKind = keyof typeof CODES | "other";
+
+const LEDGER_UNAVAILABLE_TEXT = "Chưa đọc được số dư từ sổ cái. Vui lòng thử lại sau ít phút.";
+const OTP_ISSUE_FAILED_TEXT = "Không gửi được mã OTP, vui lòng thử lại";
+
+/** Which rule BE refused with, so the flow can go back to the right step. A bare BE 503 is the ledger not answering. */
+export function withdrawalFailureKind(error: unknown): WithdrawalFailureKind {
+  if (!(error instanceof ApiError)) return "other";
+  const found = (Object.keys(CODES) as (keyof typeof CODES)[]).find((kind) =>
+    (CODES[kind] as readonly string[]).includes(error.code ?? ""),
+  );
+  if (found) return found;
+  // The BFF turns a BE 5xx into 502 and a 5xx body loses its code, so the ledger 503 arrives as `HTTP_503`.
+  return error.status === 503 || error.code === "HTTP_503" ? "ledgerUnavailable" : "other";
+}
+
 /**
  * The BE answers some business rules in English; these are the messages it really throws while a
  * withdrawal request is created or read (MerchantWithdrawalRequestServiceImpl and
@@ -28,6 +55,11 @@ const MESSAGE_TRANSLATIONS: ReadonlyArray<{ match: string; text: string }> = [
 /** The BE can answer a business rule in English, so the codes and messages above get fixed Vietnamese text. */
 export function describeWithdrawalError(error: unknown): string {
   if (!(error instanceof ApiError)) return "Không gửi được yêu cầu, vui lòng thử lại";
+  const kind = withdrawalFailureKind(error);
+  if (kind === "ledgerUnavailable") return LEDGER_UNAVAILABLE_TEXT;
+  if (kind === "otpIssueFailed") return OTP_ISSUE_FAILED_TEXT;
+  // The remaining new codes carry Vietnamese text from BE (the 5781 one names the new total), shown as is.
+  if (kind !== "other") return error.message;
   if (error.code === DUPLICATE_KEY) {
     return "Yêu cầu này đã được gửi hoặc nội dung đã thay đổi, vui lòng tải lại danh sách";
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isAwaitingApproval,
-  isMasterAccount,
+  isSubMerchantAccount,
   toWithdrawalCreateRequest,
   withdrawalTitle,
   withdrawalTotalDebit,
@@ -15,13 +15,21 @@ const input = {
 };
 
 describe("toWithdrawalCreateRequest", () => {
-  it("keeps only the account id, amount, idempotency key and the OTP answer", () => {
-    expect(toWithdrawalCreateRequest(input)).toEqual({
+  it("keeps only the account id, amount, idempotency key and the OTP answer under the BE name sensitiveOtp", () => {
+    const request = toWithdrawalCreateRequest(input);
+    expect(request).toEqual({
       bankAccountId: input.bankAccountId,
       amount: 250000,
       idempotencyKey: "key-1",
-      otp: { otpSessionId: "sess-1", otp: "123456" },
+      sensitiveOtp: { otpSessionId: "sess-1", otp: "123456" },
     });
+    expect(request).not.toHaveProperty("otp");
+  });
+
+  it("sends confirmZeroNet only when the merchant accepted a zero net payout", () => {
+    expect(toWithdrawalCreateRequest({ ...input, confirmZeroNet: true }).confirmZeroNet).toBe(true);
+    expect(toWithdrawalCreateRequest({ ...input, confirmZeroNet: false })).not.toHaveProperty("confirmZeroNet");
+    expect(toWithdrawalCreateRequest(input)).not.toHaveProperty("confirmZeroNet");
   });
 
   it("sends the reason only when it has content", () => {
@@ -30,12 +38,14 @@ describe("toWithdrawalCreateRequest", () => {
   });
 });
 
-describe("isMasterAccount", () => {
-  it("accepts a MASTER level or an account without a sub-merchant and refuses lower levels", () => {
-    expect(isMasterAccount({ level: "MASTER", subMerchantId: null })).toBe(true);
-    expect(isMasterAccount({ level: undefined, subMerchantId: null })).toBe(true);
-    expect(isMasterAccount({ level: "SUB", subMerchantId: "33333333-3333-4333-8333-333333333333" })).toBe(false);
-    expect(isMasterAccount({ level: "TERMINAL", subMerchantId: "33333333-3333-4333-8333-333333333333" })).toBe(false);
+describe("isSubMerchantAccount", () => {
+  const subId = "33333333-3333-4333-8333-333333333333";
+  const account = (overrides: object) => ({ id: "a", ...overrides }) as Parameters<typeof isSubMerchantAccount>[0];
+
+  it("accepts an account that belongs to a Sub and refuses a Master account", () => {
+    expect(isSubMerchantAccount(account({ level: "SUB", subMerchantId: subId }))).toBe(true);
+    expect(isSubMerchantAccount(account({ level: "MASTER" }))).toBe(false);
+    expect(isSubMerchantAccount(account({ level: undefined, subMerchantId: undefined }))).toBe(false);
   });
 });
 

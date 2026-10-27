@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  withdrawalBalanceSchema,
   withdrawalCreateBodySchema,
   withdrawalFormSchema,
+  withdrawalOtpChallengeBodySchema,
   withdrawalResponseSchema,
   withdrawalStatusSchema,
 } from "../withdrawal.schema";
@@ -95,5 +97,46 @@ describe("withdrawal form schema", () => {
     expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1" }).success).toBe(false);
     expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1", otp: { ...otp, otp: "12" } }).success).toBe(false);
     expect(withdrawalCreateBodySchema.safeParse({ ...form, idempotencyKey: "key-1", otp }).success).toBe(true);
+  });
+});
+
+describe("withdrawal balance schema", () => {
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  const balance = {
+    subMerchantId, availableBalance: 100, heldBalance: 20, pendingSettlement: 30, readyAmount: 6_000_000,
+    setoff: 1_000, fee: 5_500, netReceived: 5_993_500, zeroNet: false, minimumAmount: 10_000,
+    maximumAmount: null, dailyLimitRemaining: 500_000_000, dailyCountRemaining: 4, asOf: "2026-10-26T03:00:00Z",
+  };
+
+  it("parses the per Sub balance with the ready amount, setoff, fee and net received", () => {
+    expect(withdrawalBalanceSchema.parse(balance)).toMatchObject({ subMerchantId, readyAmount: 6_000_000, setoff: 1_000, fee: 5_500, netReceived: 5_993_500, zeroNet: false });
+  });
+
+  it("keeps a missing limit as null, including the daily count", () => {
+    const { maximumAmount: _max, dailyCountRemaining: _count, ...partial } = balance;
+    void _max; void _count;
+    expect(withdrawalBalanceSchema.parse(partial)).toMatchObject({ maximumAmount: null, dailyCountRemaining: null });
+  });
+
+  it("refuses the old merchant shaped answer", () => {
+    expect(withdrawalBalanceSchema.safeParse({ merchantId, availableBalance: 1, heldBalance: 0 }).success).toBe(false);
+  });
+});
+
+describe("withdrawal OTP challenge body schema", () => {
+  it("needs the account and a whole amount of at least 1", () => {
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 6_000_000 }).success).toBe(true);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 0 }).success).toBe(false);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 1.5 }).success).toBe(false);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ amount: 10 }).success).toBe(false);
+  });
+});
+
+describe("withdrawal create body confirmZeroNet", () => {
+  it("is optional and must be a boolean", () => {
+    const body = { bankAccountId, amount: 5, idempotencyKey: "k", otp: { otpSessionId: "s", otp: "123456" } };
+    expect(withdrawalCreateBodySchema.safeParse(body).success).toBe(true);
+    expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: true }).success).toBe(true);
+    expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: "yes" }).success).toBe(false);
   });
 });

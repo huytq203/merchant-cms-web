@@ -14,7 +14,7 @@ const subMerchantId = "11111111-1111-4111-8111-111111111111";
 const makeAccount = (overrides: Record<string, unknown>) => ({
   id: "55555555-5555-4555-8555-555555555555",
   merchantId,
-  subMerchantId: null,
+  subMerchantId,
   bankCode: "VCB",
   accountNumber: "******1789",
   accountName: "CONG TY A",
@@ -45,7 +45,7 @@ describe("withdrawal bank options route", () => {
     expect(listBankAccounts).not.toHaveBeenCalled();
   });
 
-  it("returns only payable linked accounts of the session merchant with the BE masked number unchanged", async () => {
+  it("returns only payable linked Sub accounts of the session merchant with the BE masked number unchanged", async () => {
     listBankAccounts.mockResolvedValue({
       success: true,
       data: {
@@ -68,29 +68,27 @@ describe("withdrawal bank options route", () => {
           accountNumberMasked: "******1789",
           accountName: "CONG TY A",
           isDefault: true,
-          subMerchantId: null,
+          subMerchantId,
         },
       ],
-      hasHiddenSubMerchantAccounts: false,
     });
     expect(listBankAccounts).toHaveBeenCalledWith(expect.objectContaining({ merchantId, linkStatus: "LINKED" }));
   });
 
-  it("lists only Master level accounts and flags that sub-merchant ones were left out", async () => {
+  it("drops Master accounts, which the merchant gateway cannot withdraw to, and has no hidden-account flag", async () => {
     listBankAccounts.mockResolvedValue({
       success: true,
       data: {
         rows: [
-          makeAccount({ level: "MASTER" }),
-          makeAccount({ id: "66666666-6666-4666-8666-666666666666", level: "SUB", subMerchantId }),
-          makeAccount({ id: "77777777-7777-4777-8777-777777777777", level: "TERMINAL", subMerchantId }),
+          makeAccount({ id: "66666666-6666-4666-8666-666666666666", level: "MASTER", subMerchantId: undefined }),
+          makeAccount({ id: "77777777-7777-4777-8777-777777777777", level: "SUB", subMerchantId }),
         ],
-        total: 3,
+        total: 2,
       },
     });
     const payload = await (await call()).json();
-    expect(payload.options.map((option: { id: string }) => option.id)).toEqual(["55555555-5555-4555-8555-555555555555"]);
-    expect(payload.hasHiddenSubMerchantAccounts).toBe(true);
+    expect(payload.options.map((option: { id: string }) => option.id)).toEqual(["77777777-7777-4777-8777-777777777777"]);
+    expect(payload).not.toHaveProperty("hasHiddenSubMerchantAccounts");
   });
 
   it("refuses a sub-merchant outside the session scope and passes one inside it", async () => {
