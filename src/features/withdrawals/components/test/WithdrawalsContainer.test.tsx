@@ -175,11 +175,11 @@ describe("filters", () => {
     expect(url.searchParams.get("page")).toBe("1");
   });
 
-  it("offers five stages instead of the fourteen BE statuses", async () => {
+  it("offers four stages (no reconciliation) instead of the BE statuses", async () => {
     renderContainer();
     await screen.findByText("WD2601");
     await userEvent.click(within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).getByRole("combobox", { name: /Trạng thái/ }));
-    expect(within(await screen.findByRole("listbox")).getAllByRole("option")).toHaveLength(5);
+    expect(within(await screen.findByRole("listbox")).getAllByRole("option")).toHaveLength(4);
   });
 });
 
@@ -439,12 +439,13 @@ describe("withdrawal detail modal", () => {
     expect(names.every((name) => /Đóng|Close|Sao chép/i.test(name ?? ""))).toBe(true);
   });
 
-  it("tells the merchant a reconciliation needs nothing from them", async () => {
+  it("shows the retired RECONCILIATION_REQUIRED as processing (alias chuyển tiếp)", async () => {
     const stuck = makeWithdrawal({ status: "RECONCILIATION_REQUIRED" });
     listReturns([stuck]);
     mswServer.use(http.get(`${base}/${stuck.id}`, () => HttpResponse.json(stuck)));
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết yêu cầu rút tiền WD2601/ }));
-    expect(await screen.findByText(/không cần làm gì/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hệ thống đang gửi lệnh chuyển sang ngân hàng/)).toBeInTheDocument();
+    expect(screen.queryByText("Cần đối soát")).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card/Card";
 import { StatusBadge } from "@/components/page/StatusBadge";
-import { ORDER_STATUS_OPTIONS, labelOf } from "@/features/orders/constants/Order.constants";
+import { ORDER_STATUS_DISPLAY_OPTIONS, labelOf } from "@/features/orders/constants/Order.constants";
 import { domainErrorMessage } from "@/lib/be/errors";
 import { formatAmount } from "@/lib/utils/helper";
 import { getOrderSnapshot } from "@/server/modules/dashboard/dashboard.service";
@@ -20,7 +20,7 @@ export async function RecentOrders() {
     id: order.id,
     primary: order.orderCode,
     secondary: `${order.subMerchantName ?? order.merchantName ?? "—"} · ${formatVnTime(order.createdAt)}`,
-    badge: <StatusBadge label={labelOf(ORDER_STATUS_OPTIONS, order.status)} tone={BUCKET_TONE[bucketOf(order.status)]} />,
+    badge: <StatusBadge label={labelOf(ORDER_STATUS_DISPLAY_OPTIONS, order.status)} tone={BUCKET_TONE[bucketOf(order.status)]} />,
     amount: formatAmount(order.amount),
   }));
   return <RecentList title="Đơn hàng gần nhất" href="/order" rows={rows} emptyMessage="Chưa có đơn hàng nào trong 7 ngày qua." />;

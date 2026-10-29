@@ -284,13 +284,26 @@ describe("order list filters", () => {
 });
 
 describe("order detail", () => {
-  it("explains an order that needs reconciliation without offering a QR", async () => {
-    const order = makeOrder({ status: "CREDIT_RECONCILIATION_REQUIRED", qrCode: "qr" });
+  it("shows a posting order as 'Đang xử lý' without offering a QR", async () => {
+    const order = makeOrder({ status: "CREDIT_POSTING", qrCode: "qr" });
     listReturns([order]);
     mswServer.use(http.get(`${base}/${order.id}`, () => HttpResponse.json(order)));
     renderContainer();
+    expect(await screen.findByText("Đang xử lý")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
-    expect(await screen.findByText(/không cần làm gì/)).toBeInTheDocument();
+    expect(await screen.findByText(/Hệ thống đang ghi có/)).toBeInTheDocument();
+    expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
+  });
+
+  it("still shows the retired CREDIT_RECONCILIATION_REQUIRED as 'Đang xử lý' (alias chuyển tiếp)", async () => {
+    const order = makeOrder({ status: "CREDIT_RECONCILIATION_REQUIRED" as never, qrCode: "qr" });
+    listReturns([order]);
+    mswServer.use(http.get(`${base}/${order.id}`, () => HttpResponse.json(order)));
+    renderContainer();
+    expect(await screen.findByText("Đang xử lý")).toBeInTheDocument();
+    expect(screen.queryByText("Cần đối soát")).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+    expect(await screen.findByText(/Hệ thống đang ghi có/)).toBeInTheDocument();
     expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
   });
 

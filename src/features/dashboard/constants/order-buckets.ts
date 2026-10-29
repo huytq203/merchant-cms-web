@@ -10,9 +10,9 @@ export const ORDER_BUCKETS: {
   color: string;
   statuses: readonly OrderStatus[];
 }[] = [
-  { key: "paid", label: "Đã thanh toán", color: "var(--chart-4)", statuses: ["SUCCESS", "PAYMENT_CONFIRMED", "CREDIT_PENDING", "CREDIT_POSTING"] },
+  { key: "paid", label: "Đã thanh toán", color: "var(--chart-4)", statuses: ["SUCCESS", "PAYMENT_CONFIRMED", "CREDIT_PENDING", "CREDIT_POSTING", "CREDIT_RECONCILIATION_REQUIRED" /* alias chuyển tiếp, gỡ sau 1 sprint */] },
   { key: "waiting", label: "Chờ thanh toán", color: "var(--chart-2)", statuses: ["PENDING", "ACTIVE"] },
-  { key: "failed", label: "Thất bại hoặc cần đối soát", color: "var(--chart-5)", statuses: ["FAILED", "CREDIT_RECONCILIATION_REQUIRED"] },
+  { key: "failed", label: "Thất bại", color: "var(--chart-5)", statuses: ["FAILED"] },
   { key: "closed", label: "Hết hạn hoặc đã huỷ", color: "color-mix(in srgb, var(--muted-foreground) 55%, transparent)", statuses: ["EXPIRED", "CANCELLED"] },
 ];
 

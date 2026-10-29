@@ -21,8 +21,10 @@ describe("withdrawal progress", () => {
     }
   });
 
-  it("does not ask the merchant to act on a reconciliation", () => {
-    expect(withdrawalNote("RECONCILIATION_REQUIRED").text).toMatch(/không cần làm gì/);
+  it("treats the retired RECONCILIATION_REQUIRED like PROCESSING: in progress, not failed", () => {
+    expect(withdrawalStepStates("RECONCILIATION_REQUIRED")).toEqual(withdrawalStepStates("PROCESSING"));
+    expect(withdrawalStepStates("RECONCILIATION_REQUIRED")).not.toContain("failed");
+    expect(withdrawalNote("RECONCILIATION_REQUIRED")).toEqual(withdrawalNote("PROCESSING"));
   });
 });
 
@@ -30,7 +32,15 @@ describe("status groups", () => {
   it("put every BE status in exactly one stage", () => {
     const all = WITHDRAWAL_STATUS_GROUPS.flatMap((group) => [...group.statuses]);
     expect(new Set(all).size).toBe(all.length);
-    expect([...all].sort()).toEqual([...withdrawalStatusSchema.options].sort());
+    // Alias chuyển tiếp is never sent to BE as a filter value, so it is not in any group's list.
+    const current = withdrawalStatusSchema.options.filter((status) => status !== "RECONCILIATION_REQUIRED");
+    expect([...all].sort()).toEqual([...current].sort());
     expect(groupOfStatus("BANK_SUBMITTING")?.value).toBe("PROCESSING");
+  });
+
+  it("offers no reconciliation stage, but still reads the retired status as processing", () => {
+    expect(WITHDRAWAL_STATUS_GROUPS.map((group) => group.value)).not.toContain("RECONCILIATION");
+    expect(WITHDRAWAL_STATUS_GROUPS.flatMap((group) => [...group.statuses])).not.toContain("RECONCILIATION_REQUIRED");
+    expect(groupOfStatus("RECONCILIATION_REQUIRED")?.value).toBe("PROCESSING");
   });
 });

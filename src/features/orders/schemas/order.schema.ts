@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const orderStatusSchema = z.enum([
   "PENDING", "ACTIVE", "PAYMENT_CONFIRMED", "CREDIT_PENDING", "CREDIT_POSTING",
-  "CREDIT_RECONCILIATION_REQUIRED", "SUCCESS", "FAILED", "EXPIRED", "CANCELLED",
+  "CREDIT_RECONCILIATION_REQUIRED" /* alias chuyển tiếp, gỡ sau 1 sprint: BE đã bỏ, thành CREDIT_POSTING */, "SUCCESS", "FAILED", "EXPIRED", "CANCELLED",
 ]);
 export const bankCodeSchema = z.enum(["VPB", "VCB"], "Chọn ngân hàng nhận tiền");
 export const paymentMethodSchema = z.enum(
