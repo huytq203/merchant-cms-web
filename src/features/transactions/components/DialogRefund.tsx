@@ -87,7 +87,7 @@ export function DialogRefund({ transaction, open, onOpenChange }: DialogRefundPr
           <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 grid grid-cols-2 gap-y-2 text-sm">
             <span className="text-muted-foreground">Giao dịch gốc</span>
             <span className="font-mono font-semibold text-primary text-right">
-              {transaction?.code ?? '—'}
+              {transaction ? (transaction.transactionCode ?? transaction.orderCode) : '—'}
             </span>
             <span className="text-muted-foreground">Số tiền có thể hoàn</span>
             <span className="font-mono font-semibold text-right">

@@ -30,25 +30,39 @@ describe("transactions route", () => {
   it("rejects an oversized page, an unknown status and a reversed time range", async () => {
     expect((await GET(request("?pageSize=101"))).status).toBe(400);
     expect((await GET(request("?status=PAID"))).status).toBe(400);
-    const reversed = "?createdFromDate=2026-10-05T00:00:00Z&createdToDate=2026-10-01T00:00:00Z";
+    expect((await GET(request("?subMerchantId=SM001"))).status).toBe(400);
+    const reversed = "?createdFrom=2026-10-05&createdTo=2026-10-01";
     expect((await GET(request(reversed))).status).toBe(400);
     expect(listTransactions).not.toHaveBeenCalled();
   });
 
-  it("passes the filter and the session merchant to the service", async () => {
-    const response = await GET(request("?page=2&pageSize=20&status=failed&keyword=TRX"));
+  it("passes only the filter to the service: the BE scopes by the session", async () => {
+    const response = await GET(request("?page=2&pageSize=20&status=FAILED&keyword=TRX&paymentMethod=QR&createdFrom=2026-11-01"));
     expect(response.status).toBe(200);
-    expect(listTransactions).toHaveBeenCalledWith(
-      expect.objectContaining({ page: 2, pageSize: 20, status: "failed", keyword: "TRX", merchantId }),
-    );
+    expect(listTransactions).toHaveBeenCalledWith({
+      page: 2,
+      pageSize: 20,
+      status: "FAILED",
+      keyword: "TRX",
+      paymentMethod: "QR",
+      createdFrom: "2026-11-01",
+    });
   });
 
-  it("keeps 501 for an unsupported module and turns a BE 401 into 403", async () => {
+  it("lets a user assigned to Sub-merchants only (no Master) read the list", async () => {
+    getServerSession.mockResolvedValue({ ...session(["VIEW_TRANSACTION"]), merchantIds: [] });
+    expect((await GET(request())).status).toBe(200);
+    expect(listTransactions).toHaveBeenCalled();
+  });
+
+  it("forwards the Vietnamese BE validation message and turns a BE 401 into 403", async () => {
     listTransactions.mockResolvedValue({
       success: false,
-      error: { status: 501, code: "NOT_IMPLEMENTED", message: "Chức năng chưa được hỗ trợ" },
+      error: { status: 400, code: "VALIDATION_ERROR", message: "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc" },
     });
-    expect((await GET(request())).status).toBe(501);
+    const invalid = await GET(request());
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toMatchObject({ message: "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc" });
     listTransactions.mockResolvedValue({
       success: false,
       error: { status: 401, code: "UNAUTHORIZED", message: "x" },

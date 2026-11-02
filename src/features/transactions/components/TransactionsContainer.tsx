@@ -23,11 +23,9 @@ import { TransactionTable } from "./TransactionTable";
 type Props = {
   filter: TransactionListFilter;
   abilities: { canRefund: boolean; canDispute: boolean; canExport: boolean };
-  /** False in fixture mode, where sample sub-merchant ids do not exist in the BE list. */
-  showSubMerchantFilter?: boolean;
 };
 
-export function TransactionsContainer({ filter, abilities, showSubMerchantFilter = true }: Props) {
+export function TransactionsContainer({ filter, abilities }: Props) {
   const dialogs = useTransactionDialogs();
   const navigation = useTransactionListNavigation(filter);
   const list = useQuery(transactionQueries.list(filter));
@@ -57,7 +55,6 @@ export function TransactionsContainer({ filter, abilities, showSubMerchantFilter
         key={JSON.stringify(filter)}
         defaultValues={filterToFormValues(filter)}
         onSearch={handleSearch}
-        showSubMerchant={showSubMerchantFilter}
       />
       <ResultCard>
         <h2 className="px-4 pb-1 pt-4 font-semibold">

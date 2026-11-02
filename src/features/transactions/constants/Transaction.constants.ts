@@ -1,50 +1,32 @@
 import type { StatusTone } from '@/components/page/StatusBadge';
-import type { TransactionStatus, TransactionType, CardType, PaymentMethod } from '../types';
+import {
+  BANK_OPTIONS as ORDER_BANK_OPTIONS,
+  ORDER_STATUS_OPTIONS,
+  PAYMENT_METHOD_OPTIONS as ORDER_PAYMENT_METHOD_OPTIONS,
+} from '@/features/orders/constants/Order.constants';
+import type { TransactionStatus } from '../types';
 
-export const TRANSACTION_STATUS_OPTIONS: {
-  value: TransactionStatus;
-  label: string;
-  tone: StatusTone;
-}[] = [
-  { value: 'success',   label: 'Thành công', tone: 'success' },
-  { value: 'pending',   label: 'Đang xử lý', tone: 'warning' },
-  { value: 'failed',    label: 'Thất bại',   tone: 'danger'  },
-  { value: 'refunded',  label: 'Hoàn tiền',  tone: 'info'    },
-  { value: 'review',    label: 'Chờ duyệt',  tone: 'warning' },
-  { value: 'cancelled', label: 'Đã hủy',     tone: 'danger'  },
-  { value: 'created',   label: 'Mới tạo',    tone: 'info'    },
-  { value: 'expired',   label: 'Hết hạn',    tone: 'neutral' },
-];
-
-export const TRANSACTION_TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
-  { value: 'payment', label: 'Thanh toán (thu hộ)' },
-  { value: 'refund', label: 'Hoàn tiền' },
-  { value: 'top_up', label: 'Nạp ví' },
-  { value: 'withdrawal', label: 'Rút ví' },
-  { value: 'payout', label: 'Chi hộ' },
-  { value: 'settlement', label: 'Quyết toán' },
-];
-
-export const CARD_TYPE_LABELS: Record<CardType, string> = {
-  visa:       'Visa',
-  mastercard: 'Mastercard',
-  napas:      'Napas',
-  amex:       'Amex',
+/** Tone of each order status on this screen; labels are the order screen's so both read the same. */
+const STATUS_TONES: Record<TransactionStatus, StatusTone> = {
+  PENDING: 'neutral',
+  ACTIVE: 'warning',
+  PAYMENT_CONFIRMED: 'info',
+  CREDIT_PENDING: 'info',
+  CREDIT_POSTING: 'info',
+  CREDIT_RECONCILIATION_REQUIRED: 'danger',
+  SUCCESS: 'success',
+  FAILED: 'danger',
+  EXPIRED: 'neutral',
+  CANCELLED: 'danger',
 };
 
-export const PAYMENT_METHOD_OPTIONS: { label: string; value: PaymentMethod }[] = [
-  { label: 'Thẻ tín dụng', value: 'credit_card' },
-  { label: 'Thẻ ghi nợ',   value: 'debit_card'  },
-  { label: 'QR Code',      value: 'qr'          },
-];
+export const TRANSACTION_STATUS_OPTIONS: { value: TransactionStatus; label: string; tone: StatusTone }[] =
+  ORDER_STATUS_OPTIONS.map(({ value, label }) => ({ value, label, tone: STATUS_TONES[value] }));
 
-export const BANK_OPTIONS = [
-  { label: 'Vietcombank (VCB)', value: 'VCB'  },
-  { label: 'Techcombank (TCB)', value: 'TCB'  },
-  { label: 'MB Bank (MB)',      value: 'MB'   },
-  { label: 'BIDV',              value: 'BIDV' },
-  { label: 'ACB',               value: 'ACB'  },
-  { label: 'TPBank (TPB)',      value: 'TPB'  },
-  { label: 'VIB',               value: 'VIB'  },
-  { label: 'Agribank (AGRI)',   value: 'AGRI' },
-];
+export const PAYMENT_METHOD_OPTIONS = ORDER_PAYMENT_METHOD_OPTIONS;
+
+export const BANK_OPTIONS = ORDER_BANK_OPTIONS;
+
+export function optionLabel(options: { value: string; label: string }[], value: string | null | undefined): string {
+  return options.find((option) => option.value === value)?.label ?? value ?? '—';
+}

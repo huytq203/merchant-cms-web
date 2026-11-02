@@ -72,7 +72,7 @@ export function DialogReconciliation({
             <p className="text-sm text-muted-foreground mt-0.5">
               Giao dịch:{" "}
               <span className="font-mono font-semibold text-primary">
-                {transaction.code}
+                {(transaction.transactionCode ?? transaction.orderCode)}
               </span>
             </p>
           )}

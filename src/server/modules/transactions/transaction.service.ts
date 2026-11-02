@@ -1,68 +1,31 @@
 import "server-only";
 
-import type { BeResult } from "@/lib/be/client";
-import { resolveModuleSource, unsupportedResult } from "@/lib/be/api-mode";
+import { pageSchema } from "@/lib/be/envelope";
+import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
-import type {
-  Transaction,
-  TransactionListFilter,
-  TransactionListResult,
-} from "@/features/transactions/types";
-import { TRANSACTION_FIXTURES } from "./transaction.fixtures";
+import type { BeResult } from "@/lib/be/client";
+import { transactionSchema } from "@/features/transactions/schemas/transaction.schema";
+import type { TransactionListFilter, TransactionListResult } from "@/features/transactions/types";
 
-export type TransactionListQuery = TransactionListFilter & {
-  merchantId: string;
-};
+// Merchant Portal endpoint: scoped by the session (assigned Master or Subs), never by a merchantId from the client.
+// Filters BE reads: keyword, status, subMerchantId, paymentMethod, createdFrom/createdTo (yyyy-MM-dd), pagination.
+const TRANSACTIONS = "/api/v1/merchant/transactions";
 
-function includesText(value: string, search: string | undefined): boolean {
-  return !search || value.toLowerCase().includes(search.toLowerCase());
-}
-
-function isWithinRange(
-  row: Transaction,
-  filter: TransactionListFilter,
-): boolean {
-  const createdAt = Date.parse(row.createdAt);
-  const from = filter.createdFromDate
-    ? Date.parse(filter.createdFromDate)
-    : -Infinity;
-  const to = filter.createdToDate ? Date.parse(filter.createdToDate) : Infinity;
-  return createdAt >= from && createdAt <= to;
-}
-
-// subMerchantId is not matched: fixture sub-merchant ids are not BE ids, so it would always give an empty list.
-function matchesFilter(
-  row: Transaction,
-  filter: TransactionListFilter,
-): boolean {
-  return (
-    (includesText(row.code, filter.keyword) ||
-      includesText(row.invoiceCode ?? "", filter.keyword)) &&
-    (!filter.type || row.type === filter.type) &&
-    includesText(row.customerPhone, filter.customerContact) &&
-    (!filter.status || row.status === filter.status) &&
-    (!filter.paymentMethod || row.paymentMethod === filter.paymentMethod) &&
-    (!filter.bankCode || row.bankCode === filter.bankCode) &&
-    isWithinRange(row, filter)
-  );
-}
-
-function queryFixtures(filter: TransactionListFilter): TransactionListResult {
-  const matched = TRANSACTION_FIXTURES.filter((row) =>
-    matchesFilter(row, filter),
-  );
-  const start = (filter.page - 1) * filter.pageSize;
-  return {
-    rows: matched.slice(start, start + filter.pageSize),
-    total: matched.length,
-  };
-}
-
-/** The BE has no transaction API yet: serves fixtures in development, otherwise NOT_IMPLEMENTED. */
-export async function listTransactions(
-  query: TransactionListQuery,
-): Promise<BeResult<TransactionListResult>> {
-  if (resolveModuleSource("transactions") !== "fixture")
-    return unsupportedResult();
-  return ok(queryFixtures(query));
+/** Payments the session's merchants received (their orders); there is no customer phone filter on the BE. */
+export async function listTransactions(filter: TransactionListFilter): Promise<BeResult<TransactionListResult>> {
+  const result = await merchantClient().get({
+    path: TRANSACTIONS,
+    schema: pageSchema(transactionSchema),
+    query: {
+      page: filter.page,
+      size: filter.pageSize,
+      keyword: filter.keyword,
+      status: filter.status,
+      paymentMethod: filter.paymentMethod,
+      subMerchantId: filter.subMerchantId,
+      createdFrom: filter.createdFrom,
+      createdTo: filter.createdTo,
+    },
+  });
+  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }

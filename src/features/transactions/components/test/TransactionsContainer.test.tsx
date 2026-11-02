@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { mswServer } from "@/test/msw";
 import { TransactionsContainer } from "../TransactionsContainer";
 import type { Transaction, TransactionListFilter } from "../../types";
+import { BE_TRANSACTION } from "../../test/transaction.fixtures";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -20,44 +21,19 @@ const listPath = "/api/v1/admin/merchants/transaction";
 const filter: TransactionListFilter = { page: 1, pageSize: 10 };
 const abilities = { canRefund: true, canDispute: true, canExport: true };
 const successRow: Transaction = {
-  id: "t-1",
-  code: "TRX-1",
-  invoiceCode: "INV-1",
-  type: "payment",
-  cardType: "visa",
-  cardNumber: "**** **** **** 0001",
-  cardHolderName: "CHU THE MAU",
-  amount: 100000,
-  currency: "VND",
-  fee: 1000,
-  netAmount: 99000,
-  subMerchantId: "SM001",
-  subMerchantName: "Cửa hàng mẫu A",
-  customerId: "c-1",
-  customerName: "Khách hàng mẫu 001",
-  customerPhone: "0900000001",
-  createdAt: "2026-09-01T03:00:00.000Z",
-  status: "success",
-  description: "Mẫu",
-  referenceCode: "REF-1",
-  paymentMethod: "qr",
-  bankCode: "VCB",
-  responseCode: "00",
-  responseMessage: "OK",
+  ...BE_TRANSACTION,
+  id: "11111111-1111-4111-8111-111111111111",
+  transactionCode: "TRX-1",
+  status: "SUCCESS",
 };
 const failedRow: Transaction = {
   ...successRow,
-  id: "t-2",
-  code: "TRX-2",
-  status: "failed",
+  id: "22222222-2222-4222-8222-222222222222",
+  transactionCode: "TRX-2",
+  status: "FAILED",
 };
 
-function renderContainer(
-  props: Partial<{
-    abilities: typeof abilities;
-    showSubMerchantFilter: boolean;
-  }> = {},
-) {
+function renderContainer(props: Partial<{ abilities: typeof abilities }> = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -66,7 +42,6 @@ function renderContainer(
       <TransactionsContainer
         filter={filter}
         abilities={props.abilities ?? abilities}
-        showSubMerchantFilter={props.showSubMerchantFilter ?? true}
       />
     </QueryClientProvider>,
   );
@@ -132,32 +107,14 @@ describe("transactions container states", () => {
   });
 });
 
-describe("transactions sub-merchant filter", () => {
-  it("is offered normally and hidden without calling the BE list in fixture mode", async () => {
-    const requested = vi.fn();
-    mswServer.use(
-      http.get("/api/v1/admin/sub-merchants", () => {
-        requested();
-        return HttpResponse.json({ rows: [], total: 0 });
-      }),
-    );
+describe("transactions filters", () => {
+  it("offers the Sub-merchant filter and no customer phone field: the BE stores no payer phone", async () => {
     renderContainer();
     await screen.findByText("TRX-1");
-    expect(
-      within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).getByText(
-        "Sub-merchant",
-      ),
-    ).toBeInTheDocument();
-    cleanup();
-    requested.mockClear();
-    renderContainer({ showSubMerchantFilter: false });
-    await screen.findByText("TRX-1");
-    expect(
-      within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" })).queryByText(
-        "Sub-merchant",
-      ),
-    ).not.toBeInTheDocument();
-    expect(requested).not.toHaveBeenCalled();
+    const filters = within(screen.getByRole("form", { name: "Bộ lọc tìm kiếm" }));
+    expect(filters.getByText("Sub-merchant")).toBeInTheDocument();
+    expect(filters.queryByText(/SĐT/)).not.toBeInTheDocument();
+    expect(filters.queryByText("Loại giao dịch")).not.toBeInTheDocument();
   });
 });
 
@@ -211,7 +168,7 @@ describe("transactions container behavior", () => {
     expect(url.searchParams.get("page")).toBe("1");
   });
 
-  it("searches by status and type chosen in the filter", async () => {
+  it("searches by status and payment method chosen in the filter", async () => {
     renderContainer();
     await screen.findByText("TRX-1");
     const filters = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
@@ -222,17 +179,17 @@ describe("transactions container behavior", () => {
       await screen.findByRole("option", { name: "Thất bại" }),
     );
     await userEvent.click(
-      within(filters).getByRole("combobox", { name: /Loại giao dịch/ }),
+      within(filters).getByRole("combobox", { name: /Phương thức thanh toán/ }),
     );
     await userEvent.click(
-      await screen.findByRole("option", { name: /Hoàn tiền/ }),
+      await screen.findByRole("option", { name: "Tài khoản định danh" }),
     );
     await userEvent.click(
       within(filters).getByRole("button", { name: "Tìm kiếm" }),
     );
     const url = new URL(String(push.mock.calls[0]?.[0]), "http://localhost");
-    expect(url.searchParams.get("status")).toBe("failed");
-    expect(url.searchParams.get("type")).toBe("refund");
+    expect(url.searchParams.get("status")).toBe("FAILED");
+    expect(url.searchParams.get("paymentMethod")).toBe("VIRTUAL_ACCOUNT");
   });
 
   it("filters the created date with one range field", async () => {
@@ -249,6 +206,18 @@ describe("transactions container behavior", () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: "TRX-1" }));
     expect(await screen.findByRole("dialog")).toHaveTextContent("TRX-1");
+  });
+
+  it("shows the order, Sub-merchant and received amount of a BE row", async () => {
+    renderContainer();
+    await screen.findByText("TRX-1");
+    expect(screen.getAllByText("DH261102-2208").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Halo Láng").length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: "TRX-1" }));
+    const detail = await screen.findByRole("dialog");
+    expect(detail).toHaveTextContent("Thực nhận");
+    expect(detail).toHaveTextContent("MC000001-S001");
+    expect(detail).toHaveTextContent("Vietcombank");
   });
 
   it("opens the detail for the chosen transaction", async () => {

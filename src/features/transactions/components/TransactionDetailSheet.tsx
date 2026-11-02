@@ -8,11 +8,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet/Sheet';
 import { cn } from '@/lib/utils/cn';
-import { CARD_TYPE_LABELS, PAYMENT_METHOD_OPTIONS, TRANSACTION_TYPE_OPTIONS } from '../constants/Transaction.constants';
+import { BANK_OPTIONS, PAYMENT_METHOD_OPTIONS, optionLabel } from '../constants/Transaction.constants';
+import { displayCode } from '../columns/TransactionColumn';
 import { TransactionStatusBadge } from './TransactionStatusBadge';
 import type { Transaction } from '../types';
 import { Button } from '@/components/ui';
-import { formatAmount, formatDate, maskPhone } from '@/lib/utils/helper';
+import { formatAmount, formatDate } from '@/lib/utils/helper';
 
 interface TransactionDetailSheetProps {
   transaction: Transaction | null;
@@ -27,6 +28,11 @@ interface TransactionDetailSheetProps {
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="pb-1 pt-5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</p>;
 }
+
+/** "Code — Name", or a dash when the row has neither (an order without Sub or Terminal). */
+const party = (code?: string | null, name?: string | null) => [code, name].filter(Boolean).join(' — ') || '—';
+
+const money = (value?: number | null) => (value == null ? '—' : formatAmount(value));
 
 function DetailRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -47,14 +53,14 @@ export function TransactionDetailSheet({
   onReconcile,
 }: TransactionDetailSheetProps) {
   const data = transaction;
-  const showRefund = canRefund && data?.status === 'success';
+  const showRefund = canRefund && data?.status === 'SUCCESS';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Chi tiết giao dịch</SheetTitle>
-          {data && <p className="font-mono text-sm text-muted-foreground">{data.code}</p>}
+          {data && <p className="font-mono text-sm text-muted-foreground">{displayCode(data)}</p>}
         </SheetHeader>
         {data && (
           <>
@@ -63,34 +69,27 @@ export function TransactionDetailSheet({
                 <p className="font-mono text-2xl font-bold tabular-nums text-brand-ink">{formatAmount(data.amount)}</p>
                 <div className="flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
                   <TransactionStatusBadge status={data.status} />
-                  <span>{formatDate(data.createdAt)}</span>
+                  <span>{data.createdAt ? formatDate(data.createdAt) : '—'}</span>
                 </div>
               </div>
               <dl>
                 <SectionTitle>Thanh toán</SectionTitle>
                 <DetailRow label="Số tiền"><span className="font-mono">{formatAmount(data.amount)}</span></DetailRow>
-                <DetailRow label="Phí giao dịch"><span className="font-mono">{formatAmount(data.fee)}</span></DetailRow>
-                <DetailRow label="Thực nhận"><span className="font-mono text-success">{formatAmount(data.netAmount)}</span></DetailRow>
-                <DetailRow label="Loại giao dịch">{TRANSACTION_TYPE_OPTIONS.find((option) => option.value === data.type)?.label ?? data.type}</DetailRow>
-                <DetailRow label="Mã hóa đơn"><span className="font-mono">{data.invoiceCode ?? '—'}</span></DetailRow>
-                <DetailRow label="Mô tả">{data.description}</DetailRow>
+                <DetailRow label="Phí giao dịch"><span className="font-mono">{money(data.feeAmount)}</span></DetailRow>
+                <DetailRow label="Bên chịu phí">{data.feeBearer === 'SENDER' ? 'Khách hàng' : 'Merchant'}</DetailRow>
+                <DetailRow label="Khách phải trả"><span className="font-mono">{money(data.payableAmount)}</span></DetailRow>
+                <DetailRow label="Thực nhận"><span className="font-mono text-success">{money(data.netAmount)}</span></DetailRow>
+                <DetailRow label="Mã đơn hàng"><span className="font-mono">{data.orderCode}</span></DetailRow>
 
                 <SectionTitle>Phương thức</SectionTitle>
-                <DetailRow label="Hình thức">{PAYMENT_METHOD_OPTIONS.find((option) => option.value === data.paymentMethod)?.label ?? data.paymentMethod}</DetailRow>
-                <DetailRow label="Loại thẻ">{CARD_TYPE_LABELS[data.cardType]}</DetailRow>
-                <DetailRow label="Số thẻ"><span className="font-mono">{data.cardNumber}</span></DetailRow>
-                <DetailRow label="Chủ thẻ">{data.cardHolderName}</DetailRow>
-                <DetailRow label="Ngân hàng">{data.bankCode}</DetailRow>
+                <DetailRow label="Hình thức">{optionLabel(PAYMENT_METHOD_OPTIONS, data.paymentMethod)}</DetailRow>
+                <DetailRow label="Ngân hàng">{optionLabel(BANK_OPTIONS, data.bankCode)}</DetailRow>
 
-                <SectionTitle>Khách hàng và nơi bán</SectionTitle>
-                <DetailRow label="Khách hàng">{data.customerName}</DetailRow>
-                <DetailRow label="Số điện thoại"><span className="font-mono">{maskPhone(data.customerPhone)}</span></DetailRow>
-                <DetailRow label="Sub-merchant">{data.subMerchantName}</DetailRow>
-
-                <SectionTitle>Kỹ thuật</SectionTitle>
-                <DetailRow label="Mã tham chiếu"><span className="font-mono text-xs">{data.referenceCode}</span></DetailRow>
-                <DetailRow label="Mã phản hồi"><span className="font-mono">{data.responseCode}</span></DetailRow>
-                <DetailRow label="Thông báo">{data.responseMessage}</DetailRow>
+                <SectionTitle>Nơi bán</SectionTitle>
+                <DetailRow label="Merchant">{party(data.merchantCode, data.merchantName)}</DetailRow>
+                <DetailRow label="Sub-merchant">{party(data.subMerchantCode, data.subMerchantName)}</DetailRow>
+                <DetailRow label="Terminal">{party(data.terminalCode, data.terminalName)}</DetailRow>
+                <DetailRow label="Cập nhật lần cuối">{data.updatedAt ? formatDate(data.updatedAt) : '—'}</DetailRow>
               </dl>
             </SheetBody>
             {(canDispute || showRefund) && (
