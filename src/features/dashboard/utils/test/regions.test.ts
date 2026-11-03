@@ -16,6 +16,11 @@ describe("visibleRegions", () => {
     expect(visibleRegions([]).statCards).toBe(0);
   });
 
+  it("shows revenue per Sub only with VIEW_BALANCE, the settlement items' permission", () => {
+    expect(visibleRegions(["VIEW_BALANCE"])).toMatchObject({ revenue: true, any: true, statCards: 0 });
+    expect(visibleRegions(["VIEW_ORDER"]).revenue).toBe(false);
+  });
+
   it("reports nothing visible without any of the permissions", () => {
     expect(visibleRegions(["MANAGE_USER"]).any).toBe(false);
     expect(visibleRegions(["VIEW_ORDER"]).any).toBe(true);

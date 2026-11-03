@@ -32,7 +32,12 @@ export default async function RevenueRefundsPage({ searchParams }: Props) {
 
   return (
     <HydrationBoundary state={state}>
-      <RevenueRefundsContainer filter={filter} canApprove={hasPermission(user.permissions, "APPROVE_REFUND")} subNames={subNames} />
+      <RevenueRefundsContainer
+        filter={filter}
+        canApprove={hasPermission(user.permissions, "APPROVE_REFUND")}
+        canCreate={hasPermission(user.permissions, "CREATE_REFUND")}
+        subNames={subNames}
+      />
     </HydrationBoundary>
   );
 }

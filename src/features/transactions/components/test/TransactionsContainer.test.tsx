@@ -245,37 +245,14 @@ async function chooseReason(dialog: HTMLElement, name: RegExp) {
 }
 
 describe("transactions refund and reconciliation dialogs", () => {
-  it("blocks a refund without a reason and does not claim success", async () => {
+  it("opens the real refund request form for a successful transaction", async () => {
     renderContainer();
     await userEvent.click(
       await screen.findByRole("button", { name: /Hoàn tiền giao dịch TRX-1/ }),
     );
-    const dialog = await screen.findByRole("dialog");
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: /Xác nhận Hoàn tiền/ }),
-    );
-    expect(
-      await within(dialog).findByText("Vui lòng chọn lý do hoàn tiền"),
-    ).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
+    expect(dialog).toHaveTextContent(`Giao dịch ${successRow.orderCode}`);
     expect(toast.info).not.toHaveBeenCalled();
-  });
-
-  it("says a valid refund is unsupported and keeps the dialog open", async () => {
-    renderContainer();
-    await userEvent.click(
-      await screen.findByRole("button", { name: /Hoàn tiền giao dịch TRX-1/ }),
-    );
-    const dialog = await screen.findByRole("dialog");
-    await chooseReason(dialog, /Khách hàng đổi ý/);
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: /Xác nhận Hoàn tiền/ }),
-    );
-    await vi.waitFor(() =>
-      expect(toast.info).toHaveBeenCalledWith(
-        expect.stringMatching(/chưa được hỗ trợ/),
-      ),
-    );
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("requires a note of at least 10 characters before a reconciliation request", async () => {

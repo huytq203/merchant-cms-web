@@ -15,7 +15,7 @@ import type { TransactionFilterValues } from "../schemas/transaction.schema";
 import type { TransactionListFilter } from "../types";
 import { filterToFormValues, formValuesToFilter } from "../utils/transaction-filter";
 import { DialogReconciliation } from "./DialogReconciliation";
-import { DialogRefund } from "./DialogRefund";
+import { RefundCreateDialog } from "@/features/revenue-refunds/components/RefundCreateDialog";
 import { TransactionDetailSheet } from "./TransactionDetailSheet";
 import { TransactionFilters } from "./TransactionFilters";
 import { TransactionTable } from "./TransactionTable";
@@ -92,11 +92,13 @@ export function TransactionsContainer({ filter, abilities }: Props) {
         open={activeDialog === "reconciliation"}
         onOpenChange={(open) => !open && dialogs.close()}
       />
-      <DialogRefund
-        transaction={target}
-        open={activeDialog === "refund"}
-        onOpenChange={(open) => !open && dialogs.close()}
-      />
+      {/* The real refund: OTP-confirmed request on the Sub's available balance, approved by another user. */}
+      {activeDialog === "refund" && target ? (
+        <RefundCreateDialog
+          order={{ id: target.id, orderCode: target.orderCode, amount: target.amount, subMerchantName: target.subMerchantName }}
+          onClose={dialogs.close}
+        />
+      ) : null}
     </div>
   );
 }
