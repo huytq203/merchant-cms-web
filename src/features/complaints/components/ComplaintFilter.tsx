@@ -17,7 +17,11 @@ interface ComplaintFilterProps {
   defaultValues?: ComplaintFilterValues;
 }
 
-const STATUS_SELECT = COMPLAINT_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
+// "Đã hủy" chưa có thao tác nào dẫn tới (BE chưa có luồng hủy) nên không đưa vào bộ lọc, tránh lọc luôn ra rỗng.
+const STATUS_SELECT = COMPLAINT_STATUS_OPTIONS.filter(({ value }) => value !== 'CANCELLED').map(({ value, label }) => ({
+  value,
+  label,
+}));
 
 const EMPTY_VALUES: ComplaintFilterValues = {
   keyword: "",
