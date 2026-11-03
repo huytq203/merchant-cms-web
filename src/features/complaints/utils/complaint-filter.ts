@@ -1,28 +1,37 @@
+import { format, parse } from "date-fns";
+import { z } from "zod";
 import {
-  complaintSourceSchema,
+  complaintPartySchema,
   complaintStatusSchema,
   type ComplaintFilterValues,
 } from "../schemas/complaint.schema";
 import type { ComplaintListFilter } from "../types/types";
 
-function endOfDay(date: Date): Date {
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return end;
+const DAY = "yyyy-MM-dd";
+
+function cleanText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
-/** Form values to the URL filter: back to the first page, empty values dropped. */
+/** Form values to the URL filter: back to the first page, empty or unknown values dropped. */
 export function formValuesToFilter(values: ComplaintFilterValues, pageSize: number): ComplaintListFilter {
   const status = complaintStatusSchema.safeParse(values.status);
-  const source = complaintSourceSchema.safeParse(values.source);
+  const waitingOn = complaintPartySchema.safeParse(values.waitingOn);
+  const reporterType = complaintPartySchema.safeParse(values.reporterType);
+  const subMerchantId = z.uuid().safeParse(cleanText(values.subMerchantId));
+  const keyword = cleanText(values.keyword);
   return {
     page: 1,
     pageSize,
-    ...(values.keyword?.trim() ? { keyword: values.keyword.trim() } : {}),
+    ...(keyword ? { keyword } : {}),
     ...(status.success ? { status: status.data } : {}),
-    ...(source.success ? { source: source.data } : {}),
-    ...(values.fromDate ? { createdFromDate: values.fromDate.toISOString() } : {}),
-    ...(values.toDate ? { createdToDate: endOfDay(values.toDate).toISOString() } : {}),
+    ...(waitingOn.success ? { waitingOn: waitingOn.data } : {}),
+    ...(reporterType.success ? { reporterType: reporterType.data } : {}),
+    ...(subMerchantId.success ? { subMerchantId: subMerchantId.data } : {}),
+    // The calendar day the user picked (Vietnam time on the BE); the BE includes the whole last day.
+    ...(values.createdFrom ? { createdFrom: format(values.createdFrom, DAY) } : {}),
+    ...(values.createdTo ? { createdTo: format(values.createdTo, DAY) } : {}),
   };
 }
 
@@ -30,9 +39,28 @@ export function formValuesToFilter(values: ComplaintFilterValues, pageSize: numb
 export function filterToFormValues(filter: ComplaintListFilter): ComplaintFilterValues {
   return {
     keyword: filter.keyword ?? "",
-    fromDate: filter.createdFromDate ? new Date(filter.createdFromDate) : null,
-    toDate: filter.createdToDate ? new Date(filter.createdToDate) : null,
-    source: filter.source ?? "",
     status: filter.status ?? "",
+    waitingOn: filter.waitingOn ?? "",
+    reporterType: filter.reporterType ?? "",
+    subMerchantId: filter.subMerchantId ?? "",
+    createdFrom: filter.createdFrom ? parse(filter.createdFrom, DAY, new Date()) : null,
+    createdTo: filter.createdTo ? parse(filter.createdTo, DAY, new Date()) : null,
+  };
+}
+
+/**
+ * The BE query of a filter, shared by the list and the export: `pageSize` becomes `size`, and the export
+ * sends no paging at all. Undefined values are dropped by the BE client.
+ */
+export function toBeComplaintQuery(filter: ComplaintListFilter, options: { paged: boolean }) {
+  return {
+    ...(options.paged ? { page: filter.page, size: filter.pageSize } : {}),
+    keyword: filter.keyword,
+    status: filter.status,
+    waitingOn: filter.waitingOn,
+    reporterType: filter.reporterType,
+    subMerchantId: filter.subMerchantId,
+    createdFrom: filter.createdFrom,
+    createdTo: filter.createdTo,
   };
 }

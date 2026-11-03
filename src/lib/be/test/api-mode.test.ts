@@ -6,7 +6,7 @@ import {
   unsupportedResult,
 } from "../api-mode";
 
-const MODULES = ["refund", "complaints"] as const;
+const MODULES = ["refund"] as const;
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -66,6 +66,14 @@ describe("wired modules", () => {
     // Cast: the module left the fixture union once GET /api/v1/merchant/transactions existed.
     const transactions = "transactions" as unknown as Parameters<typeof resolveModuleSource>[0];
     expect(resolveModuleSource(transactions, { MERCHANT_API_MODE: "fixture", NODE_ENV: "development" })).toBe(
+      "unsupported",
+    );
+  });
+
+  it("never serves complaint fixtures: the screen reads /api/v1/merchant/complaints", () => {
+    // Cast: the module left the fixture union once the complaint API existed.
+    const complaints = "complaints" as unknown as Parameters<typeof resolveModuleSource>[0];
+    expect(resolveModuleSource(complaints, { MERCHANT_API_MODE: "fixture", NODE_ENV: "development" })).toBe(
       "unsupported",
     );
   });

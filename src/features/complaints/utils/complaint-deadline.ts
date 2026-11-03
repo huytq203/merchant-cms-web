@@ -4,9 +4,12 @@ export type DeadlineInfo = { tone: "late" | "soon" | "ok"; label: string };
 
 const HOUR_MS = 3_600_000;
 
-/** How much time an open complaint has left; closed complaints and missing or invalid deadlines have no deadline to show. */
-export function describeDeadline(deadline: string | null, status: ComplaintStatus, now: Date): DeadlineInfo | null {
-  if (!deadline || status === "resolved" || status === "rejected") return null;
+/** Only a complaint still open (waiting or in progress) runs against its deadline. */
+const OPEN_STATUSES: ReadonlySet<ComplaintStatus> = new Set(["WAITING", "PROCESSING"]);
+
+/** How much time an open complaint has left; closed/cancelled complaints and missing or invalid deadlines show none. */
+export function describeDeadline(deadline: string | null | undefined, status: ComplaintStatus, now: Date): DeadlineInfo | null {
+  if (!deadline || !OPEN_STATUSES.has(status)) return null;
   const due = new Date(deadline).getTime();
   if (Number.isNaN(due)) return null;
   const diff = due - now.getTime();

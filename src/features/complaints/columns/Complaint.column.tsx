@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge/Badge';
 import { RowAction } from '@/features/sample-data/components/RowAction';
 import { cn } from '@/lib/utils/cn';
 import { ComplaintStatusBadge } from '../components/ComplaintStatusBadge';
-import { COMPLAINT_SOURCE_OPTIONS } from '../constants/Complaint.constants';
+import { COMPLAINT_PARTY_LABELS, reasonLabel, waitingOnLabel } from '../constants/Complaint.constants';
 import { describeDeadline } from '../utils/complaint-deadline';
 import type { Complaint } from '../types/types';
 
@@ -18,6 +18,7 @@ const DEADLINE_CLASS = {
 } as const;
 
 const stamp = (iso: string) => {
+  // BE instants are UTC; date-fns renders them in the browser's (Vietnam) time zone.
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? '—' : `${format(date, 'HH:mm')} ${format(date, 'dd/MM/yyyy')}`;
 };
@@ -34,7 +35,7 @@ export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void
             className="font-mono text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             onClick={() => onViewDetail(row.original)}
           >
-            {row.original.ticketCode}
+            {row.original.complaintCode}
           </button>
           <p className="font-mono text-xs text-muted-foreground">{row.original.transactionCode ?? '—'}</p>
         </div>
@@ -45,28 +46,25 @@ export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void
       header: 'Lý do / Sub-merchant',
       cell: ({ row }) => (
         <div className="min-w-[150px]">
-          <p className="text-sm font-medium" title={row.original.reason}>{row.original.reason}</p>
-          <p className="text-xs text-muted-foreground">{row.original.subMerchantName}</p>
+          <p className="text-sm font-medium">{reasonLabel(row.original.reasonCode)}</p>
+          <p className="text-xs text-muted-foreground">{row.original.subMerchantName ?? '—'}</p>
         </div>
       ),
     },
     {
-      id: 'source',
-      header: 'Nguồn',
-      cell: ({ row }) => {
-        const option = COMPLAINT_SOURCE_OPTIONS.find(({ value }) => value === row.original.source);
-        return <Badge variant={option?.variant ?? 'outline'}>{option?.label ?? row.original.source}</Badge>;
-      },
+      id: 'reporter',
+      header: 'Người gửi',
+      cell: ({ row }) => <Badge variant="secondary">{COMPLAINT_PARTY_LABELS[row.original.reporterType]}</Badge>,
     },
     {
       id: 'deadline',
       header: 'Hạn xử lý',
       cell: ({ row }) => {
-        const info = describeDeadline(row.original.deadline, row.original.status, now);
-        if (!info || !row.original.deadline) return <span className="text-sm text-muted-foreground">—</span>;
+        const info = describeDeadline(row.original.deadlineAt, row.original.status, now);
+        if (!info || !row.original.deadlineAt) return <span className="text-sm text-muted-foreground">—</span>;
         return (
           <div className="whitespace-nowrap">
-            <p className="text-sm tabular-nums">{format(new Date(row.original.deadline), 'dd/MM/yyyy')}</p>
+            <p className="text-sm tabular-nums">{format(new Date(row.original.deadlineAt), 'dd/MM/yyyy')}</p>
             <span className={cn('inline-block rounded-full px-2 py-0.5 text-xs font-semibold', DEADLINE_CLASS[info.tone])}>
               {info.label}
             </span>
@@ -81,7 +79,7 @@ export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void
         <div className="whitespace-nowrap">
           <p className="text-sm tabular-nums">{stamp(row.original.createdAt)}</p>
           <p className="text-xs text-muted-foreground tabular-nums">
-            {row.original.lastUpdatedAt ? `Cập nhật ${stamp(row.original.lastUpdatedAt)}` : 'Chưa cập nhật'}
+            {row.original.updatedAt ? `Cập nhật ${stamp(row.original.updatedAt)}` : 'Chưa cập nhật'}
           </p>
         </div>
       ),
@@ -89,7 +87,16 @@ export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void
     {
       id: 'status',
       header: 'Trạng thái',
-      cell: ({ row }) => <ComplaintStatusBadge status={row.original.status} />,
+      cell: ({ row }) => {
+        // While in progress, who the complaint waits on is the detail of the status.
+        const waiting = row.original.status === 'PROCESSING' ? waitingOnLabel(row.original.waitingOn) : null;
+        return (
+          <div className="whitespace-nowrap">
+            <ComplaintStatusBadge complaint={row.original} />
+            {waiting && <p className="mt-1 text-xs text-muted-foreground">{waiting}</p>}
+          </div>
+        );
+      },
     },
     {
       id: 'actions',
@@ -99,7 +106,7 @@ export function getComplaintColumns(onViewDetail: (complaint: Complaint) => void
       cell: ({ row }) => (
         <div className="flex justify-center">
           <RowAction
-            label={`Chi tiết và phản hồi khiếu nại ${row.original.ticketCode}`}
+            label={`Chi tiết và phản hồi khiếu nại ${row.original.complaintCode}`}
             onClick={() => onViewDetail(row.original)}
           >
             <MessageSquare size={16} />

@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
   usePathname: () => "/transaction",
 }));
-vi.mock("sonner", () => ({ toast: { info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }));
 
 const listPath = "/api/v1/admin/merchants/transaction";
 const filter: TransactionListFilter = { page: 1, pageSize: 10 };
@@ -255,43 +255,44 @@ describe("transactions refund and reconciliation dialogs", () => {
     expect(toast.info).not.toHaveBeenCalled();
   });
 
-  it("requires a note of at least 10 characters before a reconciliation request", async () => {
+  it("opens the shared complaint form on the transaction and requires a reason and content", async () => {
     renderContainer();
     await openDetailAction("Tra soát");
-    const dialog = (await screen.findAllByRole("dialog")).at(-1)!;
-    await chooseReason(dialog, /Số tiền không khớp/);
-    await userEvent.type(
-      within(dialog).getByRole("textbox", { name: /Ghi chú chi tiết/ }),
-      "ngắn",
-    );
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: /Gửi yêu cầu tra soát/ }),
-    );
-    expect(
-      await within(dialog).findByText("Ghi chú phải có ít nhất 8 ký tự"),
-    ).toBeInTheDocument();
-    expect(toast.info).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole("dialog", { name: "Khởi tạo yêu cầu Tra soát" });
+    expect(dialog).toHaveTextContent("Giao dịch: TRX-1");
+    // The code comes from the transaction: nothing to type.
+    expect(within(dialog).queryByRole("textbox", { name: /Mã giao dịch/ })).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Gửi yêu cầu" }));
+    expect(await within(dialog).findByText("Vui lòng chọn lý do khiếu nại")).toBeInTheDocument();
+    expect(within(dialog).getByText("Vui lòng nhập nội dung khiếu nại")).toBeInTheDocument();
   });
 
-  it("says a valid reconciliation request is unsupported and keeps the dialog open", async () => {
+  it("sends the request to the complaint API with the transaction code", async () => {
+    const bodies: unknown[] = [];
+    mswServer.use(
+      http.post("/api/v1/admin/merchants/complaints", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ id: "c-1", complaintCode: "KN1" }, { status: 201 });
+      }),
+    );
     renderContainer();
     await openDetailAction("Tra soát");
-    const dialog = (await screen.findAllByRole("dialog")).at(-1)!;
-    await chooseReason(dialog, /Số tiền không khớp/);
-    await userEvent.type(
-      within(dialog).getByRole("textbox", { name: /Ghi chú chi tiết/ }),
-      "Số tiền khách trả không khớp",
-    );
-    await userEvent.click(
-      within(dialog).getByRole("button", { name: /Gửi yêu cầu tra soát/ }),
-    );
+    const dialog = await screen.findByRole("dialog", { name: "Khởi tạo yêu cầu Tra soát" });
+    await chooseReason(dialog, /Sai lệch số tiền/);
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Nội dung khiếu nại/ }), "Số tiền khách trả không khớp");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Gửi yêu cầu" }));
     await vi.waitFor(() =>
-      expect(toast.info).toHaveBeenCalledWith(
-        expect.stringMatching(/chưa được hỗ trợ/),
-      ),
+      expect(bodies).toEqual([
+        { transactionCode: "TRX-1", reasonCode: "AMOUNT_MISMATCH", content: "Số tiền khách trả không khớp", attachmentIds: [] },
+      ]),
     );
-    expect(
-      within(dialog).getByRole("textbox", { name: /Ghi chú chi tiết/ }),
-    ).toHaveValue("Số tiền khách trả không khớp");
+    expect(toast.success).toHaveBeenCalledWith("Đã gửi khiếu nại KN1");
+  });
+
+  it("offers no Tra soát without CREATE_DISPUTE", async () => {
+    renderContainer({ abilities: { ...abilities, canDispute: false } });
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết giao dịch TRX-1/ }));
+    const detail = await screen.findByRole("dialog");
+    expect(within(detail).queryByRole("button", { name: "Tra soát" })).not.toBeInTheDocument();
   });
 });

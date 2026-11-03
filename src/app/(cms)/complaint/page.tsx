@@ -7,8 +7,6 @@ import {
   parseComplaintSearchParams,
 } from "@/features/complaints/complaint-queries";
 import { ComplaintsContainer } from "@/features/complaints/components/ComplaintsContainer";
-import { SampleDataBanner } from "@/features/sample-data/components/SampleDataBanner";
-import { resolveModuleSource } from "@/lib/be/api-mode";
 import { getServerSession } from "@/lib/auth/session";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
 import { listComplaints } from "@/server/modules/complaints/complaint.service";
@@ -20,16 +18,16 @@ type Props = {
 export default async function ComplaintPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
-  const merchantId = user.merchantIds[0];
-  if (!merchantId || !hasPermission(user.permissions, "VIEW_DISPUTE")) {
+  // Permission only, like the transaction list: the BE scopes by the session, so a user assigned to
+  // Sub-merchants alone (no Master) still sees the complaints of those Subs.
+  if (!hasPermission(user.permissions, "VIEW_DISPUTE")) {
     return <AccessDenied />;
   }
   const filter = parseComplaintSearchParams(await searchParams);
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...complaintQueries.list(filter),
-      queryFn: async () =>
-        unwrapOrRedirect(await listComplaints({ ...filter, merchantId })),
+      queryFn: async () => unwrapOrRedirect(await listComplaints(filter)),
     });
   });
   const abilities = {
@@ -38,7 +36,6 @@ export default async function ComplaintPage({ searchParams }: Props) {
   };
   return (
     <div className="space-y-5">
-      {resolveModuleSource("complaints") === "fixture" && <SampleDataBanner />}
       <HydrationBoundary state={state}>
         <ComplaintsContainer filter={filter} abilities={abilities} />
       </HydrationBoundary>

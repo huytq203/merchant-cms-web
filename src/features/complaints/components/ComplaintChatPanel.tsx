@@ -2,51 +2,68 @@
 import React from 'react';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/helper';
-import type { ComplaintMessage } from '../types/types';
+import { COMPLAINT_PARTY_LABELS } from '../constants/Complaint.constants';
+import type { ComplaintAttachment, ComplaintMessage } from '../types/types';
+import { ComplaintAttachmentList } from './ComplaintAttachmentList';
 import { Text } from '@/components/ui';
 
 interface ComplaintChatPanelProps {
+  complaintId: string;
+  /** Oldest first, as the BE returns them. */
   messages: ComplaintMessage[];
+  /** All attachments of the complaint; each message shows the ones whose `messageId` is its id. */
+  attachments: ComplaintAttachment[];
 }
 
-function MessageBubble({ message }: { message: ComplaintMessage }) {
-  const isAdmin = message.role === 'admin';
+const AVATAR: Record<ComplaintMessage['authorType'], { letter: string; className: string }> = {
+  ADMIN: { letter: 'C', className: 'bg-primary' },
+  MERCHANT: { letter: 'M', className: 'bg-success' },
+  USER: { letter: 'U', className: 'bg-warning' },
+};
+
+function MessageBubble({ complaintId, message, attachments }: { complaintId: string; message: ComplaintMessage; attachments: ComplaintAttachment[] }) {
+  // The merchant's own messages sit on the right, everyone else's on the left.
+  const isOwn = message.authorType === 'MERCHANT';
+  const avatar = AVATAR[message.authorType];
   return (
-    <div className={cn('flex gap-2.5', !isAdmin && 'flex-row-reverse')}>
-      <div
-        className={cn(
-          'shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white',
-          isAdmin ? 'bg-primary' : 'bg-success',
-        )}
-      >
-        {isAdmin ? 'C' : 'M'}
+    <div className={cn('flex gap-2.5', isOwn && 'flex-row-reverse')}>
+      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white', avatar.className)} aria-hidden>
+        {avatar.letter}
       </div>
-      <div className={cn('max-w-[75%] flex flex-col', !isAdmin && 'items-end')}>
-        <Text size='xs' color='muted' weight='medium' >{message.senderName}</Text>
+      <div className={cn('flex max-w-[75%] flex-col gap-1', isOwn && 'items-end')}>
+        <Text size="xs" color="muted" weight="medium">
+          {message.authorName ?? COMPLAINT_PARTY_LABELS[message.authorType]}
+        </Text>
         <div
           className={cn(
-            'rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
-            isAdmin
-              ? 'bg-muted border border-border text-foreground rounded-tl-none'
-              : 'bg-primary text-primary-foreground rounded-tr-none',
+            'whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
+            isOwn
+              ? 'rounded-tr-none bg-primary text-primary-foreground'
+              : 'rounded-tl-none border border-border bg-muted text-foreground',
           )}
         >
           {message.content}
         </div>
-        <Text size='xs' color='muted' >{formatDate(message.time)}</Text>
+        <ComplaintAttachmentList complaintId={complaintId} attachments={attachments} className={cn(isOwn && 'justify-end')} />
+        <Text size="xs" color="muted">{formatDate(message.createdAt)}</Text>
       </div>
     </div>
   );
 }
 
-export function ComplaintChatPanel({ messages }: ComplaintChatPanelProps) {
+export function ComplaintChatPanel({ complaintId, messages, attachments }: ComplaintChatPanelProps) {
   if (messages.length === 0) {
-    return <Text color='muted' size='sm' className="py-6 text-center">Chưa có tin nhắn nào.</Text>;
+    return <Text color="muted" size="sm" className="py-6 text-center">Chưa có tin nhắn nào.</Text>;
   }
   return (
     <div className="space-y-4">
       {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
+        <MessageBubble
+          key={message.id}
+          complaintId={complaintId}
+          message={message}
+          attachments={attachments.filter((attachment) => attachment.messageId === message.id)}
+        />
       ))}
     </div>
   );

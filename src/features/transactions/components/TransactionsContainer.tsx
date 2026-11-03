@@ -14,8 +14,8 @@ import { transactionQueries } from "../transaction-queries";
 import type { TransactionFilterValues } from "../schemas/transaction.schema";
 import type { TransactionListFilter } from "../types";
 import { filterToFormValues, formValuesToFilter } from "../utils/transaction-filter";
-import { DialogReconciliation } from "./DialogReconciliation";
 import { RefundCreateDialog } from "@/features/revenue-refunds/components/RefundCreateDialog";
+import { ComplaintCreateDialog } from "@/features/complaints/components/ComplaintCreateDialog";
 import { TransactionDetailSheet } from "./TransactionDetailSheet";
 import { TransactionFilters } from "./TransactionFilters";
 import { TransactionTable } from "./TransactionTable";
@@ -87,11 +87,15 @@ export function TransactionsContainer({ filter, abilities }: Props) {
         onRefund={() => dialogs.openFor("refund")}
         onReconcile={() => dialogs.openFor("reconciliation")}
       />
-      <DialogReconciliation
-        transaction={target}
-        open={activeDialog === "reconciliation"}
-        onOpenChange={(open) => !open && dialogs.close()}
-      />
+      {/* "Tra soát" is a complaint on this transaction: same form and same POST as the complaint screen. */}
+      {abilities.canDispute ? (
+        <ComplaintCreateDialog
+          title="Khởi tạo yêu cầu Tra soát"
+          transactionCode={target?.transactionCode}
+          open={activeDialog === "reconciliation"}
+          onOpenChange={(open) => !open && dialogs.close()}
+        />
+      ) : null}
       {/* The real refund: OTP-confirmed request on the Sub's available balance, approved by another user. */}
       {activeDialog === "refund" && target ? (
         <RefundCreateDialog
