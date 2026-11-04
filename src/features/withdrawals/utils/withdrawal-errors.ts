@@ -12,6 +12,10 @@ const CODES = {
   nothingReady: ["5780", "MERCHANT_WITHDRAWAL_NOTHING_READY"],
   statementChanged: ["5781", "MERCHANT_WITHDRAWAL_STATEMENT_CHANGED"],
   ledgerUnavailable: ["5753", "MERCHANT_ESCROW_BALANCE_UNAVAILABLE"],
+  // Rút tự động (03/11/2026): the Sub settles automatically, so the system makes its requests.
+  automaticMode: ["5782", "MERCHANT_WITHDRAWAL_AUTOMATIC_MODE"],
+  // A freeze waiting for the ledger may take the available balance a new request would use; retry later.
+  freezeProcessing: ["5798", "MERCHANT_WITHDRAWAL_FREEZE_PROCESSING"],
 } as const;
 
 export type WithdrawalFailureKind = keyof typeof CODES | "other";

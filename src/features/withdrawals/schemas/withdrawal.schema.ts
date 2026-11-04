@@ -98,6 +98,12 @@ export const withdrawalBalanceSchema = z.object({
   dailyCountRemaining: nullableCount,
   minimumAmount: nullableCount,
   maximumAmount: nullableCount,
+  /**
+   * Rút tự động (chốt 03/11/2026): true when the Sub's effective settlement mode is "Tự động theo chu kỳ". The system
+   * makes the AUTO_SWEEP requests and BE refuses a manual one (5782), so the screen blocks it up front. A BE that does
+   * not send the field yet is read as manual.
+   */
+  automaticSettlement: z.boolean().nullish().transform((value) => value ?? false),
   asOf: z.string(),
 });
 

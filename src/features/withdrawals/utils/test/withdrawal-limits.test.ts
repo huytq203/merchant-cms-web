@@ -16,6 +16,12 @@ describe("withdrawalBlocker", () => {
     expect(withdrawalBlocker(undefined)).toBeNull();
   });
 
+  it("blocks a Sub that withdraws automatically before any amount rule", () => {
+    expect(withdrawalBlocker({ ...balance, automaticSettlement: true })).toMatch(/Điểm bán đang rút tự động theo chu kỳ/);
+    expect(withdrawalBlocker({ ...balance, readyAmount: 0, automaticSettlement: true })).toMatch(/rút tự động/);
+    expect(withdrawalBlocker({ ...balance, automaticSettlement: false })).toBeNull();
+  });
+
   it("blocks when nothing is ready to withdraw", () => {
     expect(withdrawalBlocker({ ...balance, readyAmount: 0 })).toMatch(/Chưa có khoản nào sẵn sàng/);
   });

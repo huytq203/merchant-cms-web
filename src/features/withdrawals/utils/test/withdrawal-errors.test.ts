@@ -14,6 +14,19 @@ describe("describeWithdrawalError", () => {
   });
 });
 
+describe("automatic settlement and pending freeze refusals", () => {
+  it("recognises 5782 and 5798 by number or name and keeps the Vietnamese BE message", () => {
+    const automatic = new ApiError(409, "Sub-merchant đang ở chế độ quyết toán tự động; hệ thống tự tạo lệnh rút theo chu kỳ", "5782");
+    const freezing = new ApiError(409, "Sub-merchant đang có lệnh đóng băng chờ xử lý; vui lòng thử lại sau ít phút", "MERCHANT_WITHDRAWAL_FREEZE_PROCESSING");
+    expect(withdrawalFailureKind(automatic)).toBe("automaticMode");
+    expect(withdrawalFailureKind(new ApiError(409, "x", "MERCHANT_WITHDRAWAL_AUTOMATIC_MODE"))).toBe("automaticMode");
+    expect(withdrawalFailureKind(freezing)).toBe("freezeProcessing");
+    expect(withdrawalFailureKind(new ApiError(409, "x", "5798"))).toBe("freezeProcessing");
+    expect(describeWithdrawalError(automatic)).toBe(automatic.message);
+    expect(describeWithdrawalError(freezing)).toBe(freezing.message);
+  });
+});
+
 describe("describeWithdrawalError translations", () => {
   const business = (message: string) => new ApiError(400, message, "BUSINESS_ERROR");
 

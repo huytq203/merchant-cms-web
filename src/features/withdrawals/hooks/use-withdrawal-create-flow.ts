@@ -90,7 +90,8 @@ export function useWithdrawalCreateFlow() {
       setZeroNetAsked(true);
       setZeroNetAccepted(false);
       setStep("confirm");
-    } else if (kind === "statementChanged" || kind === "nothingReady") {
+    } else if (kind === "statementChanged" || kind === "nothingReady" || kind === "automaticMode") {
+      // 5782: the Sub switched to automatic settlement; reading it again shows the automatic-mode blocker.
       setStep("form");
       await balance.refetch();
     }

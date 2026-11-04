@@ -4,7 +4,11 @@ import type { WithdrawalBalance } from "../schemas/withdrawal.schema";
 type Limits = Pick<
   WithdrawalBalance,
   "readyAmount" | "dailyLimitRemaining" | "dailyCountRemaining" | "minimumAmount" | "maximumAmount"
->;
+> & Partial<Pick<WithdrawalBalance, "automaticSettlement">>;
+
+/** Why a Sub in automatic settlement mode has no manual request; BE would refuse it with 5782. */
+export const AUTOMATIC_SETTLEMENT_BLOCKER =
+  "Điểm bán đang rút tự động theo chu kỳ: hệ thống tự tạo lệnh rút, không cần tạo lệnh rút thủ công.";
 
 /**
  * The first reason the amount BE will carry (`readyAmount`) cannot be sent, in the words the merchant reads.
@@ -12,6 +16,8 @@ type Limits = Pick<
  */
 export function withdrawalBlocker(balance: Limits | undefined): string | null {
   if (!balance) return null;
+  // Checked first: no amount rule matters when manual requests are not accepted at all.
+  if (balance.automaticSettlement) return AUTOMATIC_SETTLEMENT_BLOCKER;
   const { readyAmount } = balance;
   if (readyAmount <= 0) return "Chưa có khoản nào sẵn sàng để rút";
   if (balance.dailyCountRemaining !== null && balance.dailyCountRemaining <= 0) {

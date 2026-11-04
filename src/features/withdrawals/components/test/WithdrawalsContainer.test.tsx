@@ -146,6 +146,15 @@ describe("withdrawals container states", () => {
     expect(screen.getByText("xxxx1789", { exact: false })).toBeInTheDocument();
   });
 
+  it("labels the requests the system made as automatic withdrawals", async () => {
+    listReturns([makeWithdrawal({ id: "55555555-5555-4555-8555-555555555555", transactionCode: "WD2602", requestType: "AUTO_SWEEP" }), pending]);
+    renderContainer();
+    const automatic = (await screen.findByText("WD2602")).closest("tr") as HTMLElement;
+    expect(within(automatic).getByText("Rút tự động")).toBeInTheDocument();
+    const manual = screen.getByText("WD2601").closest("tr") as HTMLElement;
+    expect(within(manual).queryByText("Rút tự động")).not.toBeInTheDocument();
+  });
+
   it("hides the create button without CREATE_WITHDRAWAL", async () => {
     renderContainer({ abilities: { canCreate: false } });
     await screen.findByText("WD2601");
@@ -212,6 +221,15 @@ describe("create withdrawal modal: account and balance", () => {
     const dialog = await openCreateModal();
     await pickAccount(dialog);
     expect(await within(dialog).findByText(/Chưa có khoản nào sẵn sàng/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("blocks a manual request for a Sub that withdraws automatically, and says why", async () => {
+    balanceReturns(makeBalance({ automaticSettlement: true }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickAccount(dialog);
+    expect(await within(dialog).findByText(/Điểm bán đang rút tự động theo chu kỳ/)).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
   });
 
@@ -342,6 +360,31 @@ describe("create withdrawal modal: code and send", () => {
     expect(posted[0]?.amount).toBe(6_000_000);
     expect(posted[1]?.amount).toBe(7_000_000);
     expect(posted[1]?.idempotencyKey).not.toBe(posted[0]?.idempotencyKey);
+  });
+
+  it("returns to the account step and reads the Sub again when BE says it withdraws automatically (5782)", async () => {
+    const message = "Sub-merchant đang ở chế độ quyết toán tự động; hệ thống tự tạo lệnh rút theo chu kỳ";
+    mswServer.use(http.post(base, () => codeError("5782", message)));
+    const requests = balanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    const before = requests.length;
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText(message)).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    await waitFor(() => expect(requests.length).toBeGreaterThan(before));
+  });
+
+  it("keeps the code step and shows the BE message while a freeze is pending (5798)", async () => {
+    const message = "Sub-merchant đang có lệnh đóng băng chờ xử lý; vui lòng thử lại sau ít phút";
+    mswServer.use(http.post(base, () => codeError("5798", message)));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText(message)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Gửi yêu cầu" })).toBeInTheDocument();
   });
 
   it("returns to the account step when nothing is ready any more (5780)", async () => {

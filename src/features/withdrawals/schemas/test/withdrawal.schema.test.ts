@@ -118,6 +118,11 @@ describe("withdrawal balance schema", () => {
     expect(withdrawalBalanceSchema.parse(partial)).toMatchObject({ maximumAmount: null, dailyCountRemaining: null });
   });
 
+  it("reads the automatic settlement mode of the Sub, and treats a BE that does not send it as manual", () => {
+    expect(withdrawalBalanceSchema.parse({ ...balance, automaticSettlement: true }).automaticSettlement).toBe(true);
+    expect(withdrawalBalanceSchema.parse(balance).automaticSettlement).toBe(false);
+  });
+
   it("refuses the old merchant shaped answer", () => {
     expect(withdrawalBalanceSchema.safeParse({ merchantId, availableBalance: 1, heldBalance: 0 }).success).toBe(false);
   });
