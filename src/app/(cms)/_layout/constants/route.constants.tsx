@@ -20,6 +20,7 @@ import {
   Vault,
   CalendarClock,
   Undo2,
+  Snowflake,
 } from "lucide-react";
 
 export interface SubPage {
@@ -220,6 +221,13 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_HOLD",
         href: "/hold-calendar",
         icon: <CalendarClock className="w-4 h-4" />,
+      },
+      {
+        // Chốt 03/11/2026: merchant xem từng khoản đóng băng theo giao dịch kèm lý do (chỉ đọc). BE kiểm VIEW_BALANCE.
+        title: "Đóng băng doanh thu",
+        permission: "VIEW_BALANCE",
+        href: "/revenue-freezes",
+        icon: <Snowflake className="w-4 h-4" />,
       },
       {
         title: "Hoàn tiền doanh thu",
