@@ -41,7 +41,11 @@ function WithdrawalSections({ withdrawal }: { withdrawal: Withdrawal }) {
           <DetailItem label="Chủ tài khoản">{withdrawal.bankAccountName}</DetailItem>
           <DetailItem label="Hình thức">{REQUEST_TYPE_LABELS[withdrawal.requestType]}</DetailItem>
           <DetailItem label="Ngày yêu cầu">{formatDate(withdrawal.createdAt)}</DetailItem>
-          <DetailItem label="Mã tham chiếu ngân hàng">{withdrawal.bankRefId ?? "Chưa có"}</DetailItem>
+          {/* Chưa chắc môi trường thật có trả mã tham chiếu NH (05/11): không có mã thì ẩn cả dòng,
+              không hiện "Chưa có" để merchant khỏi tưởng lệnh còn thiếu bước. */}
+          {withdrawal.bankRefId ? (
+            <DetailItem label="Mã tham chiếu ngân hàng">{withdrawal.bankRefId}</DetailItem>
+          ) : null}
           <DetailItem label="Cập nhật lần cuối">{formatDate(withdrawal.updatedAt)}</DetailItem>
           <DetailItem label="Ghi chú" wide>
             {withdrawal.reason ?? EMPTY_VALUE}
