@@ -5,6 +5,7 @@ import {
   withdrawalFormSchema,
   withdrawalOtpChallengeBodySchema,
   withdrawalResponseSchema,
+  withdrawalStatusGroupSchema,
   withdrawalStatusSchema,
 } from "../withdrawal.schema";
 
@@ -59,6 +60,14 @@ describe("withdrawal response schema", () => {
     expect(withdrawalResponseSchema.safeParse({ ...response, status: "PAID" }).success).toBe(false);
     expect(withdrawalResponseSchema.safeParse({ ...response, id: "abc" }).success).toBe(false);
     expect(withdrawalResponseSchema.safeParse({ ...response, amount: 10.5 }).success).toBe(false);
+  });
+
+  it("still parses the retired RECONCILIATION_REQUIRED from an older BE (alias chuyển tiếp)", () => {
+    expect(withdrawalResponseSchema.parse({ ...response, status: "RECONCILIATION_REQUIRED" }).status).toBe("RECONCILIATION_REQUIRED");
+  });
+
+  it("no longer accepts RECONCILIATION as a filter group", () => {
+    expect(withdrawalStatusGroupSchema.safeParse("RECONCILIATION").success).toBe(false);
   });
 
   it("knows every status the BE enum can return", () => {

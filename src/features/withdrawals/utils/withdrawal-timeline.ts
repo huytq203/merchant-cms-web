@@ -18,7 +18,8 @@ const POSITION: Record<WithdrawalStatus, { current: number; failed?: boolean }> 
   BANK_REJECTED: { current: 3, failed: true },
   FUNDS_RELEASING: { current: 3, failed: true },
   FAILED: { current: 3, failed: true },
-  RECONCILIATION_REQUIRED: { current: 3, failed: true },
+  // alias chuyển tiếp, gỡ sau 1 sprint: như PROCESSING, không phải bước thất bại.
+  RECONCILIATION_REQUIRED: { current: 3 },
 };
 
 export function withdrawalStepStates(status: WithdrawalStatus): StepState[] {
@@ -43,6 +44,7 @@ export function withdrawalNote(status: WithdrawalStatus): WithdrawalNote {
     case "FUNDS_RESERVED":
     case "BANK_SUBMITTING":
     case "PROCESSING":
+    case "RECONCILIATION_REQUIRED": // alias chuyển tiếp, gỡ sau 1 sprint
       return { tone: "info", text: "Tiền đã được giữ. Hệ thống đang gửi lệnh chuyển sang ngân hàng." };
     case "BANK_ACCEPTED":
     case "LEDGER_CAPTURING":
@@ -59,10 +61,5 @@ export function withdrawalNote(status: WithdrawalStatus): WithdrawalNote {
       };
     case "FUNDS_RELEASING":
       return { tone: "warning", text: "Chuyển tiền không thành công. Hệ thống đang hoàn khoản tiền giữ về ví của bạn." };
-    case "RECONCILIATION_REQUIRED":
-      return {
-        tone: "warning",
-        text: "Flexpay đang đối soát yêu cầu này với ngân hàng. Bạn không cần làm gì, kết quả sẽ cập nhật ở đây.",
-      };
   }
 }

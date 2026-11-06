@@ -8,6 +8,7 @@ export const withdrawalStatusSchema = z.enum([
   "BANK_SUBMITTING",
   "BANK_ACCEPTED",
   "BANK_REJECTED",
+  // alias chuyển tiếp, gỡ sau 1 sprint: BE đã bỏ trạng thái này (thành PROCESSING), giữ để bản BE cũ vẫn parse được.
   "RECONCILIATION_REQUIRED",
   "LEDGER_CAPTURING",
   "FUNDS_RELEASING",
@@ -18,7 +19,7 @@ export const withdrawalStatusSchema = z.enum([
   "FAILED",
 ]);
 
-export const withdrawalStatusGroupSchema = z.enum(["PENDING", "PROCESSING", "COMPLETED", "REJECTED", "RECONCILIATION"]);
+export const withdrawalStatusGroupSchema = z.enum(["PENDING", "PROCESSING", "COMPLETED", "REJECTED"]);
 
 export const withdrawalRequestTypeSchema = z.enum(["MANUAL", "AUTO_SWEEP"]);
 

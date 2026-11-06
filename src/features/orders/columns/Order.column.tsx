@@ -5,7 +5,7 @@ import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge, type StatusTone } from "@/components/page/StatusBadge";
 import { formatAmount } from "@/lib/utils/helper";
-import { ORDER_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS, labelOf } from "../constants/Order.constants";
+import { ORDER_STATUS_DISPLAY_OPTIONS, PAYMENT_METHOD_OPTIONS, labelOf } from "../constants/Order.constants";
 import type { Order } from "../types/types";
 import { canCancelOrder, canRefreshQr } from "../utils/order-mapper";
 
@@ -22,7 +22,7 @@ const statusTone: Record<Order["status"], StatusTone> = {
   PAYMENT_CONFIRMED: "info",
   CREDIT_PENDING: "info",
   CREDIT_POSTING: "info",
-  CREDIT_RECONCILIATION_REQUIRED: "danger",
+  CREDIT_RECONCILIATION_REQUIRED: "info", // alias chuyển tiếp, gỡ sau 1 sprint: như CREDIT_POSTING
   SUCCESS: "success",
   FAILED: "danger",
   EXPIRED: "neutral",
@@ -30,7 +30,7 @@ const statusTone: Record<Order["status"], StatusTone> = {
 };
 
 export function OrderStatusBadge({ status }: { status: Order["status"] }) {
-  const option = ORDER_STATUS_OPTIONS.find((item) => item.value === status);
+  const option = ORDER_STATUS_DISPLAY_OPTIONS.find((item) => item.value === status);
   return (
     <StatusBadge label={option?.label} tone={option ? statusTone[status] : "neutral"} />
   );

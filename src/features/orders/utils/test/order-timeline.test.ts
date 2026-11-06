@@ -12,8 +12,12 @@ describe("order progress", () => {
   });
 
   it("flags the step an order got stuck or failed on", () => {
-    expect(orderStepStates("CREDIT_RECONCILIATION_REQUIRED")).toEqual(["done", "done", "done", "failed", "upcoming"]);
     expect(orderStepStates("FAILED")[1]).toBe("failed");
+  });
+
+  it("treats the retired CREDIT_RECONCILIATION_REQUIRED like CREDIT_POSTING: in progress, not failed", () => {
+    expect(orderStepStates("CREDIT_RECONCILIATION_REQUIRED")).toEqual(orderStepStates("CREDIT_POSTING"));
+    expect(orderStepStates("CREDIT_RECONCILIATION_REQUIRED")).toEqual(["done", "done", "done", "current", "upcoming"]);
   });
 
   it("covers every status BE can send", () => {
@@ -30,7 +34,8 @@ describe("order note", () => {
     expect(orderNote("ACTIVE", false).tone).toBe("info");
   });
 
-  it("does not ask the merchant to act on a reconciliation", () => {
-    expect(orderNote("CREDIT_RECONCILIATION_REQUIRED", false).text).toMatch(/không cần làm gì/);
+  it("gives the retired CREDIT_RECONCILIATION_REQUIRED the same info note as CREDIT_POSTING", () => {
+    expect(orderNote("CREDIT_RECONCILIATION_REQUIRED", false)).toEqual(orderNote("CREDIT_POSTING", false));
+    expect(orderNote("CREDIT_RECONCILIATION_REQUIRED", false).tone).toBe("info");
   });
 });

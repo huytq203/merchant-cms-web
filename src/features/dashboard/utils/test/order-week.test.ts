@@ -30,8 +30,14 @@ describe("bucketOf", () => {
   it("groups the ten order statuses into four buckets", () => {
     expect(["SUCCESS", "PAYMENT_CONFIRMED", "CREDIT_PENDING", "CREDIT_POSTING"].map((s) => bucketOf(s as never))).toEqual(["paid", "paid", "paid", "paid"]);
     expect(["PENDING", "ACTIVE"].map((s) => bucketOf(s as never))).toEqual(["waiting", "waiting"]);
-    expect(["FAILED", "CREDIT_RECONCILIATION_REQUIRED"].map((s) => bucketOf(s as never))).toEqual(["failed", "failed"]);
+    expect(bucketOf("FAILED")).toBe("failed");
     expect(["EXPIRED", "CANCELLED"].map((s) => bucketOf(s as never))).toEqual(["closed", "closed"]);
+  });
+});
+
+describe("bucketOf with the transitional alias", () => {
+  it("counts the retired CREDIT_RECONCILIATION_REQUIRED as processing (paid), never as failed", () => {
+    expect(bucketOf("CREDIT_RECONCILIATION_REQUIRED" as never)).toBe("paid");
   });
 });
 

@@ -16,7 +16,8 @@ export const WITHDRAWAL_STATUS_OPTIONS: StatusOption[] = [
   { value: "PROCESSING", label: "Đang xử lý", variant: "soft-primary" },
   { value: "LEDGER_CAPTURING", label: "Đang ghi sổ", variant: "soft-primary" },
   { value: "FUNDS_RELEASING", label: "Đang hoàn tiền giữ", variant: "soft-warning" },
-  { value: "RECONCILIATION_REQUIRED", label: "Cần đối soát", variant: "soft-danger" },
+  // alias chuyển tiếp, gỡ sau 1 sprint: BE cũ còn trả trạng thái này, hiển thị như PROCESSING.
+  { value: "RECONCILIATION_REQUIRED", label: "Đang xử lý", variant: "soft-primary" },
   { value: "COMPLETED", label: "Hoàn tất", variant: "soft-success" },
   { value: "FAILED", label: "Thất bại", variant: "soft-danger" },
 ];
@@ -51,9 +52,18 @@ export const WITHDRAWAL_STATUS_GROUPS: {
   },
   { value: "COMPLETED", label: "Hoàn tất", tone: "success", statuses: ["COMPLETED"] },
   { value: "REJECTED", label: "Bị từ chối hoặc thất bại", tone: "danger", statuses: ["REJECTED", "BANK_REJECTED", "FAILED"] },
-  { value: "RECONCILIATION", label: "Cần đối soát", tone: "warning", statuses: ["RECONCILIATION_REQUIRED"] },
 ];
 
+/**
+ * alias chuyển tiếp, gỡ sau 1 sprint: trạng thái BE đã bỏ nhưng bản BE cũ còn trả, đọc như trạng thái mới.
+ * Không đưa vào `statuses` của nhóm vì danh sách đó được gửi lên BE làm bộ lọc (BE mới sẽ từ chối giá trị lạ)
+ * và để bộ lọc không có lựa chọn riêng cho nó.
+ */
+const LEGACY_STATUS_ALIASES: Partial<Record<WithdrawalStatus, WithdrawalStatus>> = {
+  RECONCILIATION_REQUIRED: "PROCESSING",
+};
+
 export function groupOfStatus(status: WithdrawalStatus) {
-  return WITHDRAWAL_STATUS_GROUPS.find((group) => group.statuses.includes(status));
+  const effective = LEGACY_STATUS_ALIASES[status] ?? status;
+  return WITHDRAWAL_STATUS_GROUPS.find((group) => group.statuses.includes(effective));
 }

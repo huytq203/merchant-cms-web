@@ -10,7 +10,8 @@ const POSITION: Record<OrderStatus, { current: number; failed?: boolean }> = {
   PAYMENT_CONFIRMED: { current: 2 },
   CREDIT_PENDING: { current: 3 },
   CREDIT_POSTING: { current: 3 },
-  CREDIT_RECONCILIATION_REQUIRED: { current: 3, failed: true },
+  // alias chuyển tiếp, gỡ sau 1 sprint: như CREDIT_POSTING, không phải bước thất bại.
+  CREDIT_RECONCILIATION_REQUIRED: { current: 3 },
   SUCCESS: { current: ORDER_STEPS.length },
   FAILED: { current: 1, failed: true },
   EXPIRED: { current: 1 },
@@ -40,12 +41,8 @@ export function orderNote(status: OrderStatus, qrExpired: boolean): OrderNote {
     case "PAYMENT_CONFIRMED":
     case "CREDIT_PENDING":
     case "CREDIT_POSTING":
+    case "CREDIT_RECONCILIATION_REQUIRED": // alias chuyển tiếp, gỡ sau 1 sprint
       return { tone: "info", text: "Khách đã thanh toán. Hệ thống đang ghi có tiền vào ví của bạn." };
-    case "CREDIT_RECONCILIATION_REQUIRED":
-      return {
-        tone: "warning",
-        text: "Flexpay đang đối soát đơn này với ngân hàng. Bạn không cần làm gì, tiền sẽ được ghi có sau khi đối soát xong.",
-      };
     case "SUCCESS":
       return { tone: "success", text: "Khách đã thanh toán và tiền đã ghi có vào ví của bạn." };
     case "FAILED":
