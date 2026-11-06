@@ -14,6 +14,7 @@ import type {
   createComplaintBodySchema,
   rejectComplaintBodySchema,
   replyComplaintBodySchema,
+  transactionCheckSchema,
 } from "../schemas/complaint.schema";
 
 export type ComplaintStatus = z.infer<typeof complaintStatusSchema>;
@@ -27,6 +28,7 @@ export type ComplaintAttachment = z.infer<typeof complaintAttachmentSchema>;
 export type ComplaintListResult = z.infer<typeof complaintListResultSchema>;
 export type ComplaintListFilter = z.infer<typeof complaintListQuerySchema>;
 export type AttachmentLink = z.infer<typeof attachmentLinkSchema>;
+export type TransactionCheck = z.infer<typeof transactionCheckSchema>;
 export type CreateComplaintBody = z.input<typeof createComplaintBodySchema>;
 export type ReplyComplaintBody = z.input<typeof replyComplaintBodySchema>;
 export type RejectComplaintBody = z.infer<typeof rejectComplaintBodySchema>;

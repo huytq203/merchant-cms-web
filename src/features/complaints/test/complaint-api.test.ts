@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
 import { ApiError } from "@/lib/http/api-client";
-import { describeComplaintError, exportQuery, fileNameFrom, uploadEvidence } from "../complaint-api";
+import { checkComplaintTransaction, describeComplaintError, exportQuery, fileNameFrom, uploadEvidence } from "../complaint-api";
 
 describe("fileNameFrom", () => {
   it("reads the plain and the UTF-8 file name, else falls back", () => {
@@ -44,5 +44,29 @@ describe("uploadEvidence", () => {
   it("has a fallback message for unknown failures", () => {
     expect(describeComplaintError(new Error("boom"))).toBe("Không thực hiện được, vui lòng thử lại");
     expect(describeComplaintError(new ApiError(400, "Dung lượng file vượt quá 10MB"))).toBe("Dung lượng file vượt quá 10MB");
+  });
+});
+
+describe("checkComplaintTransaction", () => {
+  it("sends the trimmed code and returns the order of this merchant", async () => {
+    let received: string | null = null;
+    mswServer.use(
+      http.get("/api/v1/admin/merchants/complaints/transaction-check", ({ request }) => {
+        received = new URL(request.url).searchParams.get("transactionCode");
+        return HttpResponse.json({ transactionId: "t1", transactionCode: "FM1", amount: 1000, status: "SUCCESS" });
+      }),
+    );
+    expect((await checkComplaintTransaction("  FM1 ")).transactionCode).toBe("FM1");
+    expect(received).toBe("FM1");
+  });
+
+  it("rejects with the BE sentence when the code is not a transaction of this merchant", async () => {
+    mswServer.use(
+      http.get("/api/v1/admin/merchants/complaints/transaction-check", () =>
+        HttpResponse.json({ message: "Merchant của bạn không phát sinh mã giao dịch này" }, { status: 404 }),
+      ),
+    );
+    const failure = await checkComplaintTransaction("FM-X").catch((error: unknown) => error);
+    expect(describeComplaintError(failure)).toBe("Merchant của bạn không phát sinh mã giao dịch này");
   });
 });

@@ -11,6 +11,7 @@ import {
   attachmentLinkSchema,
   attachmentUploadSchema,
   complaintSchema,
+  transactionCheckSchema,
 } from "@/features/complaints/schemas/complaint.schema";
 import type {
   AttachmentLink,
@@ -19,6 +20,7 @@ import type {
   ComplaintListResult,
   CreateComplaintBody,
   ReplyComplaintBody,
+  TransactionCheck,
 } from "@/features/complaints/types/types";
 import { toBeComplaintQuery } from "@/features/complaints/utils/complaint-filter";
 
@@ -42,6 +44,18 @@ export async function listComplaints(filter: ComplaintListFilter): Promise<BeRes
 /** Detail with the conversation (oldest first) and the attachments. */
 export function getComplaint(id: string): Promise<BeResult<Complaint>> {
   return merchantClient().get({ path: item(id), schema: complaintSchema });
+}
+
+/**
+ * Checks, while the merchant types the code, that the transaction belongs to them. A code that does not exist and
+ * one of another merchant both come back as 6202 with the same Vietnamese sentence.
+ */
+export function checkTransaction(transactionCode: string): Promise<BeResult<TransactionCheck>> {
+  return merchantClient().get({
+    path: `${COMPLAINTS}/transaction-check`,
+    schema: transactionCheckSchema,
+    query: { transactionCode },
+  });
 }
 
 /** Opens the complaint in WAITING; 6202/6203/6204 come back with the BE Vietnamese sentence. */

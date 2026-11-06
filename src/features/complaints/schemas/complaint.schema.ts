@@ -86,6 +86,15 @@ export const attachmentLinkSchema = z.object({
 
 export const attachmentUploadSchema = z.object({ attachmentId: z.string() });
 
+/** `GET /complaints/transaction-check`: the order the typed code belongs to (merchant scope already applied by the BE). */
+export const transactionCheckSchema = z.object({
+  transactionId: z.string(),
+  transactionCode: z.string(),
+  amount: z.number().nullish(),
+  status: z.string(),
+  createdAt: z.string().nullish(),
+});
+
 export const MAX_COMPLAINT_ATTACHMENTS = 10;
 export const MAX_CREATE_CONTENT = 2000;
 export const MAX_REPLY_CONTENT = 1000;

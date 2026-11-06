@@ -5,6 +5,7 @@ import type {
   Complaint,
   ComplaintListFilter,
   ComplaintReason,
+  TransactionCheck,
 } from "./types/types";
 
 // Browser calls to the complaint route handlers. Errors are thrown as ApiError whose message is the BE
@@ -22,6 +23,17 @@ export async function uploadEvidence(files: File[]): Promise<string[]> {
     ids.push(attachmentId);
   }
   return ids;
+}
+
+/**
+ * Asks the BE whether the typed code is a transaction of this merchant. Rejects with an ApiError carrying the BE
+ * sentence (e.g. "Merchant của bạn không phát sinh mã giao dịch này"); no toast, the form shows it under the field.
+ */
+export function checkComplaintTransaction(transactionCode: string): Promise<TransactionCheck> {
+  return apiClient.get<TransactionCheck>(`${COMPLAINTS_PATH}/transaction-check`, {
+    query: { transactionCode: transactionCode.trim() },
+    toast: false,
+  });
 }
 
 export type CreateComplaintInput = {

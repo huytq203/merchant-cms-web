@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
 import { BE_COMPLAINT, BE_COMPLAINT_ROW } from "@/features/complaints/test/complaint.fixtures";
 import {
+  checkTransaction,
   createComplaint,
   exportComplaints,
   getAttachmentLink,
@@ -155,5 +156,33 @@ describe("exportComplaints", () => {
     mswServer.use(http.get(`${path}/export`, () => HttpResponse.json({ success: false, detail: "Không có quyền" }, { status: 403 })));
     const result = await exportComplaints({ page: 1, pageSize: 10 });
     expect(result).toMatchObject({ success: false, error: { status: 403, message: "Không có quyền" } });
+  });
+});
+
+describe("checkTransaction", () => {
+  it("reads the portal check with the code as a query and returns the order", async () => {
+    let received: string | null = null;
+    mswServer.use(
+      http.get(`${path}/transaction-check`, ({ request }) => {
+        received = new URL(request.url).searchParams.get("transactionCode");
+        return ok({ transactionId: "t1", transactionCode: "FM1", amount: 1000, status: "SUCCESS" });
+      }),
+    );
+    const result = await checkTransaction("FM1");
+    expect(result.success && result.data.transactionCode).toBe("FM1");
+    expect(received).toBe("FM1");
+  });
+
+  it("returns the 6202 failure with the BE sentence", async () => {
+    mswServer.use(
+      http.get(`${path}/transaction-check`, () =>
+        HttpResponse.json(
+          { success: false, errorCode: "6202", detail: "Mã giao dịch không tồn tại", errors: ["Merchant của bạn không phát sinh mã giao dịch này"] },
+          { status: 404 },
+        ),
+      ),
+    );
+    const result = await checkTransaction("FM-X");
+    expect(result.success).toBe(false);
   });
 });

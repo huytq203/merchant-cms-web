@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button/Button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog/Dialog';
 import { Input } from '@/components/ui/input/Input';
+import { ApiError } from '@/lib/http/api-client';
 import { Select } from '@/components/ui/select/Select';
 import { Textarea } from '@/components/ui/textarea/Textarea';
-import { describeComplaintError, submitComplaint } from '../complaint-api';
+import { checkComplaintTransaction, describeComplaintError, submitComplaint } from '../complaint-api';
 import { COMPLAINTS_KEY } from '../complaint-queries';
 import { COMPLAINT_REASON_OPTIONS } from '../constants/Complaint.constants';
 import { complaintReasonSchema, createComplaintBodySchema, MAX_CREATE_CONTENT } from '../schemas/complaint.schema';
@@ -50,6 +51,10 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failure, setFailure] = useState<string | null>(null);
   const fixedCode = transactionCode ?? null;
+  // The last code the BE refused, with its sentence: submit is stopped for that code without a useless upload.
+  const [refused, setRefused] = useState<{ code: string; message: string } | null>(null);
+  // Latest typed code, so a slow answer for an older value never paints over a newer one.
+  const latestCode = useRef('');
 
   const create = useMutation({
     mutationFn: submitComplaint,
@@ -61,6 +66,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
     setFiles([]);
     setErrors({});
     setFailure(null);
+    setRefused(null);
     create.reset();
   };
 
@@ -75,9 +81,29 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
 
+  /**
+   * Right after the code is typed, ask the BE whether it is a transaction of this merchant, so a wrong code is
+   * shown under the field instead of after filling the whole form. Network trouble is not a verdict: only an
+   * ApiError with a 4xx status (the BE saying "not yours / not found") marks the field.
+   */
+  const checkCode = async () => {
+    const code = values.transactionCode.trim();
+    if (fixedCode || !code) return;
+    try {
+      await checkComplaintTransaction(code);
+      if (latestCode.current === code) setRefused(null);
+    } catch (error) {
+      if (latestCode.current !== code || !(error instanceof ApiError) || error.status >= 500) return;
+      const message = describeComplaintError(error);
+      setRefused({ code, message });
+      setErrors((current) => ({ ...current, transactionCode: message }));
+    }
+  };
+
   const handleSubmit = async () => {
     const candidate = { ...values, transactionCode: fixedCode ?? values.transactionCode };
     const found = validate(candidate);
+    if (!fixedCode && refused && refused.code === candidate.transactionCode.trim()) found.transactionCode = refused.message;
     setErrors(found);
     setFailure(null);
     const reason = complaintReasonSchema.safeParse(candidate.reasonCode);
@@ -121,7 +147,11 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
               placeholder="Nhập mã giao dịch"
               required
               value={values.transactionCode}
-              onChange={(event) => set('transactionCode')(event.target.value)}
+              onChange={(event) => {
+                latestCode.current = event.target.value.trim();
+                set('transactionCode')(event.target.value);
+              }}
+              onBlur={() => void checkCode()}
               error={errors.transactionCode}
             />
           )}
