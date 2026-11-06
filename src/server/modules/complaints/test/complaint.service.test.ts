@@ -177,7 +177,7 @@ describe("checkTransaction", () => {
     mswServer.use(
       http.get(`${path}/transaction-check`, () =>
         HttpResponse.json(
-          { success: false, errorCode: "6202", detail: "Mã giao dịch không tồn tại", errors: ["Merchant của bạn không phát sinh mã giao dịch này"] },
+          { success: false, errorCode: "6202", detail: "Mã giao dịch không tồn tại", errors: ["Mã giao dịch không tồn tại"] },
           { status: 404 },
         ),
       ),

@@ -10,7 +10,7 @@ import { ComplaintCreateDialog } from "../ComplaintCreateDialog";
 vi.mock("sonner", () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }));
 
 const base = "/api/v1/admin/merchants/complaints";
-const NOT_OWNED = "Merchant của bạn không phát sinh mã giao dịch này";
+const NOT_OWNED = "Mã giao dịch không tồn tại";
 
 afterEach(() => cleanup());
 

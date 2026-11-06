@@ -63,10 +63,10 @@ describe("checkComplaintTransaction", () => {
   it("rejects with the BE sentence when the code is not a transaction of this merchant", async () => {
     mswServer.use(
       http.get("/api/v1/admin/merchants/complaints/transaction-check", () =>
-        HttpResponse.json({ message: "Merchant của bạn không phát sinh mã giao dịch này" }, { status: 404 }),
+        HttpResponse.json({ message: "Mã giao dịch không tồn tại" }, { status: 404 }),
       ),
     );
     const failure = await checkComplaintTransaction("FM-X").catch((error: unknown) => error);
-    expect(describeComplaintError(failure)).toBe("Merchant của bạn không phát sinh mã giao dịch này");
+    expect(describeComplaintError(failure)).toBe("Mã giao dịch không tồn tại");
   });
 });

@@ -27,7 +27,7 @@ export async function uploadEvidence(files: File[]): Promise<string[]> {
 
 /**
  * Asks the BE whether the typed code is a transaction of this merchant. Rejects with an ApiError carrying the BE
- * sentence (e.g. "Merchant của bạn không phát sinh mã giao dịch này"); no toast, the form shows it under the field.
+ * sentence (e.g. "Mã giao dịch không tồn tại"); no toast, the form shows it under the field.
  */
 export function checkComplaintTransaction(transactionCode: string): Promise<TransactionCheck> {
   return apiClient.get<TransactionCheck>(`${COMPLAINTS_PATH}/transaction-check`, {
