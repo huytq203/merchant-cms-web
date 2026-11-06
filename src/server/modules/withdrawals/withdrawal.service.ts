@@ -12,6 +12,7 @@ import {
   type Withdrawal,
   type WithdrawalBalance,
   type WithdrawalCreateBody,
+  type WithdrawalOtpChallengeBody,
 } from "@/features/withdrawals/schemas/withdrawal.schema";
 import type { WithdrawalListFilter, WithdrawalListResult } from "@/features/withdrawals/types/types";
 import { toWithdrawalCreateRequest } from "@/features/withdrawals/utils/withdrawal-mapper";
@@ -48,9 +49,10 @@ export const createWithdrawal = (body: WithdrawalCreateBody): Promise<BeResult<W
     body: toWithdrawalCreateRequest(body),
   });
 
-export const getWithdrawalBalance = (merchantId: string): Promise<BeResult<WithdrawalBalance>> =>
-  merchantClient().get({ path: withdrawalPaths.balance, schema: withdrawalBalanceSchema, query: { merchantId } });
+/** BE derives the Master from the Sub and answers 404 for a Sub outside the caller's scope. */
+export const getWithdrawalBalance = (subMerchantId: string): Promise<BeResult<WithdrawalBalance>> =>
+  merchantClient().get({ path: withdrawalPaths.balance, schema: withdrawalBalanceSchema, query: { subMerchantId } });
 
-/** The operation is fixed here: a browser cannot ask for any other kind of code through this. */
-export const requestWithdrawalOtp = () =>
-  merchantClient().post({ path: withdrawalPaths.otpChallenge, schema: sensitiveOtpChallengeSchema });
+/** The operation is fixed here; the code is tied to this (account, amount) pair, so the caller names both. */
+export const requestWithdrawalOtp = (body: WithdrawalOtpChallengeBody) =>
+  merchantClient().post({ path: withdrawalPaths.otpChallenge, schema: sensitiveOtpChallengeSchema, body });

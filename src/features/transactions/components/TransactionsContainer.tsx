@@ -14,8 +14,8 @@ import { transactionQueries } from "../transaction-queries";
 import type { TransactionFilterValues } from "../schemas/transaction.schema";
 import type { TransactionListFilter } from "../types";
 import { filterToFormValues, formValuesToFilter } from "../utils/transaction-filter";
-import { DialogReconciliation } from "./DialogReconciliation";
-import { DialogRefund } from "./DialogRefund";
+import { RefundCreateDialog } from "@/features/revenue-refunds/components/RefundCreateDialog";
+import { ComplaintCreateDialog } from "@/features/complaints/components/ComplaintCreateDialog";
 import { TransactionDetailSheet } from "./TransactionDetailSheet";
 import { TransactionFilters } from "./TransactionFilters";
 import { TransactionTable } from "./TransactionTable";
@@ -23,11 +23,9 @@ import { TransactionTable } from "./TransactionTable";
 type Props = {
   filter: TransactionListFilter;
   abilities: { canRefund: boolean; canDispute: boolean; canExport: boolean };
-  /** False in fixture mode, where sample sub-merchant ids do not exist in the BE list. */
-  showSubMerchantFilter?: boolean;
 };
 
-export function TransactionsContainer({ filter, abilities, showSubMerchantFilter = true }: Props) {
+export function TransactionsContainer({ filter, abilities }: Props) {
   const dialogs = useTransactionDialogs();
   const navigation = useTransactionListNavigation(filter);
   const list = useQuery(transactionQueries.list(filter));
@@ -57,7 +55,6 @@ export function TransactionsContainer({ filter, abilities, showSubMerchantFilter
         key={JSON.stringify(filter)}
         defaultValues={filterToFormValues(filter)}
         onSearch={handleSearch}
-        showSubMerchant={showSubMerchantFilter}
       />
       <ResultCard>
         <h2 className="px-4 pb-1 pt-4 font-semibold">
@@ -90,16 +87,22 @@ export function TransactionsContainer({ filter, abilities, showSubMerchantFilter
         onRefund={() => dialogs.openFor("refund")}
         onReconcile={() => dialogs.openFor("reconciliation")}
       />
-      <DialogReconciliation
-        transaction={target}
-        open={activeDialog === "reconciliation"}
-        onOpenChange={(open) => !open && dialogs.close()}
-      />
-      <DialogRefund
-        transaction={target}
-        open={activeDialog === "refund"}
-        onOpenChange={(open) => !open && dialogs.close()}
-      />
+      {/* "Tra soát" is a complaint on this transaction: same form and same POST as the complaint screen. */}
+      {abilities.canDispute ? (
+        <ComplaintCreateDialog
+          title="Khởi tạo yêu cầu Tra soát"
+          transactionCode={target?.transactionCode}
+          open={activeDialog === "reconciliation"}
+          onOpenChange={(open) => !open && dialogs.close()}
+        />
+      ) : null}
+      {/* The real refund: OTP-confirmed request on the Sub's available balance, approved by another user. */}
+      {activeDialog === "refund" && target ? (
+        <RefundCreateDialog
+          order={{ id: target.id, orderCode: target.orderCode, amount: target.amount, subMerchantName: target.subMerchantName }}
+          onClose={dialogs.close}
+        />
+      ) : null}
     </div>
   );
 }

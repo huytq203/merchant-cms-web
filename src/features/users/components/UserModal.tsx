@@ -2,7 +2,7 @@
 
 import { Info } from "lucide-react";
 import { FormModal } from "@/components/modal/FormModal";
-import { usePermissionGroups } from "@/features/permission/permission-group-queries";
+import { useAssignableGroups } from "../user-queries";
 import { useUserForm } from "../hooks/use-user-form";
 import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
 import type { SessionMerchant } from "@/types/auth";
@@ -41,7 +41,7 @@ function SelfEditBanner() {
 
 function UserFormModal({ onOpenChange, merchantId, merchantIds, merchants = [], actorId, user, isSubmitting, emailError, error, onSubmit }: Omit<Props, "open">) {
   const form = useUserForm(user, merchantId, onSubmit);
-  const groups = usePermissionGroups({ page: 1, pageSize: 100 });
+  const groups = useAssignableGroups();
   const isSelf = Boolean(user && actorId && user.id === actorId);
 
   return (

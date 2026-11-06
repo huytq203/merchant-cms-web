@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
-import type { MerchantUser, MerchantUserStatus } from "./schemas/user.schema";
+import type { AssignableGroup, MerchantUser, MerchantUserStatus } from "./schemas/user.schema";
 
 export interface UserFilter {
   page: number;
@@ -49,6 +49,19 @@ export const userQueries = {
     staleTime: 30_000,
   }),
 };
+
+/** Groups the actor may give to another user; unlike the permission-group list it needs only MANAGE_USER. */
+export const assignableGroupQueries = {
+  list: () => queryOptions({
+    queryKey: ["users", "assignable-groups"] as const,
+    queryFn: () => apiClient.get<AssignableGroup[]>("/v1/merchant/merchant-users/assignable-groups"),
+    staleTime: 60_000,
+  }),
+};
+
+export function useAssignableGroups() {
+  return useQuery(assignableGroupQueries.list());
+}
 
 export function useUsers(filter: UserFilter) {
   return useQuery(userQueries.list(filter));

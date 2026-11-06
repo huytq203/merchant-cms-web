@@ -7,6 +7,10 @@ function readMessage(body: unknown): string {
   return "Yêu cầu thất bại";
 }
 
+function readCode(body: unknown): string | undefined {
+  return typeof body === "object" && body !== null && "code" in body && typeof body.code === "string" ? body.code : undefined;
+}
+
 function readDetails(body: unknown): unknown {
   return typeof body === "object" && body !== null && "details" in body ? body.details : undefined;
 }
@@ -19,7 +23,7 @@ export async function orderRequest<T>(path: string, init?: RequestInit): Promise
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new ApiError(response.status, readMessage(body), undefined, readDetails(body));
+    throw new ApiError(response.status, readMessage(body), readCode(body), readDetails(body));
   }
   return body as T;
 }

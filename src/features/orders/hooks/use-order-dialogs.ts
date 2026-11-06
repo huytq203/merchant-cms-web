@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Order } from "../types/types";
 
-export type OrderDialogName = "detail" | "qr";
+export type OrderDialogName = "detail" | "qr" | "cancel";
 
 export function useOrderDialogs() {
   const [activeDialog, setActiveDialog] = useState<OrderDialogName | "create" | null>(null);

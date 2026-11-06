@@ -21,8 +21,9 @@ export function resolveMerchantId(user: SessionUser): string | NextResponse {
   return merchantId;
 }
 
+/** An empty `subMerchantIds` means no Sub restriction (BE still checks the scope), so only a limited session is refused here. */
 export function requireSubMerchantScope(user: SessionUser, subMerchantId?: string): NextResponse | null {
-  if (subMerchantId && !user.subMerchantIds.includes(subMerchantId)) return forbidden();
+  if (subMerchantId && user.subMerchantIds.length > 0 && !user.subMerchantIds.includes(subMerchantId)) return forbidden();
   return null;
 }
 

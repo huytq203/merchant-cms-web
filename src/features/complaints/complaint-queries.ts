@@ -1,12 +1,15 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
-import { retryUnlessUnsupported } from "@/features/sample-data/utils/unsupported";
 import { complaintListQuerySchema } from "./schemas/complaint.schema";
-import type { ComplaintListFilter, ComplaintListResult } from "./types/types";
+import type { Complaint, ComplaintListFilter, ComplaintListResult } from "./types/types";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
-const LIST_PATH = "/v1/admin/merchants/complaints";
+/** Same-origin route handlers in front of `/api/v1/merchant/complaints`. */
+export const COMPLAINTS_PATH = "/v1/admin/merchants/complaints";
+export const complaintPath = (id: string, ...rest: string[]) =>
+  [COMPLAINTS_PATH, encodeURIComponent(id), ...rest.map(encodeURIComponent)].join("/");
+
 const DEFAULT_FILTER: ComplaintListFilter = { page: 1, pageSize: 10 };
 
 function onlyStrings(raw: RawSearchParams): Record<string, string> {
@@ -30,12 +33,21 @@ export function toComplaintSearchParams(filter: ComplaintListFilter): URLSearchP
   return params;
 }
 
+/** Every complaint query starts with this key, so a write can refresh list and detail at once. */
+export const COMPLAINTS_KEY = ["complaints"] as const;
+
 export const complaintQueries = {
   list: (filter: ComplaintListFilter) =>
     queryOptions({
-      queryKey: ["complaints", "list", filter] as const,
+      queryKey: [...COMPLAINTS_KEY, "list", filter] as const,
       queryFn: () =>
-        apiClient.get<ComplaintListResult>(LIST_PATH, { query: Object.fromEntries(toComplaintSearchParams(filter)) }),
-      retry: retryUnlessUnsupported,
+        apiClient.get<ComplaintListResult>(COMPLAINTS_PATH, { query: Object.fromEntries(toComplaintSearchParams(filter)) }),
+      retry: 1,
+    }),
+  detail: (id: string) =>
+    queryOptions({
+      queryKey: [...COMPLAINTS_KEY, "detail", id] as const,
+      queryFn: () => apiClient.get<Complaint>(complaintPath(id)),
+      retry: 1,
     }),
 };

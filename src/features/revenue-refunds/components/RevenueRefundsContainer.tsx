@@ -1,26 +1,37 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { ResultCard } from "@/components/page/ResultCard";
 import { ResultState } from "@/components/page/ResultState";
+import { Button } from "@/components/ui/button/Button";
 import { Table } from "@/components/ui/table/Table";
 import { revenueRefundColumns } from "../columns/RevenueRefundColumn";
 import { useRefundApproval } from "../hooks/use-refund-approval";
 import { revenueRefundQueries } from "../revenue-refund-queries";
 import type { RefundFilter } from "../types";
 import { RefundApproveDialog } from "./RefundApproveDialog";
+import { RefundCreateDialog, type RefundOrder } from "./RefundCreateDialog";
+import { RefundOrderPicker } from "./RefundOrderPicker";
 import { RevenueRefundFilter } from "./RevenueRefundFilter";
 
 interface Props {
   filter: RefundFilter;
   canApprove: boolean;
+  /** CREATE_REFUND: offers "Tạo yêu cầu hoàn tiền", which starts by picking a successful transaction. */
+  canCreate?: boolean;
   subNames: Record<string, string>;
 }
 
-export function RevenueRefundsContainer({ filter, canApprove, subNames }: Props) {
+/** Creating starts here or from an order's detail; both end in the same OTP-confirmed form. */
+type CreateStep = { step: "closed" } | { step: "pick" } | { step: "form"; order: RefundOrder };
+
+export function RevenueRefundsContainer({ filter, canApprove, canCreate = false, subNames }: Props) {
+  const [create, setCreate] = useState<CreateStep>({ step: "closed" });
   const router = useRouter();
   const pathname = usePathname();
   const list = useQuery(revenueRefundQueries.list(filter));
@@ -34,7 +45,12 @@ export function RevenueRefundsContainer({ filter, canApprove, subNames }: Props)
     <div className="space-y-5">
       <PageHeader
         title={getRouteTitle("/revenue-refunds")}
-        description="Tạo yêu cầu từ chi tiết đơn hàng. Khoản hoàn trừ vào số dư khả dụng của Sub-merchant."
+        description="Chọn một giao dịch thành công để tạo yêu cầu, hoặc tạo từ chi tiết đơn hàng. Khoản hoàn trừ vào số dư khả dụng của Sub-merchant."
+        action={canCreate ? (
+          <Button type="button" variant="solid" leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />} onClick={() => setCreate({ step: "pick" })}>
+            Tạo yêu cầu hoàn tiền
+          </Button>
+        ) : undefined}
       />
       <RevenueRefundFilter key={filter.status ?? ""} initial={filter} onSearch={search} />
       <ResultCard>
@@ -52,6 +68,10 @@ export function RevenueRefundsContainer({ filter, canApprove, subNames }: Props)
         ) : null}
       </ResultCard>
       <RefundApproveDialog approval={approval} subNames={subNames} />
+      {create.step === "pick" ? (
+        <RefundOrderPicker onPick={(order) => setCreate({ step: "form", order })} onClose={() => setCreate({ step: "closed" })} />
+      ) : null}
+      {create.step === "form" ? <RefundCreateDialog order={create.order} onClose={() => setCreate({ step: "closed" })} /> : null}
     </div>
   );
 }

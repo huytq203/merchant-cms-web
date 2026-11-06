@@ -25,6 +25,7 @@ export default async function OrdersPage({ searchParams }: Props) {
   });
   const abilities = {
     canCreate: hasPermission(user.permissions, "CREATE_ORDER"),
+    canCancel: hasPermission(user.permissions, "CANCEL_ORDER"),
     canRefund: hasPermission(user.permissions, "CREATE_REFUND"),
     canViewRefunds: hasPermission(user.permissions, "VIEW_REFUND"),
   };

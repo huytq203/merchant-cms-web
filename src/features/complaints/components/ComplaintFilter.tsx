@@ -4,7 +4,12 @@ import type { DateRange } from "react-day-picker";
 import { useForm } from "react-hook-form";
 import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker, Form, FormField, Input, Select } from "@/components/ui";
-import { COMPLAINT_SOURCE_OPTIONS, COMPLAINT_STATUS_OPTIONS } from "../constants/Complaint.constants";
+import { SubMerchantFilterField } from "@/features/sample-data/components/SubMerchantFilterField";
+import {
+  COMPLAINT_REPORTER_OPTIONS,
+  COMPLAINT_STATUS_OPTIONS,
+  COMPLAINT_WAITING_ON_OPTIONS,
+} from "../constants/Complaint.constants";
 import { complaintFilterSchema, type ComplaintFilterValues } from "../schemas/complaint.schema";
 
 interface ComplaintFilterProps {
@@ -12,11 +17,23 @@ interface ComplaintFilterProps {
   defaultValues?: ComplaintFilterValues;
 }
 
-const SOURCE_SELECT = COMPLAINT_SOURCE_OPTIONS.map(({ value, label }) => ({ value, label }));
-const STATUS_SELECT = COMPLAINT_STATUS_OPTIONS.map(({ value, label }) => ({ value, label }));
+// "Đã hủy" chưa có thao tác nào dẫn tới (BE chưa có luồng hủy) nên không đưa vào bộ lọc, tránh lọc luôn ra rỗng.
+const STATUS_SELECT = COMPLAINT_STATUS_OPTIONS.filter(({ value }) => value !== 'CANCELLED').map(({ value, label }) => ({
+  value,
+  label,
+}));
 
-const EMPTY_VALUES: ComplaintFilterValues = { keyword: "", fromDate: null, toDate: null, source: "", status: "" };
+const EMPTY_VALUES: ComplaintFilterValues = {
+  keyword: "",
+  status: "",
+  waitingOn: "",
+  reporterType: "",
+  subMerchantId: "",
+  createdFrom: null,
+  createdTo: null,
+};
 
+/** The filters the BE list supports; all conditions combine with AND. */
 export function ComplaintFilter({ onSearch, defaultValues }: ComplaintFilterProps) {
   const form = useForm<ComplaintFilterValues>({
     resolver: zodResolver(complaintFilterSchema),
@@ -30,19 +47,12 @@ export function ComplaintFilter({ onSearch, defaultValues }: ComplaintFilterProp
 
   return (
     <Form {...form}>
-      <FilterCard fieldCount={4} onSubmit={() => void form.handleSubmit(onSearch)()} onClear={handleReset}>
+      <FilterCard fieldCount={6} actionsInGrid onSubmit={() => void form.handleSubmit(onSearch)()} onClear={handleReset}>
         <FormField
           control={form.control}
           name="keyword"
           render={({ field }) => (
             <Input label="Mã khiếu nại / Mã GD" placeholder="Nhập mã cần tìm" {...field} value={field.value ?? ""} />
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="source"
-          render={({ field }) => (
-            <Select label="Nguồn" placeholder="Tất cả nguồn" value={field.value ?? ""} onChange={field.onChange} options={SOURCE_SELECT} />
           )}
         />
         <FormField
@@ -54,19 +64,38 @@ export function ComplaintFilter({ onSearch, defaultValues }: ComplaintFilterProp
         />
         <FormField
           control={form.control}
-          name="fromDate"
+          name="waitingOn"
+          render={({ field }) => (
+            <Select label="Chờ phản hồi" placeholder="Tất cả" value={field.value ?? ""} onChange={field.onChange} options={COMPLAINT_WAITING_ON_OPTIONS} />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reporterType"
+          render={({ field }) => (
+            <Select label="Người gửi" placeholder="Tất cả" value={field.value ?? ""} onChange={field.onChange} options={COMPLAINT_REPORTER_OPTIONS} />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="subMerchantId"
+          render={({ field }) => <SubMerchantFilterField value={field.value ?? ""} onChange={field.onChange} />}
+        />
+        <FormField
+          control={form.control}
+          name="createdFrom"
           render={({ field }) => (
             <DatePicker
               mode="range"
               label="Ngày tạo"
               placeholder="Từ ngày, đến ngày"
-              value={field.value ? { from: field.value, to: form.getValues("toDate") ?? undefined } : undefined}
+              value={field.value ? { from: field.value, to: form.getValues("createdTo") ?? undefined } : undefined}
               onChange={(value) => {
                 const range = value && !(value instanceof Date) ? (value as DateRange) : undefined;
                 field.onChange(range?.from ?? null);
-                form.setValue("toDate", range?.to ?? null, { shouldValidate: true });
+                form.setValue("createdTo", range?.to ?? null, { shouldValidate: true });
               }}
-              error={form.formState.errors.toDate?.message}
+              error={form.formState.errors.createdTo?.message}
             />
           )}
         />

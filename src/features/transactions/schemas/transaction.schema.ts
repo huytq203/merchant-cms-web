@@ -1,35 +1,39 @@
 import { z } from "zod";
+import { bankCodeSchema, orderStatusSchema, paymentMethodSchema } from "@/features/orders/schemas/order.schema";
 
-export const transactionStatusSchema = z.enum(["success", "pending", "failed", "refunded", "review", "cancelled", "created", "expired"]);
-export const transactionTypeSchema = z.enum(["payment", "refund", "top_up", "withdrawal", "payout", "settlement"]);
-export const cardTypeSchema = z.enum(["visa", "mastercard", "napas", "amex"]);
-export const paymentMethodSchema = z.enum(["credit_card", "debit_card", "qr"]);
+/**
+ * A transaction is an order the merchant received money on (`GET /api/v1/merchant/transactions` reads
+ * `merchant_orders`), so status, payment method and bank are the order enums of the BE.
+ */
+export const transactionStatusSchema = orderStatusSchema;
+export { paymentMethodSchema };
 
+/** `MerchantTransactionResponse` of flex.merchant. Times are Vietnam local time without an offset. */
 export const transactionSchema = z.object({
-  id: z.string(),
-  code: z.string(),
-  invoiceCode: z.string().nullable(),
-  type: transactionTypeSchema,
-  cardType: cardTypeSchema,
-  cardNumber: z.string(),
-  cardHolderName: z.string(),
-  amount: z.number(),
-  currency: z.string(),
-  fee: z.number(),
-  netAmount: z.number(),
-  subMerchantId: z.string(),
-  subMerchantName: z.string(),
-  customerId: z.string(),
-  customerName: z.string(),
-  customerPhone: z.string(),
-  createdAt: z.string(),
+  id: z.uuid(),
+  transactionCode: z.string().nullish(),
+  orderCode: z.string(),
+  merchantId: z.uuid(),
+  merchantCode: z.string().nullish(),
+  merchantName: z.string().nullish(),
+  subMerchantId: z.uuid().nullish(),
+  subMerchantCode: z.string().nullish(),
+  subMerchantName: z.string().nullish(),
+  terminalId: z.uuid().nullish(),
+  terminalCode: z.string().nullish(),
+  terminalName: z.string().nullish(),
+  /** Orders stored before the column existed come back as `QR`. */
+  paymentMethod: z.string(),
+  bankCode: bankCodeSchema.nullish(),
+  amount: z.number().int(),
+  feeAmount: z.number().int().nullish(),
+  netAmount: z.number().int().nullish(),
+  payableAmount: z.number().int().nullish(),
+  feeBearer: z.string().nullish(),
+  currency: z.string().nullish(),
   status: transactionStatusSchema,
-  description: z.string(),
-  referenceCode: z.string(),
-  paymentMethod: paymentMethodSchema,
-  bankCode: z.string(),
-  responseCode: z.string(),
-  responseMessage: z.string(),
+  createdAt: z.string().nullish(),
+  updatedAt: z.string().nullish(),
 });
 
 export const transactionListResultSchema = z.object({
@@ -37,39 +41,33 @@ export const transactionListResultSchema = z.object({
   total: z.number().int().min(0),
 });
 
-const isoDateSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), "Thời gian không hợp lệ");
-
-/** Query of the list route and of the page URL: everything that changes the response. */
+/**
+ * Query of the list route and of the page URL. Dates are calendar days (`yyyy-MM-dd`): the BE filters by
+ * day and includes the whole last day. There is no customer phone filter: no payer phone is stored.
+ */
 export const transactionListQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(10),
     keyword: z.string().trim().max(100).optional(),
-    customerContact: z.string().trim().max(100).optional(),
     status: transactionStatusSchema.optional(),
-    type: transactionTypeSchema.optional(),
     paymentMethod: paymentMethodSchema.optional(),
-    subMerchantId: z.string().trim().max(100).optional(),
-    bankCode: z.string().trim().max(20).optional(),
-    createdFromDate: isoDateSchema.optional(),
-    createdToDate: isoDateSchema.optional(),
+    subMerchantId: z.uuid().optional(),
+    createdFrom: z.iso.date().optional(),
+    createdTo: z.iso.date().optional(),
   })
-  .refine(
-    ({ createdFromDate, createdToDate }) =>
-      !createdFromDate || !createdToDate || Date.parse(createdFromDate) <= Date.parse(createdToDate),
-    { message: "Ngày bắt đầu phải trước ngày kết thúc", path: ["createdToDate"] },
-  );
+  .refine(({ createdFrom, createdTo }) => !createdFrom || !createdTo || createdFrom <= createdTo, {
+    message: "Ngày bắt đầu phải trước ngày kết thúc",
+    path: ["createdTo"],
+  });
 
 /** Filter form values; dates stay `Date` until they are written to the URL. */
 export const transactionFilterSchema = z
   .object({
     keyword: z.string().max(100).optional(),
-    customerContact: z.string().max(100).optional(),
     status: z.string().optional(),
-    type: z.string().optional(),
     paymentMethod: z.string().optional(),
     subMerchantId: z.string().optional(),
-    bankCode: z.string().optional(),
     createdFrom: z.date().nullable().optional(),
     createdTo: z.date().nullable().optional(),
   })

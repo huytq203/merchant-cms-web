@@ -5,7 +5,8 @@ import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import { formatAmount } from "@/lib/utils/helper";
-import { EMPTY_VALUE } from "../constants/Withdrawal.constants";
+import { StatusBadge } from "@/components/page/StatusBadge";
+import { EMPTY_VALUE, REQUEST_TYPE_LABELS } from "../constants/Withdrawal.constants";
 import { WithdrawalStatusBadge } from "../components/WithdrawalStatusBadge";
 import type { Withdrawal } from "../types/types";
 import { withdrawalTitle, withdrawalTotalDebit } from "../utils/withdrawal-mapper";
@@ -35,7 +36,13 @@ export function getWithdrawalColumns(actions: WithdrawalColumnActions, page: num
       id: "transactionCode",
       header: "Mã giao dịch",
       cell: ({ row }) => (
-        <span className="font-mono font-semibold">{row.original.transactionCode ?? "Chờ cấp mã"}</span>
+        <div className="space-y-1">
+          <span className="font-mono font-semibold">{row.original.transactionCode ?? "Chờ cấp mã"}</span>
+          {/* Requests the system made on the Sub's cycle are told apart from the ones a user created. */}
+          {row.original.requestType === "AUTO_SWEEP" ? (
+            <div><StatusBadge label={REQUEST_TYPE_LABELS.AUTO_SWEEP} tone="info" /></div>
+          ) : null}
+        </div>
       ),
     },
     {

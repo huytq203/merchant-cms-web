@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isMasterAccount, isWithdrawableAccount, toBankOption } from "@/features/withdrawals/utils/withdrawal-mapper";
+import { isSubMerchantAccount, isWithdrawableAccount, toBankOption } from "@/features/withdrawals/utils/withdrawal-mapper";
 import { listBankAccounts } from "@/server/modules/bank-accounts/bank-account.service";
 import {
   beErrorResponse,
@@ -11,7 +11,7 @@ import {
 
 const querySchema = z.object({ subMerchantId: z.uuid().optional() });
 
-/** Master level bank accounts a withdrawal may pay out to (BE refuses lower levels). The number is already masked by the BE and is passed through as is. */
+/** Sub-merchant bank accounts a withdrawal may pay out to (BE refuses a Master account). The number is already masked by the BE and is passed through as is. */
 export async function GET(request: Request) {
   const access = await requireWithdrawalAccess("CREATE_WITHDRAWAL");
   if (!access.ok) return access.response;
@@ -32,9 +32,5 @@ export async function GET(request: Request) {
   const withdrawable = result.data.rows.filter(
     (account) => account.merchantId === merchantId && isWithdrawableAccount(account),
   );
-  const masterAccounts = withdrawable.filter(isMasterAccount);
-  return NextResponse.json({
-    options: masterAccounts.map(toBankOption),
-    hasHiddenSubMerchantAccounts: masterAccounts.length < withdrawable.length,
-  });
+  return NextResponse.json({ options: withdrawable.filter(isSubMerchantAccount).map(toBankOption) });
 }

@@ -7,6 +7,7 @@ import { OrderCharts } from "./OrderCharts";
 import { OrderStatCards } from "./OrderStatCards";
 import { RecentOrders } from "./RecentOrders";
 import { RecentWithdrawals } from "./RecentWithdrawals";
+import { RevenueBySubCard } from "./RevenueBySubCard";
 import { TerminalStatCard } from "./TerminalStatCard";
 
 /** Every region loads on its own: a slow or failed one never holds back the rest. */
@@ -37,6 +38,8 @@ export function DashboardView({ permissions }: { permissions: readonly MerchantP
           <OrderCharts />
         </Suspense>
       )}
+      {/* Client region: it loads after the page, with its own skeleton, error and empty states. */}
+      {regions.revenue && <RevenueBySubCard />}
       {(regions.orders || regions.withdrawals) && (
         <div className={`grid gap-4 ${lists}`}>
           {regions.orders && (

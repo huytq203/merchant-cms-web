@@ -21,10 +21,9 @@ export interface WithdrawalListResult {
   total: number;
 }
 
-/** Withdrawable accounts plus whether sub-merchant level accounts were left out because they cannot pay out yet. */
+/** Sub-merchant accounts a withdrawal may pay out to. */
 export interface WithdrawalBankOptions {
   options: WithdrawalBankOption[];
-  hasHiddenSubMerchantAccounts: boolean;
 }
 
 /** A linked bank account the merchant may withdraw to; the number is already masked. */
@@ -34,5 +33,6 @@ export interface WithdrawalBankOption {
   accountNumberMasked: string;
   accountName: string;
   isDefault: boolean;
-  subMerchantId: string | null;
+  /** The Sub the account belongs to; its balance is what the withdrawal pays. */
+  subMerchantId: string;
 }

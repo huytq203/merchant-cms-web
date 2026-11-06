@@ -23,7 +23,8 @@ export const WITHDRAWAL_STATUS_OPTIONS: StatusOption[] = [
 
 export const REQUEST_TYPE_LABELS = {
   MANUAL: "Rút thường",
-  AUTO_SWEEP: "Tự động",
+  // AUTO_SWEEP: made by the 01:00 job for a Sub in automatic settlement mode (chốt 03/11/2026).
+  AUTO_SWEEP: "Rút tự động",
 } as const;
 
 export const EMPTY_VALUE = "—";

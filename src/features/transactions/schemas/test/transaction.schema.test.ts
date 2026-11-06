@@ -1,13 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { transactionSchema, transactionStatusSchema } from "../transaction.schema";
-import { TRANSACTION_FIXTURES } from "@/server/modules/transactions/transaction.fixtures";
+import { transactionSchema } from "../transaction.schema";
+import { BE_TRANSACTION } from "../../test/transaction.fixtures";
 
-describe("transaction fixture contract", () => {
-  it("supports every new status and a transaction type with invoice code", () => {
-    for (const status of ["review", "cancelled", "created", "expired"]) {
-      expect(transactionStatusSchema.parse(status)).toBe(status);
-    }
-    expect(transactionSchema.parse(TRANSACTION_FIXTURES[0])).toHaveProperty("type");
-    expect(transactionSchema.parse(TRANSACTION_FIXTURES[0])).toHaveProperty("invoiceCode");
+describe("transaction BE contract", () => {
+  it("parses a MerchantTransactionResponse row of flex.merchant", () => {
+    expect(transactionSchema.parse(BE_TRANSACTION)).toMatchObject({
+      transactionCode: "FM26NEFQ9",
+      orderCode: "DH261102-2208",
+      status: "SUCCESS",
+    });
+  });
+
+  it("accepts the nulls the BE sends for an order without Sub, Terminal or fee", () => {
+    const bare = {
+      ...BE_TRANSACTION,
+      transactionCode: null,
+      subMerchantId: null,
+      subMerchantCode: null,
+      subMerchantName: null,
+      feeAmount: null,
+      payableAmount: null,
+      feeBearer: null,
+    };
+    expect(transactionSchema.parse(bare).subMerchantId).toBeNull();
   });
 });

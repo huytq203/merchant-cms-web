@@ -1,29 +1,36 @@
 import { formatAmount } from "@/lib/utils/helper";
 import type { WithdrawalBalance } from "../schemas/withdrawal.schema";
 
-type Limits = Pick<WithdrawalBalance, "availableBalance" | "dailyLimitRemaining" | "minimumAmount" | "maximumAmount">;
+type Limits = Pick<
+  WithdrawalBalance,
+  "readyAmount" | "dailyLimitRemaining" | "dailyCountRemaining" | "minimumAmount" | "maximumAmount"
+> & Partial<Pick<WithdrawalBalance, "automaticSettlement">>;
 
-/** The most one request can take now. The fee is added by BE on top, so the exact ceiling is a little lower. */
-export function maxWithdrawable(balance: Limits): number {
-  const ceilings = [balance.availableBalance, balance.dailyLimitRemaining, balance.maximumAmount]
-    .filter((value): value is number => value !== null);
-  return Math.min(...ceilings);
-}
+/** Why a Sub in automatic settlement mode has no manual request; BE would refuse it with 5782. */
+export const AUTOMATIC_SETTLEMENT_BLOCKER =
+  "Điểm bán đang rút tự động theo chu kỳ: hệ thống tự tạo lệnh rút, không cần tạo lệnh rút thủ công.";
 
-/** The first rule the amount breaks, in the words the merchant reads; BE still has the last word. */
-export function amountProblem(amount: number, balance: Limits | undefined): string | null {
-  if (!balance || !Number.isFinite(amount) || amount <= 0) return null;
-  if (balance.minimumAmount !== null && amount < balance.minimumAmount) {
-    return `Số tiền rút tối thiểu là ${formatAmount(balance.minimumAmount)}`;
+/**
+ * The first reason the amount BE will carry (`readyAmount`) cannot be sent, in the words the merchant reads.
+ * The amount is not editable, so this blocks the request instead of marking a field; BE still has the last word.
+ */
+export function withdrawalBlocker(balance: Limits | undefined): string | null {
+  if (!balance) return null;
+  // Checked first: no amount rule matters when manual requests are not accepted at all.
+  if (balance.automaticSettlement) return AUTOMATIC_SETTLEMENT_BLOCKER;
+  const { readyAmount } = balance;
+  if (readyAmount <= 0) return "Chưa có khoản nào sẵn sàng để rút";
+  if (balance.dailyCountRemaining !== null && balance.dailyCountRemaining <= 0) {
+    return "Đã hết số lần rút trong ngày";
   }
-  if (balance.maximumAmount !== null && amount > balance.maximumAmount) {
-    return `Số tiền rút tối đa mỗi lần là ${formatAmount(balance.maximumAmount)}`;
+  if (balance.minimumAmount !== null && readyAmount < balance.minimumAmount) {
+    return `Số tiền sẵn sàng rút thấp hơn mức tối thiểu ${formatAmount(balance.minimumAmount)}`;
   }
-  if (amount > balance.availableBalance) {
-    return `Số tiền vượt số dư khả dụng ${formatAmount(balance.availableBalance)}`;
+  if (balance.maximumAmount !== null && readyAmount > balance.maximumAmount) {
+    return `Số tiền sẵn sàng rút vượt mức tối đa mỗi lần ${formatAmount(balance.maximumAmount)}`;
   }
-  if (balance.dailyLimitRemaining !== null && amount > balance.dailyLimitRemaining) {
-    return `Số tiền vượt hạn mức rút còn lại hôm nay ${formatAmount(balance.dailyLimitRemaining)}`;
+  if (balance.dailyLimitRemaining !== null && readyAmount > balance.dailyLimitRemaining) {
+    return `Số tiền sẵn sàng rút vượt hạn mức rút còn lại hôm nay ${formatAmount(balance.dailyLimitRemaining)}`;
   }
   return null;
 }
