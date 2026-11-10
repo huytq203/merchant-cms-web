@@ -10,7 +10,6 @@ import { HoldRangeControl } from "@/features/hold-calendar/components/HoldRangeC
 import { DEFAULT_HOLD_RANGE } from "@/features/hold-calendar/constants/hold-labels";
 import { holdRangeSchema } from "@/features/hold-calendar/schemas";
 import { SubMerchantPicker } from "@/features/sub-merchants/components/SubMerchantPicker";
-import { pickSubMerchantId } from "@/features/sub-merchants/utils/sub-merchant-choice";
 import { getServerSession } from "@/lib/auth/session";
 import { domainErrorMessage } from "@/lib/be/errors";
 import { vnToday } from "@/lib/utils/vn-time";
@@ -19,7 +18,10 @@ import { listSubMerchantChoices } from "@/server/modules/sub-merchants/sub-merch
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Server-only: a read-only forecast that changes only with the Sub or the range, both kept in the URL. */
+/**
+ * A read-only forecast that changes only with the Sub or the range, both kept in the URL. Mục 14: mặc định mọi Sub trong
+ * phạm vi phiên (BE `/hold-calendar`), kỳ 7 ngày; danh sách từng khoản tải ở client theo toggle.
+ */
 export default async function HoldCalendarPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
@@ -29,8 +31,10 @@ export default async function HoldCalendarPage({ searchParams }: Props) {
   const range = holdRangeSchema.catch(DEFAULT_HOLD_RANGE).parse(params.range);
   const title = getRouteTitle("/hold-calendar");
   if (!choices.success) return <Shell title={title}><ServerResultState state="error" message={domainErrorMessage(choices.error)} /></Shell>;
-  const subMerchantId = pickSubMerchantId(choices.data, typeof params.subMerchantId === "string" ? params.subMerchantId : undefined);
-  if (!subMerchantId) return <Shell title={title}><ServerResultState state="empty" message="Chưa có Sub-merchant nào để xem lịch tạm giữ." /></Shell>;
+  if (choices.data.length === 0) return <Shell title={title}><ServerResultState state="empty" message="Chưa có Sub-merchant nào để xem lịch tạm giữ." /></Shell>;
+  const requested = typeof params.subMerchantId === "string" ? params.subMerchantId : undefined;
+  // Sub ngoài danh sách được chọn thì bỏ, quay về Tất cả.
+  const subMerchantId = requested && choices.data.some((choice) => choice.id === requested) ? requested : undefined;
 
   const calendar = await getHoldCalendar(subMerchantId, range);
   return (
@@ -38,13 +42,13 @@ export default async function HoldCalendarPage({ searchParams }: Props) {
       title={title}
       controls={(
         <>
-          <div className="w-72 max-w-full"><SubMerchantPicker choices={choices.data} value={subMerchantId} /></div>
+          <div className="w-72 max-w-full"><SubMerchantPicker choices={choices.data} value={subMerchantId ?? ""} allLabel="Tất cả sub-merchant" /></div>
           <HoldRangeControl value={range} />
         </>
       )}
     >
       {calendar.success
-        ? <HoldCalendarView calendar={calendar.data} today={vnToday()} />
+        ? <HoldCalendarView calendar={calendar.data} today={vnToday()} subMerchantId={subMerchantId} />
         : <ServerResultState state="error" message={domainErrorMessage(calendar.error)} />}
     </Shell>
   );

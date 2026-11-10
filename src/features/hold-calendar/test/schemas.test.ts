@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { holdCalendarSchema, holdRangeSchema } from "../schemas";
-import { calendarFixture } from "./fixtures";
+import { holdCalendarSchema, holdItemPageSchema, holdItemSchema, holdRangeSchema } from "../schemas";
+import { calendarFixture, holdItemFixture, releasedItemFixture } from "./fixtures";
 
 describe("hold calendar schema", () => {
   it("parses the BE calendar", () => {
@@ -14,5 +14,21 @@ describe("hold calendar schema", () => {
 
   it("only knows the four ranges the BE accepts", () => {
     expect(holdRangeSchema.options).toEqual(["DAYS_7", "DAYS_30", "DAYS_90", "ALL"]);
+  });
+
+  it("reads the past released and cancelled totals, and a BE without them", () => {
+    expect(holdCalendarSchema.parse(calendarFixture).releasedInPast).toEqual({ count: 1, amount: 10_000 });
+    const old: Record<string, unknown> = { ...calendarFixture };
+    for (const key of ["pastFrom", "releasedInPast", "cancelledByRefund"]) delete old[key];
+    const parsed = holdCalendarSchema.parse(old);
+    expect(parsed.releasedInPast).toBeNull();
+    expect(parsed.cancelledByRefund).toBeNull();
+  });
+
+  it("parses a hold item and a page of them", () => {
+    expect(holdItemSchema.parse(holdItemFixture).orderCode).toBe("HOLDTEST-1110161321");
+    expect(holdItemSchema.parse(releasedItemFixture).releasedAt).toBe("2026-10-11T17:00:05Z");
+    expect(holdItemSchema.safeParse({ ...holdItemFixture, state: "LOST" }).success).toBe(false);
+    expect(holdItemPageSchema.parse({ rows: [holdItemFixture], total: 1 }).rows).toHaveLength(1);
   });
 });

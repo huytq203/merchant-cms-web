@@ -23,4 +23,45 @@ export const calendarFixture = {
     "Đây là ước tính, không phải cam kết chi trả.",
   ],
   asOf: "2026-10-13T03:00:00Z",
+  // Mục 14 (BE MR A): phần đã qua trong cửa sổ nhìn lùi cùng độ dài kỳ.
+  pastFrom: "2026-09-14",
+  releasedInPast: { count: 1, amount: 10_000 },
+  cancelledByRefund: { count: 0, amount: 0 },
+};
+
+/** Một khoản của `GET /hold-calendar/{sub}/items` (record `HoldItem` của BE). */
+export const holdItemFixture = {
+  lineId: "22222222-2222-4222-8222-222222222222",
+  itemId: "33333333-3333-4333-8333-333333333333",
+  orderId: "44444444-4444-4444-8444-444444444444",
+  orderCode: "HOLDTEST-1110161321",
+  transactionCode: "FM26ABCDE",
+  subMerchantId: subId,
+  subMerchantCode: "MC000001-S001",
+  subMerchantName: "Halo tech",
+  terminalId: "55555555-5555-4555-8555-555555555555",
+  terminalCode: "T0001",
+  terminalType: "QR",
+  terminalName: "Quầy 1",
+  paidAt: "2026-10-10T09:13:00Z",
+  heldAmount: 5_000,
+  frozenAmount: 0,
+  holdReleaseAt: "2026-10-15T17:00:00Z",
+  state: "HOLDING",
+  releasedAt: null,
+  cancelledAt: null,
+  eventAt: "2026-10-15T17:00:00Z",
+  earlyReleaseId: null,
+};
+
+export const releasedItemFixture = {
+  ...holdItemFixture,
+  lineId: "66666666-6666-4666-8666-666666666666",
+  orderCode: "DH261106-105016",
+  transactionCode: null,
+  heldAmount: 10_000,
+  holdReleaseAt: "2026-10-11T17:00:00Z",
+  state: "RELEASED",
+  releasedAt: "2026-10-11T17:00:05Z",
+  eventAt: "2026-10-11T17:00:05Z",
 };

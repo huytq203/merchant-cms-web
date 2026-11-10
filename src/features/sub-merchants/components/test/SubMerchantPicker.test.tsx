@@ -35,4 +35,12 @@ describe("SubMerchantPicker", () => {
     await userEvent.click(await screen.findByRole("option", { name: "SUB001 · Cửa hàng A" }));
     expect(push).not.toHaveBeenCalled();
   });
+
+  // Mục 14: màn có hỗ trợ xem mọi Sub truyền allLabel; chọn "Tất cả" bỏ subMerchantId khỏi URL.
+  it("offers an all-Subs choice when asked and drops the Sub from the URL", async () => {
+    render(<SubMerchantPicker choices={choices} value="a" allLabel="Tất cả sub-merchant" />);
+    await userEvent.click(screen.getByRole("combobox", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "Tất cả sub-merchant" }));
+    expect(push).toHaveBeenCalledWith("/sub-balances?range=DAYS_7");
+  });
 });
