@@ -20,9 +20,11 @@ const filterKey = (filter: WithdrawalListFilter) =>
 type Props = {
   filter: WithdrawalListFilter;
   abilities: { canCreate: boolean };
+  /** Sub người dùng được chọn khi tạo yêu cầu rút; server dựng theo phạm vi gán của phiên. */
+  subChoices?: readonly { id: string; label: string }[];
 };
 
-export function WithdrawalsContainer({ filter, abilities }: Props) {
+export function WithdrawalsContainer({ filter, abilities, subChoices = [] }: Props) {
   const dialogs = useWithdrawalDialogs();
   const navigation = useWithdrawalListNavigation(filter);
   const list = useQuery(withdrawalQueries.list(filter));
@@ -44,7 +46,7 @@ export function WithdrawalsContainer({ filter, abilities }: Props) {
         onPageChange={navigation.changePage}
         onView={dialogs.openDetail}
       />
-      {dialogs.activeDialog === "create" && <WithdrawalCreateModal onClose={dialogs.close} onViewDetail={dialogs.openDetail} />}
+      {dialogs.activeDialog === "create" && <WithdrawalCreateModal onClose={dialogs.close} onViewDetail={dialogs.openDetail} subChoices={subChoices} />}
       <WithdrawalDetailModal
         open={dialogs.activeDialog === "detail"}
         onOpenChange={(open) => !open && dialogs.close()}

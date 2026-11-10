@@ -6,9 +6,24 @@ import { describeWithdrawalError, readFieldErrors, withdrawalFailureKind } from 
 import { withdrawalBlocker } from "../utils/withdrawal-limits";
 import { withdrawalQueries } from "../withdrawal-queries";
 import { useCreateWithdrawal, useWithdrawalOtpChallenge } from "./use-withdrawal-mutations";
-import type { Withdrawal, WithdrawalBalance } from "../types/types";
+import type { Withdrawal, WithdrawalBalance, WithdrawalBankOption } from "../types/types";
+
+/** Một Sub mà người dùng được chọn để rút (đã lọc theo phạm vi gán của phiên). */
+export type WithdrawalSubChoice = { id: string; label: string };
+
+/**
+ * Tài khoản nhận hiệu lực của Sub: tài khoản người dùng đã chọn nếu còn trong danh sách; Sub chỉ có đúng một
+ * tài khoản thì lấy luôn; nhiều tài khoản thì lấy tài khoản mặc định. Không có thì để người dùng tự chọn.
+ */
+function resolveBank(options: readonly WithdrawalBankOption[], chosenId: string): WithdrawalBankOption | undefined {
+  return (
+    options.find((option) => option.id === chosenId) ??
+    (options.length === 1 ? options[0] : options.find((option) => option.isDefault))
+  );
+}
 
 export type WithdrawalFormFields = {
+  subMerchantId: string;
   bankAccountId: string;
   reason: string;
 };
@@ -19,7 +34,7 @@ export type WithdrawalCreateStep = "form" | "confirm" | "otp" | "sent";
 /** The figures the merchant reviewed. The code and the request are tied to this amount, so a later refetch cannot change them. */
 export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setoff" | "fee" | "netReceived" | "zeroNet">;
 
-const BLANK: WithdrawalFormFields = { bankAccountId: "", reason: "" };
+const BLANK: WithdrawalFormFields = { subMerchantId: "", bankAccountId: "", reason: "" };
 
 /** BE takes the amount from the Sub's ready rows; the user never types it. */
 function parseFields(values: WithdrawalFormFields, amount: number) {
@@ -31,9 +46,13 @@ function parseFields(values: WithdrawalFormFields, amount: number) {
 }
 
 /** Account, review, email code, result. Everything entered survives a rejected send. */
-export function useWithdrawalCreateFlow() {
+export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice[] = []) {
   const [step, setStep] = useState<WithdrawalCreateStep>("form");
-  const [values, setValues] = useState<WithdrawalFormFields>(BLANK);
+  // Người dùng chỉ được gán đúng một Sub thì chọn sẵn, không bắt chọn lại.
+  const [rawValues, setValues] = useState<WithdrawalFormFields>({
+    ...BLANK,
+    subMerchantId: subChoices.length === 1 ? (subChoices[0]?.id ?? "") : "",
+  });
   const [errors, setErrors] = useState<WithdrawalFormErrors>({});
   const [statement, setStatement] = useState<WithdrawalStatement | null>(null);
   const [zeroNetAsked, setZeroNetAsked] = useState(false);
@@ -41,16 +60,19 @@ export function useWithdrawalCreateFlow() {
   const [challenge, setChallenge] = useState<SensitiveOtpChallenge | null>(null);
   const [otpFailure, setOtpFailure] = useState<string | null>(null);
   const [created, setCreated] = useState<Withdrawal | null>(null);
-  const bankOptions = useQuery(withdrawalQueries.bankOptions());
-  const selectedBank = bankOptions.data?.options.find((option) => option.id === values.bankAccountId);
-  const balance = useQuery(withdrawalQueries.balance(selectedBank?.subMerchantId ?? ""));
+  const bankOptions = useQuery(withdrawalQueries.bankOptions(rawValues.subMerchantId));
+  const selectedBank = resolveBank(bankOptions.data?.options ?? [], rawValues.bankAccountId);
+  // Các bước sau đọc tài khoản hiệu lực (kể cả tài khoản tự chọn), không đọc lựa chọn thô.
+  const values: WithdrawalFormFields = { ...rawValues, bankAccountId: selectedBank?.id ?? "" };
+  const balance = useQuery(withdrawalQueries.balance(values.subMerchantId));
   const requestOtp = useWithdrawalOtpChallenge();
   const creation = useCreateWithdrawal();
   const blocker = withdrawalBlocker(balance.data);
   const zeroNetRequired = Boolean(statement?.zeroNet) || zeroNetAsked;
 
   const change = <K extends keyof WithdrawalFormFields>(field: K, value: WithdrawalFormFields[K]) => {
-    setValues((current) => ({ ...current, [field]: value }));
+    // Đổi Sub thì bỏ tài khoản đã chọn; tài khoản và số dư của Sub cũ không còn hiển thị (query theo Sub mới).
+    setValues((current) => ({ ...current, [field]: value, ...(field === "subMerchantId" ? { bankAccountId: "" } : {}) }));
     setErrors((current) => ({ ...current, [field]: undefined }));
     setOtpFailure(null);
     creation.reset();
@@ -59,6 +81,7 @@ export function useWithdrawalCreateFlow() {
   const review = (event: FormEvent) => {
     event.preventDefault();
     const parsed = parseFields(values, balance.data?.readyAmount ?? 0);
+    if (!values.subMerchantId) return setErrors({ subMerchantId: "Chọn Sub-merchant" });
     if (!values.bankAccountId) return setErrors({ bankAccountId: "Chọn tài khoản ngân hàng nhận tiền" });
     if (!balance.data || blocker || !parsed.success) return;
     const { readyAmount, setoff, fee, netReceived, zeroNet } = balance.data;
@@ -130,6 +153,7 @@ export function useWithdrawalCreateFlow() {
   return {
     step,
     values,
+    subChoices,
     errors: { ...readFieldErrors(creation.error), ...errors },
     bankOptions,
     balance,

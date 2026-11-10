@@ -66,13 +66,13 @@ export const withdrawalQueries = {
     queryKey: ["withdrawals", "detail", id] as const,
     queryFn: () => apiClient.get<Withdrawal>(`${WITHDRAWALS_ENDPOINT}/${encodeURIComponent(id)}`),
   }),
-  bankOptions: (subMerchantId = "") => queryOptions({
+  /** Tài khoản nhận của đúng một Sub: chưa chọn Sub thì không gọi, để không trộn tài khoản của nhiều Sub. */
+  bankOptions: (subMerchantId: string) => queryOptions({
     queryKey: ["withdrawals", "bank-options", subMerchantId] as const,
-    queryFn: () => apiClient.get<WithdrawalBankOptions>(`${WITHDRAWALS_ENDPOINT}/bank-options`, {
-      query: { subMerchantId: subMerchantId || undefined },
-    }),
+    queryFn: () => apiClient.get<WithdrawalBankOptions>(`${WITHDRAWALS_ENDPOINT}/bank-options`, { query: { subMerchantId } }),
+    enabled: subMerchantId !== "",
   }),
-  /** Per Sub: nothing is asked until an account (and so a Sub) is chosen. */
+  /** Per Sub: nothing is asked until a Sub is chosen. */
   balance: (subMerchantId: string) => queryOptions({
     queryKey: ["withdrawals", "balance", subMerchantId] as const,
     queryFn: () => apiClient.get<WithdrawalBalance>(`${WITHDRAWALS_ENDPOINT}/balance`, { query: { subMerchantId } }),

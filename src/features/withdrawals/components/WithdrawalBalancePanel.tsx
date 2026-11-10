@@ -8,7 +8,7 @@ import { formatAmount } from "@/lib/utils/helper";
 import { describeWithdrawalError } from "../utils/withdrawal-errors";
 import type { WithdrawalBalance } from "../types/types";
 
-type Props = { balance: UseQueryResult<WithdrawalBalance>; hasAccount: boolean; blocker: string | null };
+type Props = { balance: UseQueryResult<WithdrawalBalance>; hasSub: boolean; blocker: string | null };
 
 function Row({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -28,9 +28,9 @@ function Frame({ children, busy = false }: { children: ReactNode; busy?: boolean
 }
 
 /** What one Sub can withdraw now. An unreadable balance is said, never shown as zero. */
-export function WithdrawalBalancePanel({ balance, hasAccount, blocker }: Props) {
-  if (!hasAccount) {
-    return <Notice tone="info">Chọn tài khoản nhận để xem số tiền sẵn sàng rút của Sub-merchant.</Notice>;
+export function WithdrawalBalancePanel({ balance, hasSub, blocker }: Props) {
+  if (!hasSub) {
+    return <Notice tone="info">Chọn Sub-merchant để xem số tiền sẵn sàng rút.</Notice>;
   }
   if (balance.isError) {
     return (

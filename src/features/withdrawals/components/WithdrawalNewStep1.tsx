@@ -10,29 +10,62 @@ import { WithdrawalBalancePanel } from "./WithdrawalBalancePanel";
 
 type Props = { flow: WithdrawalCreateFlow; onCancel: () => void };
 
-/** Step 1: which Sub account to pay out to. The amount is the Sub's whole ready balance, so it is shown, not typed. */
+/**
+ * Bước 1: chọn Sub-merchant trước, rồi tài khoản nhận của đúng Sub đó. Số tiền là toàn bộ khoản sẵn sàng rút
+ * của Sub nên chỉ hiển thị, không nhập. Một tài khoản thì tự chọn và chỉ đọc; nhiều tài khoản thì chọn sẵn mặc định.
+ */
 export function WithdrawalNewStep1({ flow, onCancel }: Props) {
-  const { values, errors, change, bankOptions, balance, blocker, selectedBank } = flow;
+  const { values, errors, change, bankOptions, balance, blocker, selectedBank, subChoices } = flow;
+  const subSelectOptions = subChoices.map((choice) => ({ value: choice.id, label: choice.label }));
+  const accountCount = bankOptions.data?.options.length ?? 0;
   const bankSelectOptions = (bankOptions.data?.options ?? []).map((option) => ({
     value: option.id,
     label: `${bankDisplayName(option.bankCode)} ${option.accountNumberMasked} · ${option.accountName}${option.isDefault ? " (mặc định)" : ""}`,
   }));
   const bankLoadError = bankOptions.isError ? bankOptions.error.message : undefined;
-  const canContinue = Boolean(balance.data) && !blocker;
+  const canContinue = Boolean(selectedBank) && Boolean(balance.data) && !blocker;
 
   return (
     <form onSubmit={flow.review} className="mt-2 space-y-4">
       <Select
-        label="Tài khoản nhận"
-        value={values.bankAccountId}
-        onChange={(value) => change("bankAccountId", value)}
-        options={bankSelectOptions}
-        placeholder={bankOptions.isPending ? "Đang tải tài khoản..." : "Chọn tài khoản của Sub-merchant"}
-        emptyText="Chưa có tài khoản ngân hàng Sub-merchant đã liên kết"
-        error={errors.bankAccountId ?? bankLoadError}
+        label="Sub-merchant"
+        value={values.subMerchantId}
+        onChange={(value) => change("subMerchantId", value)}
+        options={subSelectOptions}
+        placeholder="Chọn Sub-merchant"
+        emptyText="Chưa có Sub-merchant để rút tiền"
+        clearable={false}
+        error={errors.subMerchantId}
         description="Cổng merchant chỉ rút tiền theo Sub-merchant."
       />
-      <WithdrawalBalancePanel balance={balance} hasAccount={Boolean(selectedBank)} blocker={blocker} />
+      {values.subMerchantId && bankOptions.isPending ? (
+        <p className="text-sm text-muted-foreground">Đang tải tài khoản nhận...</p>
+      ) : null}
+      {bankLoadError ? <Notice tone="danger">{bankLoadError}</Notice> : null}
+      {bankOptions.isSuccess && accountCount === 0 ? (
+        <Notice tone="warning">Sub-merchant chưa có tài khoản nhận tiền đã liên kết</Notice>
+      ) : null}
+      {accountCount === 1 && selectedBank ? (
+        <dl aria-label="Tài khoản nhận" className="rounded-xl border border-border bg-card p-4 text-sm">
+          <dt className="text-muted-foreground">Tài khoản nhận</dt>
+          <dd className="font-medium">
+            {bankDisplayName(selectedBank.bankCode)} {selectedBank.accountNumberMasked}
+          </dd>
+          <dd className="text-muted-foreground">{selectedBank.accountName}</dd>
+        </dl>
+      ) : null}
+      {accountCount > 1 ? (
+        <Select
+          label="Tài khoản nhận"
+          value={values.bankAccountId}
+          onChange={(value) => change("bankAccountId", value)}
+          options={bankSelectOptions}
+          placeholder="Chọn tài khoản của Sub-merchant"
+          clearable={false}
+          error={errors.bankAccountId}
+        />
+      ) : null}
+      <WithdrawalBalancePanel balance={balance} hasSub={Boolean(values.subMerchantId)} blocker={blocker} />
       <Textarea
         label="Ghi chú"
         placeholder="Ví dụ: Rút tiền cuối tháng"

@@ -6,6 +6,7 @@ import { WithdrawalsContainer } from "@/features/withdrawals/components/Withdraw
 import { parseWithdrawalSearchParams, withdrawalQueries } from "@/features/withdrawals/withdrawal-queries";
 import { getServerSession } from "@/lib/auth/session";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
+import { listSubMerchantChoices } from "@/server/modules/sub-merchants/sub-merchant-choices";
 import { listWithdrawals } from "@/server/modules/withdrawals/withdrawal.service";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -17,16 +18,23 @@ export default async function WithdrawalPage({ searchParams }: Props) {
     return <AccessDenied />;
   }
   const filter = parseWithdrawalSearchParams(await searchParams);
-  const state = await prefetchDehydrated(async (client) => {
-    await client.prefetchQuery({
-      ...withdrawalQueries.list(filter),
-      queryFn: async () => unwrapOrRedirect(await listWithdrawals(filter)),
-    });
-  });
+  const [state, choices] = await Promise.all([
+    prefetchDehydrated(async (client) => {
+      await client.prefetchQuery({
+        ...withdrawalQueries.list(filter),
+        queryFn: async () => unwrapOrRedirect(await listWithdrawals(filter)),
+      });
+    }),
+    listSubMerchantChoices(user),
+  ]);
+  // Phiên được gán một số Sub thì chỉ cho rút các Sub đó (danh sách trống = được xem mọi Sub của merchant).
+  const subChoices = choices.success
+    ? choices.data.filter((choice) => user.subMerchantIds.length === 0 || user.subMerchantIds.includes(choice.id))
+    : [];
   const abilities = { canCreate: hasPermission(user.permissions, "CREATE_WITHDRAWAL") };
   return (
     <HydrationBoundary state={state}>
-      <WithdrawalsContainer filter={filter} abilities={abilities} />
+      <WithdrawalsContainer filter={filter} abilities={abilities} subChoices={subChoices} />
     </HydrationBoundary>
   );
 }

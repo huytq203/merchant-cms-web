@@ -15,6 +15,11 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const base = "/api/v1/admin/withdrawals";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const subMerchantId = "11111111-1111-4111-8111-111111111111";
+const otherSubId = "55555555-5555-4555-8555-555555555555";
+const twoSubs = [
+  { id: subMerchantId, label: "SUB1 · Cửa hàng A" },
+  { id: otherSubId, label: "SUB2 · Cửa hàng B" },
+];
 const filter: WithdrawalListFilter = { page: 1, pageSize: 10 };
 const abilities = { canCreate: true };
 const bankOption: WithdrawalBankOption = {
@@ -52,11 +57,11 @@ const makeBalance = (overrides: Record<string, unknown> = {}) => ({
 const challenge = { otpSessionId: "session-1", maskedRecipient: "ow***@example.com", expiresInSeconds: 300, canResendAfterSeconds: 60 };
 const codeError = (code: string, message: string, status = 409) => HttpResponse.json({ message, code }, { status });
 
-function renderContainer(props: Partial<{ abilities: typeof abilities }> = {}) {
+function renderContainer(props: Partial<{ abilities: typeof abilities; subChoices: typeof twoSubs }> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <WithdrawalsContainer filter={filter} abilities={props.abilities ?? abilities} />
+      <WithdrawalsContainer filter={filter} abilities={props.abilities ?? abilities} subChoices={props.subChoices ?? twoSubs} />
     </QueryClientProvider>,
   );
 }
@@ -75,10 +80,20 @@ function balanceReturns(balance = makeBalance()) {
   return requests;
 }
 
+/** Ghi lại subMerchantId của mỗi lần gọi bank-options và trả các tài khoản đã cho. */
+function bankOptionsReturn(options: WithdrawalBankOption[] = [bankOption]) {
+  const requests: (string | null)[] = [];
+  mswServer.use(http.get(`${base}/bank-options`, ({ request }) => {
+    requests.push(new URL(request.url).searchParams.get("subMerchantId"));
+    return HttpResponse.json({ options });
+  }));
+  return requests;
+}
+
 beforeEach(() => {
   listReturns([pending]);
+  bankOptionsReturn();
   mswServer.use(
-    http.get(`${base}/bank-options`, () => HttpResponse.json({ options: [bankOption] })),
     http.post(`${base}/otp-challenge`, () => HttpResponse.json(challenge)),
     http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })),
   );
@@ -94,9 +109,14 @@ async function openCreateModal() {
   return screen.findByRole("dialog");
 }
 
+async function pickSub(dialog: HTMLElement, name: RegExp = /SUB1/) {
+  await userEvent.click(within(dialog).getByRole("combobox", { name: /Sub-merchant/ }));
+  await userEvent.click(await screen.findByRole("option", { name }));
+}
+
+/** Chỉ cần chọn Sub: tài khoản duy nhất của Sub được tự chọn. */
 async function pickAccount(dialog: HTMLElement) {
-  await userEvent.click(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ }));
-  await userEvent.click(await screen.findByRole("option", { name: /Vietcombank/ }));
+  await pickSub(dialog);
 }
 
 async function selectAccount(dialog: HTMLElement) {
@@ -193,11 +213,11 @@ describe("filters", () => {
 });
 
 describe("create withdrawal modal: account and balance", () => {
-  it("asks for no balance until an account is chosen, then asks for the balance of that Sub", async () => {
+  it("asks for no balance until a Sub is chosen, then asks for the balance of that Sub", async () => {
     const requests = balanceReturns();
     renderContainer();
     const dialog = await openCreateModal();
-    expect(await within(dialog).findByText(/Chọn tài khoản nhận để xem/)).toBeInTheDocument();
+    expect(await within(dialog).findByText("Chọn Sub-merchant để xem số tiền sẵn sàng rút.")).toBeInTheDocument();
     expect(requests).toEqual([]);
     await selectAccount(dialog);
     expect(requests).toEqual([subMerchantId]);
@@ -257,6 +277,78 @@ describe("create withdrawal modal: account and balance", () => {
   });
 });
 
+describe("create withdrawal modal: Sub first", () => {
+  const second: WithdrawalBankOption = {
+    ...bankOption, id: "66666666-6666-4666-8666-666666666666", accountNumberMasked: "xxxx2222", isDefault: false, bankCode: "TCB",
+  };
+
+  it("lists the Subs the user may see and asks for accounts and balance of the chosen Sub only", async () => {
+    const accountRequests = bankOptionsReturn();
+    const balanceRequests = balanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("combobox", { name: /Tài khoản nhận/ })).not.toBeInTheDocument();
+    expect(accountRequests).toEqual([]);
+    await pickSub(dialog, /SUB2/);
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(accountRequests).toEqual([otherSubId]);
+    expect(balanceRequests).toEqual([otherSubId]);
+  });
+
+  it("preselects the Sub when the user is assigned only one", async () => {
+    const balanceRequests = balanceReturns();
+    renderContainer({ subChoices: twoSubs.slice(0, 1) });
+    const dialog = await openCreateModal();
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toHaveTextContent(/SUB1/);
+    expect(balanceRequests).toEqual([subMerchantId]);
+  });
+
+  it("takes the only account of the Sub and shows it read-only, without a picker", async () => {
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    expect(await within(dialog).findByText(/xxxx1789/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/CONG TY A/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole("combobox", { name: /Tài khoản nhận/ })).not.toBeInTheDocument();
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeEnabled();
+  });
+
+  it("lists only the accounts of the Sub when there are two and preselects the default one", async () => {
+    bankOptionsReturn([second, bankOption]);
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const picker = await within(dialog).findByRole("combobox", { name: /Tài khoản nhận/ });
+    expect(picker).toHaveTextContent(/Vietcombank/);
+    await userEvent.click(picker);
+    expect(await screen.findByRole("option", { name: /xxxx2222/ })).toBeInTheDocument();
+  });
+
+  it("says the Sub has no linked receiving account and blocks Tiếp tục", async () => {
+    bankOptionsReturn([]);
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    expect(await within(dialog).findByText("Sub-merchant chưa có tài khoản nhận tiền đã liên kết")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("drops the account and balance of the old Sub when another Sub is chosen", async () => {
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    bankOptionsReturn([]);
+    await pickSub(dialog, /SUB2/);
+    expect(await within(dialog).findByText("Sub-merchant chưa có tài khoản nhận tiền đã liên kết")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/xxxx1789/)).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+});
+
 describe("create withdrawal modal: code and send", () => {
   it("asks for the code for the account and the ready amount, and asks again with the same pair on resend", async () => {
     const bodies: unknown[] = [];
@@ -309,7 +401,7 @@ describe("create withdrawal modal: code and send", () => {
     expect(within(dialog).getByRole("textbox", { name: "Digit 1 of 6" })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
     await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toHaveTextContent(/Vietcombank/);
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toHaveTextContent(/SUB1/);
   });
 
   it("keeps the code step when BE says the code is missing (5731)", async () => {
@@ -351,7 +443,7 @@ describe("create withdrawal modal: code and send", () => {
     await sendWithCode(dialog);
     expect(await within(dialog).findByText("Tổng tiền rút đã đổi thành 7.000.000")).toBeInTheDocument();
     await waitFor(() => expect(requests).toEqual([subMerchantId]));
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
     await userEvent.click(await within(dialog).findByRole("button", { name: "Tiếp tục" }));
     await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
@@ -372,7 +464,7 @@ describe("create withdrawal modal: code and send", () => {
     const before = requests.length;
     await sendWithCode(dialog);
     expect(await within(dialog).findByText(message)).toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
     await waitFor(() => expect(requests.length).toBeGreaterThan(before));
   });
 
@@ -394,7 +486,7 @@ describe("create withdrawal modal: code and send", () => {
     await goToCode(dialog);
     await sendWithCode(dialog);
     expect(await within(dialog).findByText("Không có khoản nào sẵn sàng để rút")).toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
   });
 });
 

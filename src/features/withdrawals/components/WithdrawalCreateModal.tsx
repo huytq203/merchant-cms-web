@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
-import { useWithdrawalCreateFlow, type WithdrawalCreateStep } from "../hooks/use-withdrawal-create-flow";
+import { useWithdrawalCreateFlow, type WithdrawalCreateStep, type WithdrawalSubChoice } from "../hooks/use-withdrawal-create-flow";
 import type { Withdrawal } from "../types/types";
 import { WithdrawalNewStep1 } from "./WithdrawalNewStep1";
 import { WithdrawalNewStep2 } from "./WithdrawalNewStep2";
@@ -15,11 +15,16 @@ const STEP_TITLES: Record<Exclude<WithdrawalCreateStep, "sent">, string> = {
 };
 const STEP_NUMBER = { form: 1, confirm: 2, otp: 3 } as const;
 
-type Props = { onClose: () => void; onViewDetail: (withdrawal: Withdrawal) => void };
+type Props = {
+  onClose: () => void;
+  onViewDetail: (withdrawal: Withdrawal) => void;
+  /** Các Sub người dùng được phép rút (đã lọc theo phạm vi gán). */
+  subChoices: readonly WithdrawalSubChoice[];
+};
 
 /** Mounted only while open, so every opening starts from an empty form and a fresh idempotency key. */
-export function WithdrawalCreateModal({ onClose, onViewDetail }: Props) {
-  const flow = useWithdrawalCreateFlow();
+export function WithdrawalCreateModal({ onClose, onViewDetail, subChoices }: Props) {
+  const flow = useWithdrawalCreateFlow(subChoices);
   const { step, created } = flow;
 
   return (

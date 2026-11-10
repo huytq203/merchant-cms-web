@@ -35,6 +35,8 @@ describe("withdrawal search params", () => {
 
   it("keys bank options by sub-merchant so a change refetches", () => {
     expect(withdrawalQueries.bankOptions("a").queryKey).not.toEqual(withdrawalQueries.bankOptions("b").queryKey);
-    expect(withdrawalQueries.bankOptions().queryKey).toEqual(["withdrawals", "bank-options", ""]);
+    // Chưa chọn Sub thì không gọi, để không trộn tài khoản của nhiều Sub.
+    expect(withdrawalQueries.bankOptions("").enabled).toBe(false);
+    expect(withdrawalQueries.bankOptions("a").enabled).toBe(true);
   });
 });
