@@ -101,11 +101,7 @@ export function buildUserColumns(actions: Actions, page: number, pageSize: numbe
         const summaries = row.original.groupSummaries;
         if (summaries?.length) {
           return (
-            <UserGroupChips
-              names={summaries.map((group) => group.name)}
-              permissionCounts={Object.fromEntries(summaries.map((group) => [group.name, group.permissionCount]))}
-              limit={2}
-            />
+            <UserGroupChips items={summaries} limit={2} />
           );
         }
         return <UserGroupChips names={actions.groupNamesOf(row.original.groups)} limit={2} />;

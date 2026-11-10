@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/page/PageHeader";
 import { Button } from "@/components/ui/button/Button";
 import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
 import type { SessionMerchant } from "@/types/auth";
-import { useAssignableGroups, type UserFilter } from "../user-queries";
+import { usePermissionGroups } from "@/features/permission/permission-group-queries";
+import type { UserFilter } from "../user-queries";
 import { useUserActions } from "../hooks/use-user-actions";
 import { useUserDialogs, type UserDialogsState } from "../hooks/use-user-dialogs";
 import { useUserListNavigation } from "../hooks/use-user-list-navigation";
@@ -28,9 +29,10 @@ export function UserContainer({ filter, merchantIds, merchants, actorId, canAppr
   const navigation = useUserListNavigation(filter);
   const merchantId = filter.merchantId ?? merchantIds[0] ?? "";
   // Choices of the "Nhóm quyền" and "Phạm vi" filters. A failed load only empties the list: the filter still works for "Tất cả".
-  const groups = useAssignableGroups();
+  // System groups plus the Master's own groups, narrowed to the chosen merchant when there is one.
+  const groups = usePermissionGroups({ page: 1, pageSize: 100, ...(filter.merchantId ? { merchantId: filter.merchantId } : {}) });
   const subMerchants = useSubMerchantOptions(filter.merchantId);
-  const groupOptions = (groups.data ?? []).map((group) => ({ value: group.id, label: `${group.name} · ${group.permissions.length} quyền` }));
+  const groupOptions = (groups.data?.rows ?? []).map((group) => ({ value: group.id, label: `${group.name} · ${group.permissions.length} quyền` }));
   const subMerchantOptions = (subMerchants.data ?? []).map((sub) => ({ value: sub.id, label: `${sub.code} · ${sub.name}` }));
   const openCreate = () => {
     actions.clearFeedback();

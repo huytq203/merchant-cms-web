@@ -9,6 +9,8 @@ export interface PermissionGroupFilter {
   pageSize: number;
   query?: string;
   systemOnly?: boolean;
+  /** Narrow to one Master of the session (system groups still included). */
+  merchantId?: string;
 }
 
 export interface PermissionGroupPage<T> {
