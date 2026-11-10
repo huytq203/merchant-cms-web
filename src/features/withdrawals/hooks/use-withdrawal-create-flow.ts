@@ -32,7 +32,10 @@ export type WithdrawalFormErrors = Partial<Record<keyof WithdrawalFormFields, st
 export type WithdrawalCreateStep = "form" | "confirm" | "otp" | "sent";
 
 /** The figures the merchant reviewed. The code and the request are tied to this amount, so a later refetch cannot change them. */
-export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setoff" | "fee" | "netReceived" | "zeroNet" | "escrowShortfallAfter">;
+export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setoff" | "zeroNet" | "escrowShortfallAfter"> & {
+  fee: number;
+  netReceived: number;
+};
 
 const BLANK: WithdrawalFormFields = { subMerchantId: "", bankAccountId: "", reason: "" };
 
@@ -64,7 +67,9 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
   const selectedBank = resolveBank(bankOptions.data?.options ?? [], rawValues.bankAccountId);
   // Các bước sau đọc tài khoản hiệu lực (kể cả tài khoản tự chọn), không đọc lựa chọn thô.
   const values: WithdrawalFormFields = { ...rawValues, bankAccountId: selectedBank?.id ?? "" };
-  const balance = useQuery(withdrawalQueries.balance(values.subMerchantId));
+  // Phí xem trước theo TK đang chọn (11/11): gửi id TK hiệu lực, đổi TK thì tính lại. Chờ danh sách TK về rồi mới hỏi,
+  // để không hỏi một lần "chưa có TK" ngay trước lần hỏi theo TK mặc định được chọn sẵn.
+  const balance = useQuery(withdrawalQueries.balance(values.subMerchantId, values.bankAccountId, !bankOptions.isPending));
   const requestOtp = useWithdrawalOtpChallenge();
   const creation = useCreateWithdrawal();
   const blocker = withdrawalBlocker(balance.data);
@@ -85,6 +90,8 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
     if (!values.bankAccountId) return setErrors({ bankAccountId: "Chọn tài khoản ngân hàng nhận tiền" });
     if (!balance.data || blocker || !parsed.success) return;
     const { readyAmount, setoff, fee, netReceived, zeroNet, escrowShortfallAfter } = balance.data;
+    // Phí chưa biết (chưa có TK) luôn đi kèm blocker nên không tới đây; giữ chặn để bước xem lại không hiện số đoán.
+    if (fee === null || netReceived === null) return;
     setStatement({ readyAmount, setoff, fee, netReceived, zeroNet, escrowShortfallAfter });
     setZeroNetAsked(false);
     setZeroNetAccepted(false);

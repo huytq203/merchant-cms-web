@@ -405,6 +405,72 @@ describe("create withdrawal modal: Sub first", () => {
   });
 });
 
+describe("create withdrawal modal: fee of the chosen account (11/11)", () => {
+  const second: WithdrawalBankOption = {
+    ...bankOption, id: "66666666-6666-4666-8666-666666666666", accountNumberMasked: "xxxx2222", isDefault: false, bankCode: "VPB",
+  };
+
+  /** Ghi lại bankAccountId của mỗi lần hỏi số dư; phí theo TK để thấy màn hình đổi số khi đổi TK. */
+  function balanceByAccount() {
+    const accounts: (string | null)[] = [];
+    mswServer.use(http.get(`${base}/balance`, ({ request }) => {
+      const account = new URL(request.url).searchParams.get("bankAccountId");
+      accounts.push(account);
+      return HttpResponse.json(account === second.id ? makeBalance({ fee: 7_700, netReceived: 5_991_300 }) : makeBalance());
+    }));
+    return accounts;
+  }
+
+  it("sends the id of the chosen account, once the accounts are known, and prices again when the account changes", async () => {
+    bankOptionsReturn([second, bankOption]);
+    const accounts = balanceByAccount();
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(await within(panel).findByText(/5\.993\.500/)).toBeInTheDocument();
+    // Không hỏi một lần "chưa có TK" rồi lại hỏi theo TK mặc định: chỉ hỏi khi đã biết danh sách TK.
+    expect(accounts).toEqual([bankOption.id]);
+    await userEvent.click(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /xxxx2222/ }));
+    expect(await within(dialog).findByText(/5\.991\.300/)).toBeInTheDocument();
+    expect(accounts).toEqual([bankOption.id, second.id]);
+  });
+
+  it("without a chosen account and no default, shows the balances and asks to choose an account for the fee", async () => {
+    bankOptionsReturn([{ ...bankOption, isDefault: false }, second]);
+    const accounts: (string | null)[] = [];
+    mswServer.use(http.get(`${base}/balance`, ({ request }) => {
+      accounts.push(new URL(request.url).searchParams.get("bankAccountId"));
+      return HttpResponse.json(makeBalance({ fee: null, netReceived: null, blocker: "BANK_ACCOUNT_REQUIRED",
+        blockerMessage: "Chọn tài khoản nhận tiền để xem phí rút và số tiền thực nhận" }));
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(accounts).toEqual([null]);
+    expect(within(panel).getByText(/6\.000\.000/)).toBeInTheDocument();
+    expect(within(panel).getByText(/128\.450\.000/)).toBeInTheDocument();
+    expect(within(panel).getAllByText("Chờ chọn tài khoản")).toHaveLength(2);
+    expect(within(panel).getByText("Chọn tài khoản nhận tiền để xem phí rút và số tiền thực nhận")).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("an older BE answering 409 5736 does not kill the panel: it asks to choose an account, without a retry", async () => {
+    bankOptionsReturn([{ ...bankOption, isDefault: false }, second]);
+    mswServer.use(http.get(`${base}/balance`, () => codeError("5736",
+      "Sub-merchant chưa được gán tài khoản ngân hàng nhận doanh thu nên chưa tạo được lệnh rút; hãy gán tài khoản tại Danh sách tài khoản ngân hàng")));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    expect(await within(dialog).findByText("Chọn tài khoản nhận tiền để xem số tiền rút, phí rút và số tiền thực nhận")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+  });
+});
+
 describe("create withdrawal modal: code and send", () => {
   it("asks for the code for the account and the ready amount, and asks again with the same pair on resend", async () => {
     const bodies: unknown[] = [];

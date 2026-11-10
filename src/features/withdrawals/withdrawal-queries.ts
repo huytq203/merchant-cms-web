@@ -72,10 +72,17 @@ export const withdrawalQueries = {
     queryFn: () => apiClient.get<WithdrawalBankOptions>(`${WITHDRAWALS_ENDPOINT}/bank-options`, { query: { subMerchantId } }),
     enabled: subMerchantId !== "",
   }),
-  /** Per Sub: nothing is asked until a Sub is chosen. */
-  balance: (subMerchantId: string) => queryOptions({
-    queryKey: ["withdrawals", "balance", subMerchantId] as const,
-    queryFn: () => apiClient.get<WithdrawalBalance>(`${WITHDRAWALS_ENDPOINT}/balance`, { query: { subMerchantId } }),
-    enabled: subMerchantId !== "",
+  /**
+   * Per Sub: nothing is asked until a Sub is chosen. `bankAccountId` is the receiving account chosen in the create form
+   * (11/11): BE prices the fee for that account's bank, and it is in the key so another account asks again. Empty = no
+   * account yet (BE uses the Sub's default account, or answers fee/net null with BANK_ACCOUNT_REQUIRED). `ready` = false
+   * while the accounts are still loading, so the default account is not first asked for without its id.
+   */
+  balance: (subMerchantId: string, bankAccountId = "", ready = true) => queryOptions({
+    queryKey: ["withdrawals", "balance", subMerchantId, bankAccountId] as const,
+    queryFn: () => apiClient.get<WithdrawalBalance>(`${WITHDRAWALS_ENDPOINT}/balance`, {
+      query: { subMerchantId, ...(bankAccountId ? { bankAccountId } : {}) },
+    }),
+    enabled: subMerchantId !== "" && ready,
   }),
 };

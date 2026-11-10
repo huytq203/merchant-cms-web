@@ -16,6 +16,9 @@ const CODES = {
   automaticMode: ["5782", "MERCHANT_WITHDRAWAL_AUTOMATIC_MODE"],
   // A freeze waiting for the ledger may take the available balance a new request would use; retry later.
   freezeProcessing: ["5798", "MERCHANT_WITHDRAWAL_FREEZE_PROCESSING"],
+  // No account chosen and the Sub has no default one, so the fee cannot be priced (BE before 11/11 answered the whole
+  // balance with this 409; newer BE returns the balance with fee/net null instead).
+  bankAccountRequired: ["5736", "MERCHANT_SUB_BANK_ACCOUNT_NOT_ASSIGNED"],
 } as const;
 
 export type WithdrawalFailureKind = keyof typeof CODES | "other";

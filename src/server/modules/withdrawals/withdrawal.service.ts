@@ -50,8 +50,13 @@ export const createWithdrawal = (body: WithdrawalCreateBody): Promise<BeResult<W
   });
 
 /** BE derives the Master from the Sub and answers 404 for a Sub outside the caller's scope. */
-export const getWithdrawalBalance = (subMerchantId: string): Promise<BeResult<WithdrawalBalance>> =>
-  merchantClient().get({ path: withdrawalPaths.balance, schema: withdrawalBalanceSchema, query: { subMerchantId } });
+/** `bankAccountId`: the receiving account chosen in the form; BE prices the fee for it (and checks it belongs to the Sub). */
+export const getWithdrawalBalance = (subMerchantId: string, bankAccountId?: string): Promise<BeResult<WithdrawalBalance>> =>
+  merchantClient().get({
+    path: withdrawalPaths.balance,
+    schema: withdrawalBalanceSchema,
+    query: { subMerchantId, ...(bankAccountId ? { bankAccountId } : {}) },
+  });
 
 /** The operation is fixed here; the code is tied to this (account, amount) pair, so the caller names both. */
 export const requestWithdrawalOtp = (body: WithdrawalOtpChallengeBody) =>

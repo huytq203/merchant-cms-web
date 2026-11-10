@@ -27,10 +27,17 @@ describe("withdrawal search params", () => {
   });
 
   it("keys the balance by Sub, and asks nothing until a Sub is chosen", () => {
-    expect(withdrawalQueries.balance("a").queryKey).toEqual(["withdrawals", "balance", "a"]);
+    expect(withdrawalQueries.balance("a").queryKey).toEqual(["withdrawals", "balance", "a", ""]);
     expect(withdrawalQueries.balance("a").queryKey).not.toEqual(withdrawalQueries.balance("b").queryKey);
     expect(withdrawalQueries.balance("a").enabled).toBe(true);
     expect(withdrawalQueries.balance("").enabled).toBe(false);
+  });
+
+  it("keys the balance by the chosen account too, so changing the account prices the fee again", () => {
+    expect(withdrawalQueries.balance("a", "acc-1").queryKey).toEqual(["withdrawals", "balance", "a", "acc-1"]);
+    expect(withdrawalQueries.balance("a", "acc-1").queryKey).not.toEqual(withdrawalQueries.balance("a", "acc-2").queryKey);
+    // Danh sách TK chưa về thì chưa hỏi (tránh một lần hỏi thừa không có TK).
+    expect(withdrawalQueries.balance("a", "", false).enabled).toBe(false);
   });
 
   it("keys bank options by sub-merchant so a change refetches", () => {

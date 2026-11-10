@@ -102,8 +102,12 @@ export const withdrawalBalanceSchema = z.object({
   pendingSettlement: z.number().int().nonnegative(),
   readyAmount: z.number().int().nonnegative(),
   setoff: z.number().int().nonnegative(),
-  fee: z.number().int().nonnegative(),
-  netReceived: z.number().int(),
+  /**
+   * null (11/11) when no account is chosen yet and the Sub has no default one (`blocker` = BANK_ACCOUNT_REQUIRED): the
+   * fee depends on the account's bank, so BE does not guess it. `netReceived` is null together with it.
+   */
+  fee: z.number().int().nonnegative().nullable(),
+  netReceived: z.number().int().nullable(),
   zeroNet: z.boolean(),
   dailyLimitRemaining: nullableCount,
   dailyCountRemaining: nullableCount,
@@ -125,7 +129,7 @@ export const withdrawalBalanceSchema = z.object({
   escrowShortfallAfter: nullableCount,
   /**
    * Why BE would refuse a request although money is ready, e.g. `FEE_EXCEEDS_REMAINDER` (what is left after the setoff
-   * cannot pay the fee). `blockerMessage` is the Vietnamese sentence to show. Both null when nothing blocks.
+   * cannot pay the fee) or `BANK_ACCOUNT_REQUIRED` (choose a receiving account first). `blockerMessage` is the Vietnamese sentence to show. Both null when nothing blocks.
    */
   blocker: z.string().nullish().transform((value) => value ?? null),
   blockerMessage: z.string().nullish().transform((value) => value ?? null),

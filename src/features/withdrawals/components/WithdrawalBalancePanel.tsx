@@ -5,7 +5,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import { Notice } from "@/components/page/Notice";
 import { Button } from "@/components/ui/button/Button";
 import { formatAmount } from "@/lib/utils/helper";
-import { describeWithdrawalError } from "../utils/withdrawal-errors";
+import { describeWithdrawalError, withdrawalFailureKind } from "../utils/withdrawal-errors";
 import type { WithdrawalBalance } from "../types/types";
 
 type Props = { balance: UseQueryResult<WithdrawalBalance>; hasSub: boolean; blocker: string | null };
@@ -27,10 +27,18 @@ function Frame({ children, busy = false }: { children: ReactNode; busy?: boolean
   );
 }
 
+/** Phí/thực nhận chưa tính được vì chưa có TK nhận (11/11): nói rõ đang chờ, không hiện 0. */
+const AWAITING_ACCOUNT = "Chờ chọn tài khoản";
+/** BE cũ trả cả màn 409 5736 khi chưa có TK: không có số nào để hiện, chỉ nhắc chọn TK (không phải lỗi để thử lại). */
+const CHOOSE_ACCOUNT_FIRST = "Chọn tài khoản nhận tiền để xem số tiền rút, phí rút và số tiền thực nhận";
+
 /** What one Sub can withdraw now. An unreadable balance is said, never shown as zero. */
 export function WithdrawalBalancePanel({ balance, hasSub, blocker }: Props) {
   if (!hasSub) {
     return <Notice tone="info">Chọn Sub-merchant để xem số tiền sẵn sàng rút.</Notice>;
+  }
+  if (balance.isError && withdrawalFailureKind(balance.error) === "bankAccountRequired") {
+    return <Notice tone="info">{CHOOSE_ACCOUNT_FIRST}</Notice>;
   }
   if (balance.isError) {
     return (
@@ -53,8 +61,12 @@ export function WithdrawalBalancePanel({ balance, hasSub, blocker }: Props) {
         {/* Ký quỹ Master đang thiếu: cấn trừ = min(số rút, phần thiếu); phần thiếu còn lại cấn ở lần rút sau. */}
         {showShortfall ? <Row label="Ký quỹ còn thiếu trước khi rút" value={formatAmount(data.escrowShortfallBefore ?? 0)} /> : null}
         <Row label="Cấn trừ ký quỹ" value={formatAmount(data.setoff)} />
-        <Row label="Phí rút tạm tính" value={formatAmount(data.fee)} />
-        <Row label="Thực nhận" value={formatAmount(Math.max(0, data.netReceived))} strong />
+        <Row label="Phí rút tạm tính" value={data.fee === null ? AWAITING_ACCOUNT : formatAmount(data.fee)} />
+        <Row
+          label="Thực nhận"
+          value={data.netReceived === null ? AWAITING_ACCOUNT : formatAmount(Math.max(0, data.netReceived))}
+          strong
+        />
         {showShortfall ? <Row label="Ký quỹ còn thiếu sau lệnh này" value={formatAmount(data.escrowShortfallAfter ?? 0)} /> : null}
       </dl>
       <dl className="divide-y divide-border border-t border-border pt-1 text-muted-foreground">

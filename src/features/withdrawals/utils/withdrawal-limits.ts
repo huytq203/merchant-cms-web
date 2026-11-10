@@ -43,7 +43,7 @@ export function withdrawalBlocker(balance: Limits | undefined): string | null {
   // BE says up front that it would refuse the request (setoff leaves too little for the fee). An older BE that does not
   // send `blocker` shows the same case as a negative net. A net of exactly 0 is not blocked: it is confirmed on step 2.
   if (balance.blocker) return balance.blockerMessage || FEE_EXCEEDS_REMAINDER_BLOCKER;
-  if (balance.netReceived !== undefined && balance.netReceived < 0) return FEE_EXCEEDS_REMAINDER_BLOCKER;
+  if (typeof balance.netReceived === "number" && balance.netReceived < 0) return FEE_EXCEEDS_REMAINDER_BLOCKER;
   if (balance.dailyCountRemaining !== null && balance.dailyCountRemaining <= 0) {
     return "Đã hết số lần rút trong ngày";
   }

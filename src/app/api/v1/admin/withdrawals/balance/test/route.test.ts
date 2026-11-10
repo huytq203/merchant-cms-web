@@ -37,6 +37,17 @@ describe("withdrawal balance route", () => {
     expect(getWithdrawalBalance.mock.calls[0]).toHaveLength(1);
   });
 
+  it("forwards the chosen receiving account id so BE prices the fee for that account", async () => {
+    const accountId = "44444444-4444-4444-8444-444444444444";
+    expect((await call(`?subMerchantId=${subMerchantId}&bankAccountId=${accountId}`)).status).toBe(200);
+    expect(getWithdrawalBalance).toHaveBeenCalledWith(subMerchantId, accountId);
+  });
+
+  it("answers 400 for a malformed account id, before asking BE", async () => {
+    expect((await call(`?subMerchantId=${subMerchantId}&bankAccountId=abc`)).status).toBe(400);
+    expect(getWithdrawalBalance).not.toHaveBeenCalled();
+  });
+
   it("answers 400 when the Sub is missing or not a UUID", async () => {
     expect((await call("")).status).toBe(400);
     expect((await call("?subMerchantId=abc")).status).toBe(400);
