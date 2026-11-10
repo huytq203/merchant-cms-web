@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
 import { terminalApiRoot } from "./constants/terminal.constants";
+import { terminalTypeSchema } from "./schemas";
 import type { TerminalDetail, TerminalListFilter, TerminalListResult } from "./types";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -15,12 +16,14 @@ export function parseTerminalSearchParams(raw: RawSearchParams): TerminalListFil
     : undefined;
   const name = typeof raw.name === "string" ? raw.name.trim().slice(0, 100) : "";
   const subMerchantId = typeof raw.subMerchantId === "string" ? raw.subMerchantId : undefined;
+  const terminalType = terminalTypeSchema.safeParse(raw.terminalType);
   return {
     page: numberParam(raw.page, 1),
     pageSize: numberParam(raw.pageSize, 10, 100),
     ...(name ? { name } : {}),
     ...(status ? { status } : {}),
     ...(subMerchantId ? { subMerchantId } : {}),
+    ...(terminalType.success ? { terminalType: terminalType.data } : {}),
   };
 }
 
@@ -34,6 +37,7 @@ export const terminalQueries = {
         subMerchantId: filter.subMerchantId,
         name: filter.name,
         status: filter.status,
+        terminalType: filter.terminalType,
       },
     }),
   }),

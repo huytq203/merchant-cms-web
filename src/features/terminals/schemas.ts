@@ -17,6 +17,10 @@ export const terminalSummarySchema = z.object({
   merchantId: z.uuid(),
   contactPhone: inheritedFieldSchema(z.string()).nullish(),
   createdAt: z.string().nullish(),
+  /** Successful orders of the last 7 days, their total (VND) and the time of the latest one; list rows only. */
+  txnCount7d: z.number().int().nullish(),
+  txnAmount7d: z.number().nullish(),
+  lastTxnAt: z.string().nullish(),
 });
 
 export const terminalDetailSchema = terminalSummarySchema.extend({

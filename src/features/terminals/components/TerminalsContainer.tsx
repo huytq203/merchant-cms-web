@@ -31,7 +31,7 @@ export function TerminalsContainer({ filter, canManage }: Props) {
       />
       <div>
         <TerminalFilters
-          key={`${filter.name ?? ""}:${filter.status ?? ""}:${filter.subMerchantId ?? ""}`}
+          key={`${filter.name ?? ""}:${filter.status ?? ""}:${filter.subMerchantId ?? ""}:${filter.terminalType ?? ""}`}
           initial={filter}
           onSearch={navigation.search}
         />

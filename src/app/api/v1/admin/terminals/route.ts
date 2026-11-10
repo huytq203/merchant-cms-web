@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
 import { z } from "zod";
-import { terminalFormSchema } from "@/features/terminals/schemas";
+import { terminalFormSchema, terminalTypeSchema } from "@/features/terminals/schemas";
 import { subMerchantStatusSchema } from "@/lib/be/node-schemas";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import { createTerminal, listTerminals } from "@/server/modules/terminals/terminal.service";
@@ -11,6 +11,7 @@ const listQuerySchema = paginationQuerySchema.extend({
   subMerchantId: z.uuid().optional(),
   name: z.string().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
+  terminalType: terminalTypeSchema.optional(),
 });
 
 export async function GET(request: Request) {

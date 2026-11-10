@@ -17,12 +17,20 @@ export function parseSubMerchantSearchParams(raw: RawSearchParams): SubMerchantL
   const code = text(raw.code);
   const name = text(raw.name);
   const status = subMerchantStatusSchema.safeParse(raw.status);
+  const day = (value: string | string[] | undefined) =>
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+  const createdFrom = day(raw.createdFrom);
+  const createdTo = day(raw.createdTo);
   return {
     page,
     pageSize,
     ...(code ? { code } : {}),
     ...(name ? { name } : {}),
     ...(status.success ? { status: status.data } : {}),
+    ...(raw.hasBankAccount === 'true' ? { hasBankAccount: true } : {}),
+    ...(raw.hasBankAccount === 'false' ? { hasBankAccount: false } : {}),
+    ...(createdFrom ? { createdFrom } : {}),
+    ...(createdTo ? { createdTo } : {}),
   };
 }
 
@@ -35,6 +43,9 @@ export const subMerchantQueries = {
       ...(filter.name ? { name: filter.name } : {}),
       ...(filter.status ? { status: filter.status } : {}),
       ...(filter.merchantId ? { merchantId: filter.merchantId } : {}),
+      ...(filter.hasBankAccount === undefined ? {} : { hasBankAccount: filter.hasBankAccount }),
+      ...(filter.createdFrom ? { createdFrom: filter.createdFrom } : {}),
+      ...(filter.createdTo ? { createdTo: filter.createdTo } : {}),
     };
     return queryOptions({
       queryKey: ['sub-merchants', 'list', params] as const,

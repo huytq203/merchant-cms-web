@@ -8,7 +8,16 @@ export interface UserFilter {
   query?: string;
   status?: MerchantUserStatus;
   merchantId?: string;
+  /** Only users holding this permission group. */
+  permissionGroupId?: string;
+  /** Scope filter: `MASTER` = users with Master-wide access, otherwise the id of one Sub-merchant. */
+  scope?: string;
 }
+
+/** The value of the scope filter that stands for "Master-wide users"; any other value is a Sub-merchant id. */
+export const MASTER_SCOPE = "MASTER";
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface UserPage {
   rows: MerchantUser[];
@@ -33,12 +42,20 @@ export function parseUserSearchParams(raw: RawSearchParams, merchantIds: string[
     && merchantIds.includes(raw.merchantId)
     ? raw.merchantId
     : undefined;
+  const permissionGroupId = typeof raw.permissionGroupId === "string" && UUID_PATTERN.test(raw.permissionGroupId)
+    ? raw.permissionGroupId
+    : undefined;
+  const scope = typeof raw.scope === "string" && (raw.scope === MASTER_SCOPE || UUID_PATTERN.test(raw.scope))
+    ? raw.scope
+    : undefined;
   return {
     page,
     pageSize,
     ...(query ? { query } : {}),
     ...(status ? { status } : {}),
     ...(merchantId ? { merchantId } : {}),
+    ...(permissionGroupId ? { permissionGroupId } : {}),
+    ...(scope ? { scope } : {}),
   };
 }
 

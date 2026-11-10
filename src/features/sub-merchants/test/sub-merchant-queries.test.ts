@@ -47,4 +47,19 @@ describe('sub merchant query contract', () => {
   it('ignores blank or oversized text filters', () => {
     expect(parseSubMerchantSearchParams({ code: '   ', name: 'x'.repeat(101) })).toEqual({ page: 1, pageSize: 10 });
   });
+
+  it('keeps the receiving-account and created-date filters from the URL and sends them to the API', async () => {
+    const filter = parseSubMerchantSearchParams({ hasBankAccount: 'false', createdFrom: '2026-09-01', createdTo: '2026-09-30' });
+    expect(filter).toEqual({ page: 1, pageSize: 10, hasBankAccount: false, createdFrom: '2026-09-01', createdTo: '2026-09-30' });
+    const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ rows: [], total: 0 });
+    await subMerchantQueries.list(filter).queryFn!({} as never);
+    expect(get).toHaveBeenCalledWith('/v1/admin/sub-merchants', {
+      query: { page: 1, pageSize: 10, hasBankAccount: false, createdFrom: '2026-09-01', createdTo: '2026-09-30' },
+    });
+    get.mockRestore();
+  });
+
+  it('drops a malformed date and an unknown account choice', () => {
+    expect(parseSubMerchantSearchParams({ hasBankAccount: 'maybe', createdFrom: '01/09/2026', createdTo: 'x' })).toEqual({ page: 1, pageSize: 10 });
+  });
 });

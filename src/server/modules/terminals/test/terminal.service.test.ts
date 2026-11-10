@@ -72,4 +72,16 @@ describe("terminal service", () => {
     expect(result).toMatchObject({ success: true });
     expect(body).toEqual({ reason: "Lý do hợp lệ" });
   });
+
+  it("sends the terminal type filter and reads the 7-day activity of each row", async () => {
+    let query: URLSearchParams | undefined;
+    const active = { ...row, terminalType: "QR", txnCount7d: 4, txnAmount7d: 1750000, lastTxnAt: "2026-11-10T16:13:00" };
+    mswServer.use(http.get(path, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(page([active], 1)));
+    }));
+    const result = await listTerminals({ page: 1, pageSize: 10, terminalType: "QR" });
+    expect(Object.fromEntries(query!)).toEqual({ page: "1", size: "10", terminalType: "QR" });
+    expect(result).toMatchObject({ success: true, data: { rows: [{ txnCount7d: 4, txnAmount7d: 1750000, lastTxnAt: "2026-11-10T16:13:00" }] } });
+  });
 });

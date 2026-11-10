@@ -67,7 +67,22 @@ describe("merchant user service", () => {
     }));
     const result = await listUsers({ merchantId, page: 1, pageSize: 10, query: "test" });
     expect(result).toMatchObject({ success: true, data: { rows: [], total: 0 } });
-    expect(Object.fromEntries(query!)).toEqual({ merchantId, page: "1", size: "10" });
+    // The text filter reaches the BE as `q`; before it was dropped here and the search box did nothing.
+    expect(Object.fromEntries(query!)).toEqual({ merchantId, page: "1", size: "10", q: "test" });
+  });
+
+  it("forwards status, permission group and scope (Master-wide or one Sub) to the BE", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(path, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 }));
+    }));
+    await listUsers({ merchantId, page: 1, pageSize: 10, status: "LOCKED", permissionGroupId: groupId, scope: subMerchantId });
+    expect(Object.fromEntries(query!)).toEqual({
+      merchantId, page: "1", size: "10", status: "LOCKED", permissionGroupId: groupId, subMerchantId,
+    });
+    await listUsers({ merchantId, page: 1, pageSize: 10, scope: "MASTER" });
+    expect(Object.fromEntries(query!)).toEqual({ merchantId, page: "1", size: "10", masterWide: "true" });
   });
 
   it("preserves the 403 reason and rejects invalid detail data", async () => {

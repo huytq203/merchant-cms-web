@@ -21,4 +21,13 @@ describe("user queries", () => {
   it("ignores unknown status, long query, and merchant selection for a single master", () => {
     expect(parseUserSearchParams({ query: "x".repeat(101), status: "UNKNOWN", merchantId: merchantB }, [merchantA])).toEqual({ page: 1, pageSize: 10 });
   });
+
+  it("accepts a permission group id and a scope that is Master or a Sub id, and drops anything else", () => {
+    const group = "33333333-3333-4333-8333-333333333333";
+    expect(parseUserSearchParams({ permissionGroupId: group, scope: "MASTER" }, [merchantA])).toEqual({
+      page: 1, pageSize: 10, permissionGroupId: group, scope: "MASTER",
+    });
+    expect(parseUserSearchParams({ scope: merchantB }, [merchantA])).toMatchObject({ scope: merchantB });
+    expect(parseUserSearchParams({ permissionGroupId: "not-a-uuid", scope: "master" }, [merchantA])).toEqual({ page: 1, pageSize: 10 });
+  });
 });

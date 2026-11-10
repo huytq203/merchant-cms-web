@@ -10,6 +10,9 @@ const listQuerySchema = paginationQuerySchema.extend({
   code: z.string().trim().max(100).optional(),
   name: z.string().trim().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
+  hasBankAccount: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
+  createdFrom: z.iso.date().optional(),
+  createdTo: z.iso.date().optional(),
 });
 
 function requestedMerchantId(raw: unknown): string | null {

@@ -4,8 +4,9 @@ import { Plus } from "lucide-react";
 import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { Button } from "@/components/ui/button/Button";
+import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
 import type { SessionMerchant } from "@/types/auth";
-import type { UserFilter } from "../user-queries";
+import { useAssignableGroups, type UserFilter } from "../user-queries";
 import { useUserActions } from "../hooks/use-user-actions";
 import { useUserDialogs, type UserDialogsState } from "../hooks/use-user-dialogs";
 import { useUserListNavigation } from "../hooks/use-user-list-navigation";
@@ -26,6 +27,11 @@ export function UserContainer({ filter, merchantIds, merchants, actorId, canAppr
   const actions = useUserActions(dialogs.close);
   const navigation = useUserListNavigation(filter);
   const merchantId = filter.merchantId ?? merchantIds[0] ?? "";
+  // Choices of the "Nhóm quyền" and "Phạm vi" filters. A failed load only empties the list: the filter still works for "Tất cả".
+  const groups = useAssignableGroups();
+  const subMerchants = useSubMerchantOptions(filter.merchantId);
+  const groupOptions = (groups.data ?? []).map((group) => ({ value: group.id, label: `${group.name} · ${group.permissions.length} quyền` }));
+  const subMerchantOptions = (subMerchants.data ?? []).map((sub) => ({ value: sub.id, label: `${sub.code} · ${sub.name}` }));
   const openCreate = () => {
     actions.clearFeedback();
     dialogs.openCreate();
@@ -46,10 +52,12 @@ export function UserContainer({ filter, merchantIds, merchants, actorId, canAppr
         }
       />
       <UserFilters
-        key={`${filter.query ?? ""}:${filter.status ?? ""}:${filter.merchantId ?? ""}`}
+        key={`${filter.query ?? ""}:${filter.status ?? ""}:${filter.merchantId ?? ""}:${filter.permissionGroupId ?? ""}:${filter.scope ?? ""}`}
         filter={filter}
         merchantIds={merchantIds}
         merchants={merchants}
+        groupOptions={groupOptions}
+        subMerchantOptions={subMerchantOptions}
         onSearch={navigation.search}
       />
       <UserResults filter={filter} actorId={actorId} openFor={openFor} onPageChange={navigation.changePage} onAdd={openCreate} />

@@ -22,6 +22,21 @@ export const subMerchantSummarySchema = z
     merchantName: z.string().nullish(),
     phone: inheritedFieldSchema(z.string()).nullish(),
     createdAt: z.string().nullish(),
+    /** Overview columns of the Portal list (BE `MerchantSubMerchantSummaryResponse`); absent on an older BE and in the admin shape. */
+    businessField: z.string().nullish(),
+    terminalCount: z.number().int().nullish(),
+    /** Always POS / ONLINE / QR when present. */
+    terminalCountByType: z.record(z.string(), z.number().int()).nullish(),
+    /** The Sub's receiving account with the number already masked by the BE; null when it has none. */
+    settlementBankAccount: z
+      .object({
+        bankCode: z.string(),
+        maskedAccountNo: z.string().nullish(),
+        linkStatus: z.enum(["PENDING_VERIFICATION", "LINKED", "LINK_FAILED"]),
+      })
+      .nullish(),
+    /** Gross revenue of the last 7 days from the settlement lines (VND, before fees and refunds). */
+    revenue7d: z.number().nullish(),
   })
   .transform(({ default: legacyDefault, isDefault, ...rest }) => ({
     ...rest,
@@ -57,6 +72,9 @@ export const subMerchantFilterSchema = z.object({
   code: z.string().max(100).optional(),
   name: z.string().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
+  hasBankAccount: z.boolean().optional(),
+  createdFrom: z.string().optional(),
+  createdTo: z.string().optional(),
 });
 
 export const subMerchantFormSchema = z

@@ -18,6 +18,8 @@ export const merchantUserSchema = z.object({
   active: z.boolean(),
   locked: z.boolean(),
   groups: z.array(z.uuid()),
+  /** Group names with their permission count (BE `groupSummaries`), so the list needs no extra group call. */
+  groupSummaries: z.array(z.object({ id: z.uuid(), name: z.string(), permissionCount: z.number().int() })).optional(),
   merchantIds: z.array(z.uuid()),
   subMerchantIds: z.array(z.uuid()),
   rolesText: z.string(),

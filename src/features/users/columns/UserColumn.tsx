@@ -96,7 +96,20 @@ export function buildUserColumns(actions: Actions, page: number, pageSize: numbe
     {
       id: "groups",
       header: "Nhóm quyền",
-      cell: ({ row }) => <UserGroupChips names={actions.groupNamesOf(row.original.groups)} limit={2} />,
+      cell: ({ row }) => {
+        // The BE sends each group with its permission count; the catalog lookup is only the fallback for an older BE.
+        const summaries = row.original.groupSummaries;
+        if (summaries?.length) {
+          return (
+            <UserGroupChips
+              names={summaries.map((group) => group.name)}
+              permissionCounts={Object.fromEntries(summaries.map((group) => [group.name, group.permissionCount]))}
+              limit={2}
+            />
+          );
+        }
+        return <UserGroupChips names={actions.groupNamesOf(row.original.groups)} limit={2} />;
+      },
     },
     {
       id: "status",

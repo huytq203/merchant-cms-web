@@ -44,7 +44,7 @@ describe("user page prefetch", () => {
       });
     }));
     const page = await UsersPage({ searchParams: Promise.resolve({ query: "search", status: "ACTIVE" }) }) as ReactElement;
-    expect(Object.fromEntries(search!)).toEqual({ merchantId, page: "1", size: "10" });
+    expect(Object.fromEntries(search!)).toEqual({ merchantId, page: "1", size: "10", q: "search", status: "ACTIVE" });
     const state = (page as ReactElement<{ state: DehydratedState }>).props.state;
     expect(JSON.stringify(state)).toContain(user.id);
   });

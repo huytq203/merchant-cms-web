@@ -21,6 +21,9 @@ export function useSubMerchantListNavigation() {
     if (values.code) params.set('code', values.code);
     if (values.name) params.set('name', values.name);
     if (values.status) params.set('status', values.status);
+    if (values.hasBankAccount !== undefined) params.set('hasBankAccount', String(values.hasBankAccount));
+    if (values.createdFrom) params.set('createdFrom', values.createdFrom);
+    if (values.createdTo) params.set('createdTo', values.createdTo);
     router.push(`${pathname}?${params}`);
   };
 

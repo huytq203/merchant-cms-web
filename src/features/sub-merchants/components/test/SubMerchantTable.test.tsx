@@ -29,3 +29,29 @@ it('disables cascade unlocks and exposes the reason in a tooltip', async () => {
   await userEvent.hover(action.parentElement!);
   expect(await screen.findByRole('tooltip')).toHaveTextContent('Không thể mở khóa vì Master đang khóa');
 });
+
+it('shows the overview: business field, terminal split, masked account with link status, 7-day revenue and created date', () => {
+  const row: SubMerchantRow = {
+    ...base,
+    isDefault: true,
+    businessField: 'Bán lẻ',
+    terminalCount: 2,
+    terminalCountByType: { POS: 1, ONLINE: 0, QR: 1 },
+    settlementBankAccount: { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' },
+    revenue7d: 1748000,
+    createdAt: '2026-09-28T10:00:00',
+  };
+  render(<SubMerchantTable data={[row]} {...callbacks()} />);
+  expect(screen.getByText('Bán lẻ')).toBeInTheDocument();
+  expect(screen.getByText('Mặc định')).toBeInTheDocument();
+  expect(screen.getByText('1 QR · 1 POS')).toBeInTheDocument();
+  expect(screen.getByText('VPB *********2111')).toBeInTheDocument();
+  expect(screen.getByText('Đã liên kết')).toBeInTheDocument();
+  expect(screen.getByText(/1\.748\.000/)).toBeInTheDocument();
+  expect(screen.getByText('28/09/2026')).toBeInTheDocument();
+});
+it('says "Chưa có TK" and shows zero revenue for a Sub without an account or payments', () => {
+  render(<SubMerchantTable data={[{ ...base, settlementBankAccount: null, terminalCount: 0, revenue7d: 0 }]} {...callbacks()} />);
+  expect(screen.getByText('Chưa có TK')).toBeInTheDocument();
+  expect(screen.getByText(/^0 vnđ$/)).toBeInTheDocument();
+});

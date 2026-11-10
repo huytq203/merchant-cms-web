@@ -17,6 +17,11 @@ export interface SubMerchantListFilter {
   status?: SubMerchantRow["status"];
   /** Only the outlets of this merchant; the BE still bounds them to the session's scope. */
   merchantId?: string;
+  /** `true` = only Subs that have a receiving account, `false` = only those without one. */
+  hasBankAccount?: boolean;
+  /** Created-date range, `yyyy-MM-dd`, both ends included. */
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export interface SubMerchantListResult {

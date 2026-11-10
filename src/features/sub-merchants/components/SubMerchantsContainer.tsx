@@ -30,8 +30,15 @@ export function SubMerchantsContainer({ filter, canLock }: Props) {
         }
       />
       <SubMerchantFilters
-        key={`${filter.code ?? ''}:${filter.name ?? ''}:${filter.status ?? ''}`}
-        defaultValues={{ code: filter.code, name: filter.name, status: filter.status }}
+        key={`${filter.code ?? ''}:${filter.name ?? ''}:${filter.status ?? ''}:${String(filter.hasBankAccount)}:${filter.createdFrom ?? ''}:${filter.createdTo ?? ''}`}
+        defaultValues={{
+          code: filter.code,
+          name: filter.name,
+          status: filter.status,
+          hasBankAccount: filter.hasBankAccount,
+          createdFrom: filter.createdFrom,
+          createdTo: filter.createdTo,
+        }}
         onSearch={navigation.search}
       />
       <SubMerchantList

@@ -10,6 +10,7 @@ export interface TerminalListFilter {
   subMerchantId?: string;
   name?: string;
   status?: TerminalRow["status"];
+  terminalType?: TerminalRow["terminalType"];
 }
 
 export interface TerminalListResult {

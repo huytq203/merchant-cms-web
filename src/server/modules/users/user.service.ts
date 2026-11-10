@@ -14,13 +14,25 @@ export interface UserFilter {
   page: number;
   pageSize: number;
   query?: string;
+  status?: "PENDING" | "ACTIVE" | "LOCKED";
+  permissionGroupId?: string;
+  /** `MASTER` = Master-wide users, otherwise a Sub-merchant id. */
+  scope?: string;
 }
 
 export async function listUsers(filter: UserFilter): Promise<BeResult<{ rows: MerchantUser[]; total: number }>> {
   const result = await merchantClient().get({
     path: userPaths.list,
     schema: pageSchema(merchantUserSchema),
-    query: { merchantId: filter.merchantId, page: filter.page, size: filter.pageSize },
+    query: {
+      merchantId: filter.merchantId,
+      page: filter.page,
+      size: filter.pageSize,
+      q: filter.query,
+      status: filter.status,
+      permissionGroupId: filter.permissionGroupId,
+      ...(filter.scope === "MASTER" ? { masterWide: true } : { subMerchantId: filter.scope }),
+    },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }

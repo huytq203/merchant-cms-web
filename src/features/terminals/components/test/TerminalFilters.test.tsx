@@ -36,4 +36,12 @@ describe("terminal filters", () => {
     expect(onSearch).toHaveBeenCalledWith({});
     expect(screen.getByRole("textbox", { name: /Tên Terminal/ })).toHaveValue("");
   });
+
+  it("filters by terminal type together with the other fields", async () => {
+    const onSearch = renderFilters();
+    await userEvent.click(screen.getByRole("combobox", { name: /Loại terminal/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "QR" }));
+    await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    expect(onSearch).toHaveBeenCalledWith({ terminalType: "QR" });
+  });
 });

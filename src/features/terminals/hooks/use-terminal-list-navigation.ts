@@ -1,13 +1,14 @@
 import { usePathname, useRouter } from "next/navigation";
 import type { TerminalListFilter } from "../types";
 
-type SearchValues = Pick<TerminalListFilter, "name" | "status" | "subMerchantId">;
+type SearchValues = Pick<TerminalListFilter, "name" | "status" | "subMerchantId" | "terminalType">;
 
 function toSearchParams(filter: TerminalListFilter): URLSearchParams {
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
   if (filter.name) params.set("name", filter.name);
   if (filter.status) params.set("status", filter.status);
   if (filter.subMerchantId) params.set("subMerchantId", filter.subMerchantId);
+  if (filter.terminalType) params.set("terminalType", filter.terminalType);
   return params;
 }
 

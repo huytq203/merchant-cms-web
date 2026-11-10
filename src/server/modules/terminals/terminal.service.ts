@@ -19,6 +19,7 @@ export async function listTerminals(filter: TerminalListFilter): Promise<BeResul
       subMerchantId: filter.subMerchantId,
       name: filter.name,
       status: filter.status,
+      terminalType: filter.terminalType,
     },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;

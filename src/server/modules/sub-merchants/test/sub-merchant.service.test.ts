@@ -107,4 +107,27 @@ describe("sub merchant service", () => {
     mswServer.use(http.get(`${PATH}/${detail.id}`, () => HttpResponse.json(envelope(invalid))));
     expect(await getSubMerchant(detail.id)).toMatchObject({ success: false, error: { code: "INVALID_RESPONSE" } });
   });
+  it("forwards the receiving-account and created-date filters to the merchant endpoint, also while filtering by name", async () => {
+    const queries: URLSearchParams[] = [];
+    mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page([row], 1))); }));
+    await listSubMerchants({ page: 1, pageSize: 10, hasBankAccount: false, createdFrom: "2026-09-01", createdTo: "2026-09-30" });
+    await listSubMerchants({ page: 1, pageSize: 10, name: "sub", hasBankAccount: true });
+    expect(Object.fromEntries(queries[0]!)).toEqual({ page: "1", size: "10", hasBankAccount: "false", createdFrom: "2026-09-01", createdTo: "2026-09-30" });
+    // The BE narrows by account/date first; only the name is matched here, so totals stay consistent.
+    expect(Object.fromEntries(queries[1]!)).toEqual({ page: "1", size: "100", hasBankAccount: "true" });
+  });
+  it("reads the overview columns of the Portal list row", async () => {
+    const overview = {
+      ...row,
+      businessField: "Bán lẻ",
+      createdAt: "2026-09-28T10:00:00",
+      terminalCount: 2,
+      terminalCountByType: { POS: 1, ONLINE: 0, QR: 1 },
+      settlementBankAccount: { bankCode: "VPB", maskedAccountNo: "*********2111", linkStatus: "LINKED" },
+      revenue7d: 1748000,
+    };
+    mswServer.use(http.get(LIST_PATH, () => HttpResponse.json(envelope(page([overview], 1)))));
+    const result = await listSubMerchants({ page: 1, pageSize: 10 });
+    expect(result).toMatchObject({ success: true, data: { rows: [{ terminalCount: 2, revenue7d: 1748000, settlementBankAccount: { bankCode: "VPB", linkStatus: "LINKED" } }] } });
+  });
 });

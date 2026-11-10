@@ -42,4 +42,18 @@ describe('SubMerchantFilters', () => {
     expect(screen.getByRole('combobox', { name: 'Trạng thái' })).toHaveTextContent('Tất cả trạng thái');
     expect(onSearch).toHaveBeenCalledExactlyOnceWith({});
   });
+
+  it('filters by whether the Sub has a receiving account', async () => {
+    const onSearch = vi.fn();
+    render(<SubMerchantFilters onSearch={onSearch} />);
+    await userEvent.click(screen.getByRole('combobox', { name: 'TK nhận tiền' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Chưa có TK nhận tiền' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }));
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith({ hasBankAccount: false });
+  });
+
+  it('starts from the URL created-date range and the account choice', () => {
+    render(<SubMerchantFilters onSearch={vi.fn()} defaultValues={{ hasBankAccount: true, createdFrom: '2026-09-01', createdTo: '2026-09-30' }} />);
+    expect(screen.getByRole('combobox', { name: 'TK nhận tiền' })).toHaveTextContent('Đã có TK nhận tiền');
+  });
 });

@@ -8,6 +8,9 @@ import { requireGroupScope, requireMerchantScope, requireSubMerchantScope, requi
 const querySchema = paginationQuerySchema.extend({
   query: z.string().max(100).optional(),
   status: merchantUserStatusSchema.optional(),
+  permissionGroupId: z.uuid().optional(),
+  /** `MASTER` (users with Master-wide access) or the id of one Sub-merchant. */
+  scope: z.union([z.literal("MASTER"), z.uuid()]).optional(),
 });
 
 export async function GET(request: Request) {
