@@ -60,11 +60,17 @@ export function BankAccountFormModal(props: Props) {
   const { open, account, draft, isSubmitting, failure, onSubmit, onClose, onReload } = props;
   const [values, setValues] = useState<BankAccountFormValues>(() => initialValues(account, draft));
   const [issues, setIssues] = useState<Record<string, string>>({});
+  // Lỗi tên chủ TK do BE trả (5803/5804/5729) hiện ở ô Chủ tài khoản tới khi người dùng sửa ngân hàng, số TK hoặc tên.
+  const [dismissedFailure, setDismissedFailure] = useState<BankErrorView | null>(null);
+  const holderFailure = failure?.kind === "holderName" && failure !== dismissedFailure ? failure.message : "";
   const needsOtp = !account || isBankIdentityChanged(account, values);
 
   const change = <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => {
     setValues((current) => ({ ...current, [field]: value }));
     setIssues((current) => ({ ...current, [field]: "" }));
+    // Chỉ khi giá trị thật sự đổi: ô tên tự chuẩn hóa lúc rời ô (onBlur) không được xóa lỗi người dùng chưa sửa.
+    const identityField = field === "accountName" || field === "accountNumber" || field === "bankCode";
+    if (identityField && values[field] !== value) setDismissedFailure(failure);
   };
 
   const submit = (event: FormEvent) => {
@@ -86,7 +92,7 @@ export function BankAccountFormModal(props: Props) {
         <form noValidate onSubmit={submit} className="mt-4 space-y-4">
           <BankAccountFields
             values={values}
-            issues={issues}
+            issues={holderFailure && !issues.accountName ? { ...issues, accountName: holderFailure } : issues}
             mode={account ? "edit" : "create"}
             askReason={needsOtp}
             onChange={change}
@@ -94,7 +100,7 @@ export function BankAccountFormModal(props: Props) {
           <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
             {needsOtp ? otpNotice : branchOnlyNotice}
           </p>
-          <BankFailureAlert failure={failure} onReload={onReload} />
+          <BankFailureAlert failure={failure?.kind === "holderName" ? null : failure} onReload={onReload} />
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
               Hủy

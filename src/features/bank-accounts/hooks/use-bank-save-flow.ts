@@ -42,7 +42,9 @@ export function useBankSaveFlow({ account, onSaved }: Options) {
     } catch (error) {
       const view = describeBankError(error);
       setFailure(view);
-      if (view.kind === "conflict") setChallenge(null);
+      // Bản cũ, hoặc tên chủ TK bị ngân hàng/KYB từ chối: đóng bước OTP, quay lại form (dữ liệu nháp giữ nguyên) để
+      // người dùng sửa; lỗi tên hiện ngay ô Chủ tài khoản. Lần lưu sau xin mã OTP mới.
+      if (view.kind === "conflict" || view.kind === "holderName") setChallenge(null);
     }
   };
 

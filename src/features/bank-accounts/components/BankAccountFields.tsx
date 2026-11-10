@@ -8,6 +8,13 @@ import { normalizeAccountName } from "../utils/bank-mapper";
 import type { BankAccountFormValues } from "../types";
 import { BankAccountScopeField } from "./BankAccountScopeField";
 
+/**
+ * Quy tắc tên chủ TK (BE BankAccountHolderPolicy, 10/11): so với tên pháp nhân KYB của Master VÀ với tên ngân hàng trả
+ * về. Cờ "dùng TK tên khác" do Admin tích chỉ bỏ phép so pháp nhân; Portal không tự bật được cờ đó nên câu hướng dẫn
+ * nêu quy tắc mặc định.
+ */
+export const ACCOUNT_NAME_HINT = "Tên phải trùng tên pháp nhân đã xác thực KYB và tên chủ tài khoản tại ngân hàng";
+
 type Props = {
   values: BankAccountFormValues;
   issues: Record<string, string>;
@@ -62,6 +69,7 @@ export function BankAccountFields({ values, issues, mode, askReason, onChange }:
           autoComplete="off"
           value={values.accountName}
           error={issues.accountName || undefined}
+          description={ACCOUNT_NAME_HINT}
           onChange={(event) => onChange("accountName", event.nativeEvent instanceof InputEvent && event.nativeEvent.isComposing
             ? event.target.value
             : normalizeAccountName(event.target.value))}

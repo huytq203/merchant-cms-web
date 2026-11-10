@@ -161,6 +161,53 @@ describe("bank accounts container", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
+  it("closes the code step and shows a holder name the bank does not confirm (5804) under the holder field", async () => {
+    const mismatch = "Tên chủ tài khoản không khớp tên chủ tài khoản tại ngân hàng. Vui lòng kiểm tra lại";
+    mswServer.use(http.post(base, () => HttpResponse.json({ success: false, message: mismatch, code: "5804" }, { status: 400 })));
+    renderContainer();
+    await screen.findByText("******7890");
+    await fillNewAccount();
+    await screen.findByText(/0912•••678/);
+    await typeCode("123456");
+    await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
+    // Quay lại form với dữ liệu đã nhập; lỗi nằm ngay ô Chủ tài khoản, không còn ô nhập mã.
+    const holder = await screen.findByRole("textbox", { name: /Chủ tài khoản/ });
+    expect(holder).toHaveValue("CONG TY A");
+    const dialog = screen.getByRole("dialog");
+    // Lỗi ở ngay ô (thay cho dòng hướng dẫn), không lặp lại ở khung lỗi chung cuối form.
+    expect(within(dialog).getAllByText(mismatch)).toHaveLength(1);
+    expect(holder).toHaveClass("border-danger");
+    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Digit 1 of 6" })).not.toBeInTheDocument();
+    // Sửa tên thì lỗi cũ biến mất, dòng hướng dẫn hiện lại.
+    await userEvent.type(holder, "B");
+    expect(within(dialog).queryByText(mismatch)).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Tên phải trùng tên pháp nhân đã xác thực KYB và tên chủ tài khoản tại ngân hàng")).toBeInTheDocument();
+  });
+
+  it("closes the code step when the bank name inquiry fails (5803), keeping what was typed", async () => {
+    const inquiry = "Chưa tra cứu được tên chủ tài khoản từ ngân hàng. Vui lòng kiểm tra lại ngân hàng, số tài khoản và thử lại sau";
+    mswServer.use(http.post(base, () => HttpResponse.json({ success: false, message: inquiry, code: "MERCHANT_BANK_ACCOUNT_HOLDER_INQUIRY_UNAVAILABLE" }, { status: 400 })));
+    renderContainer();
+    await screen.findByText("******7890");
+    await fillNewAccount();
+    await screen.findByText(/0912•••678/);
+    await typeCode("123456");
+    await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
+    const holder = await screen.findByRole("textbox", { name: /Chủ tài khoản/ });
+    expect(within(screen.getByRole("dialog")).getByText(inquiry)).toBeInTheDocument();
+    expect(holder).toHaveClass("border-danger");
+    expect(screen.getByRole("textbox", { name: /Số tài khoản/ })).toHaveValue("1234567890");
+  });
+
+  it("explains under the holder field which names it must match", async () => {
+    renderContainer();
+    await screen.findByText("******7890");
+    await userEvent.click(screen.getByRole("button", { name: /Thêm tài khoản/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Tên phải trùng tên pháp nhân đã xác thực KYB và tên chủ tài khoản tại ngân hàng")).toBeInTheDocument();
+  });
+
   it("edits a branch name without asking for an OTP", async () => {
     let challenged = false;
     let body: unknown;
