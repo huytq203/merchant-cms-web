@@ -32,7 +32,7 @@ export type WithdrawalFormErrors = Partial<Record<keyof WithdrawalFormFields, st
 export type WithdrawalCreateStep = "form" | "confirm" | "otp" | "sent";
 
 /** The figures the merchant reviewed. The code and the request are tied to this amount, so a later refetch cannot change them. */
-export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setoff" | "fee" | "netReceived" | "zeroNet">;
+export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setoff" | "fee" | "netReceived" | "zeroNet" | "escrowShortfallAfter">;
 
 const BLANK: WithdrawalFormFields = { subMerchantId: "", bankAccountId: "", reason: "" };
 
@@ -84,8 +84,8 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
     if (!values.subMerchantId) return setErrors({ subMerchantId: "Chọn Sub-merchant" });
     if (!values.bankAccountId) return setErrors({ bankAccountId: "Chọn tài khoản ngân hàng nhận tiền" });
     if (!balance.data || blocker || !parsed.success) return;
-    const { readyAmount, setoff, fee, netReceived, zeroNet } = balance.data;
-    setStatement({ readyAmount, setoff, fee, netReceived, zeroNet });
+    const { readyAmount, setoff, fee, netReceived, zeroNet, escrowShortfallAfter } = balance.data;
+    setStatement({ readyAmount, setoff, fee, netReceived, zeroNet, escrowShortfallAfter });
     setZeroNetAsked(false);
     setZeroNetAccepted(false);
     setOtpFailure(null);

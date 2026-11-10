@@ -26,6 +26,21 @@ describe("withdrawalBlocker", () => {
     expect(withdrawalBlocker({ ...balance, readyAmount: 0 })).toMatch(/Chưa có khoản nào sẵn sàng/);
   });
 
+  it("blocks with the BE's own words when the remainder after the escrow setoff cannot pay the fee", () => {
+    const message = "Số tiền còn lại sau cấn trừ ký quỹ không đủ trả phí rút";
+    expect(withdrawalBlocker({ ...balance, blocker: "FEE_EXCEEDS_REMAINDER", blockerMessage: message })).toBe(message);
+    // A BE blocker without its sentence still blocks, in the same words.
+    expect(withdrawalBlocker({ ...balance, blocker: "FEE_EXCEEDS_REMAINDER", blockerMessage: null })).toBe(message);
+    // An older BE that still sends a negative net is blocked the same way.
+    expect(withdrawalBlocker({ ...balance, netReceived: -3_000 })).toBe(message);
+    // Automatic mode and "nothing ready" still come first.
+    expect(withdrawalBlocker({ ...balance, readyAmount: 0, blocker: "FEE_EXCEEDS_REMAINDER" })).toMatch(/Chưa có khoản nào sẵn sàng/);
+  });
+
+  it("does not block a zero net payout: that one is confirmed on the review step", () => {
+    expect(withdrawalBlocker({ ...balance, netReceived: 0, blocker: null })).toBeNull();
+  });
+
   it("names the first limit the ready amount breaks", () => {
     expect(withdrawalBlocker({ ...balance, dailyCountRemaining: 0 })).toMatch(/số lần rút/);
     expect(withdrawalBlocker({ ...balance, readyAmount: 5_000 })).toMatch(/tối thiểu/);

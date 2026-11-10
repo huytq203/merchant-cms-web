@@ -44,13 +44,18 @@ export function WithdrawalBalancePanel({ balance, hasSub, blocker }: Props) {
   }
   const data = balance.data;
   if (!data) return <Frame busy><p className="text-sm text-muted-foreground">Đang tải số dư...</p></Frame>;
+  // Only when the escrow is actually short: a Sub without set-off never sees escrow rows.
+  const showShortfall = (data.escrowShortfallBefore ?? 0) > 0;
   return (
     <Frame>
       <dl className="divide-y divide-border">
         <Row label="Số tiền rút (toàn bộ khoản sẵn sàng)" value={formatAmount(data.readyAmount)} strong />
+        {/* Ký quỹ Master đang thiếu: cấn trừ = min(số rút, phần thiếu); phần thiếu còn lại cấn ở lần rút sau. */}
+        {showShortfall ? <Row label="Ký quỹ còn thiếu trước khi rút" value={formatAmount(data.escrowShortfallBefore ?? 0)} /> : null}
         <Row label="Cấn trừ ký quỹ" value={formatAmount(data.setoff)} />
         <Row label="Phí rút tạm tính" value={formatAmount(data.fee)} />
-        <Row label="Thực nhận" value={formatAmount(data.netReceived)} strong />
+        <Row label="Thực nhận" value={formatAmount(Math.max(0, data.netReceived))} strong />
+        {showShortfall ? <Row label="Ký quỹ còn thiếu sau lệnh này" value={formatAmount(data.escrowShortfallAfter ?? 0)} /> : null}
       </dl>
       <dl className="divide-y divide-border border-t border-border pt-1 text-muted-foreground">
         <Row label="Số dư khả dụng" value={formatAmount(data.availableBalance)} />

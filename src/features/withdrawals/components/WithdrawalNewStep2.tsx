@@ -8,6 +8,7 @@ import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import { formatAmount } from "@/lib/utils/helper";
 import { EMPTY_VALUE } from "../constants/Withdrawal.constants";
 import type { WithdrawalCreateFlow } from "../hooks/use-withdrawal-create-flow";
+import { zeroNetExplanation } from "../utils/withdrawal-limits";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -42,7 +43,7 @@ export function WithdrawalNewStep2({ flow }: { flow: WithdrawalCreateFlow }) {
       </dl>
       {zeroNetRequired ? (
         <Notice tone="warning">
-          <p>Số tiền thực nhận bằng 0: toàn bộ khoản rút bị cấn trừ hoặc dùng để trả phí, bạn sẽ không nhận được tiền về tài khoản.</p>
+          <p>{zeroNetExplanation(statement)}</p>
           <div className="mt-2">
             <Checkbox
               label="Tôi hiểu và vẫn muốn gửi yêu cầu"

@@ -106,6 +106,19 @@ export const withdrawalBalanceSchema = z.object({
    */
   automaticSettlement: z.boolean().nullish().transform((value) => value ?? false),
   asOf: z.string(),
+  /**
+   * Cấn trừ ký quỹ (10/11/2026): how much the Master's escrow is short before this request, and what is still short
+   * after its setoff (carried to the next withdrawal). 0 when set-off is off; null when nothing is ready (BE did not read
+   * the escrow) or when the BE does not send them yet.
+   */
+  escrowShortfallBefore: nullableCount,
+  escrowShortfallAfter: nullableCount,
+  /**
+   * Why BE would refuse a request although money is ready, e.g. `FEE_EXCEEDS_REMAINDER` (what is left after the setoff
+   * cannot pay the fee). `blockerMessage` is the Vietnamese sentence to show. Both null when nothing blocks.
+   */
+  blocker: z.string().nullish().transform((value) => value ?? null),
+  blockerMessage: z.string().nullish().transform((value) => value ?? null),
 });
 
 /** The code is issued for one (account, amount) pair, so the browser names both. */

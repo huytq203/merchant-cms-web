@@ -235,6 +235,38 @@ describe("create withdrawal modal: account and balance", () => {
     expect(within(dialog).queryByRole("button", { name: "Rút tối đa" })).not.toBeInTheDocument();
   });
 
+  it("shows the escrow shortfall before and after this request when the escrow is short", async () => {
+    balanceReturns(makeBalance({ readyAmount: 1_568, setoff: 1_568, fee: 0, netReceived: 0, zeroNet: true,
+      escrowShortfallBefore: 5_680, escrowShortfallAfter: 4_112 }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickAccount(dialog);
+    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(await within(panel).findByText("Ký quỹ còn thiếu trước khi rút")).toBeInTheDocument();
+    expect(within(panel).getByText("Ký quỹ còn thiếu sau lệnh này")).toBeInTheDocument();
+    expect(within(panel).getByText(/5\.680/)).toBeInTheDocument();
+    expect(within(panel).getByText(/4\.112/)).toBeInTheDocument();
+  });
+
+  it("hides the escrow shortfall rows when nothing is missing", async () => {
+    balanceReturns(makeBalance({ escrowShortfallBefore: 0, escrowShortfallAfter: 0 }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickAccount(dialog);
+    await within(dialog).findByText(/5\.993\.500/);
+    expect(within(dialog).queryByText("Ký quỹ còn thiếu trước khi rút")).not.toBeInTheDocument();
+  });
+
+  it("blocks the request when the remainder after the setoff cannot pay the fee", async () => {
+    balanceReturns(makeBalance({ readyAmount: 10_000, setoff: 7_000, fee: 5_500, netReceived: 0, zeroNet: false,
+      blocker: "FEE_EXCEEDS_REMAINDER", blockerMessage: "Số tiền còn lại sau cấn trừ ký quỹ không đủ trả phí rút" }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickAccount(dialog);
+    expect(await within(dialog).findByText("Số tiền còn lại sau cấn trừ ký quỹ không đủ trả phí rút")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
   it("blocks the request and says why when nothing is ready to withdraw", async () => {
     balanceReturns(makeBalance({ readyAmount: 0, netReceived: 0, fee: 0, setoff: 0 }));
     renderContainer();
@@ -519,6 +551,19 @@ describe("create withdrawal modal: zero net payout", () => {
     await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" });
     expect(challenged).toHaveBeenCalledTimes(1);
     expect(bodies[0]).toMatchObject({ confirmZeroNet: true, amount: 6_000_000 });
+  });
+
+  it("explains that the whole amount goes to the escrow and what is still missing", async () => {
+    balanceReturns(makeBalance({ readyAmount: 1_568, setoff: 1_568, fee: 0, netReceived: 0, zeroNet: true,
+      escrowShortfallBefore: 5_680, escrowShortfallAfter: 4_112, minimumAmount: null }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToReview(dialog);
+    expect(within(dialog).getByText(
+      "Toàn bộ 1.568 vnđ dùng để bù ký quỹ. Không có tiền chuyển về tài khoản. Ký quỹ còn thiếu 4.112 vnđ sẽ được cấn ở lần rút sau.",
+    )).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+    expect(within(dialog).getByRole("checkbox", { name: /Tôi hiểu/ })).toBeInTheDocument();
   });
 
   it("does not send confirmZeroNet when the net is not zero", async () => {
