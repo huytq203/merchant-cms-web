@@ -7,10 +7,10 @@ import { ChartBar } from "@/components/ui/chart/Chart";
 import { Switch } from "@/components/ui/switch/Switch";
 import { Table } from "@/components/ui/table/Table";
 import { shiftVnDate } from "@/lib/utils/vn-time";
-import { holdItemColumns, vnDay } from "../columns/HoldItemColumn";
+import { holdItemColumns } from "../columns/HoldItemColumn";
 import { HOLD_RANGE_DAYS } from "../constants/hold-labels";
 import { holdCalendarQueries } from "../hold-calendar-queries";
-import type { HoldCalendar, HoldItem, HoldItemFilter } from "../types";
+import type { HoldCalendar, HoldItemFilter } from "../types";
 
 interface Props {
   calendar: HoldCalendar;
@@ -39,18 +39,18 @@ export function itemFilter(calendar: HoldCalendar, today: string, showReleased: 
 }
 
 /**
- * Dữ liệu cột: "Sẽ giải phóng" lấy từ lịch của BE (đủ, khớp tổng); "Đã giải phóng" cộng các khoản đã giải phóng trên trang
- * đang xem của danh sách (chỉ khi bật toggle) — nên chỉ là minh họa, số đầy đủ ở ô "Đã giải phóng" phía trên.
+ * Dữ liệu cột: "Sẽ giải phóng" từ lịch của BE, "Đã giải phóng" từ `releasedByDay` của BE (đủ cả cửa sổ đã qua, khớp ô
+ * "Đã giải phóng"); cột xám chỉ hiện khi bật toggle.
  */
-function chartRows(calendar: HoldCalendar, items: HoldItem[] | undefined) {
+export function chartRows(calendar: HoldCalendar, showReleased: boolean) {
   const byDay = new Map<string, { upcoming: number; released: number }>();
   for (const day of calendar.days) byDay.set(day.date, { upcoming: day.amount, released: 0 });
-  for (const item of items ?? []) {
-    if (item.state !== "RELEASED" && item.state !== "RELEASED_EARLY") continue;
-    const day = vnDay(item.eventAt);
-    const entry = byDay.get(day) ?? { upcoming: 0, released: 0 };
-    entry.released += item.heldAmount;
-    byDay.set(day, entry);
+  if (showReleased) {
+    for (const day of calendar.releasedByDay) {
+      const entry = byDay.get(day.date) ?? { upcoming: 0, released: 0 };
+      entry.released += day.amount;
+      byDay.set(day.date, entry);
+    }
   }
   return [...byDay.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
@@ -62,7 +62,7 @@ export function HoldReleaseBoard({ calendar, today, subMerchantId }: Props) {
   const [showReleased, setShowReleased] = useState(false);
   const [page, setPage] = useState(1);
   const items = useQuery(holdCalendarQueries.items(itemFilter(calendar, today, showReleased, page, subMerchantId)));
-  const rows = chartRows(calendar, showReleased ? items.data?.rows : undefined);
+  const rows = chartRows(calendar, showReleased);
 
   return (
     <div className="space-y-4">
@@ -90,7 +90,7 @@ export function HoldReleaseBoard({ calendar, today, subMerchantId }: Props) {
             ]}
           />
           <figcaption className="text-xs text-muted-foreground">
-            Cột xanh: sẽ giải phóng theo lịch. Cột xám: đã giải phóng (khi bật hiện khoản đã giải phóng, tính trên trang đang xem).
+            Cột xanh: sẽ giải phóng theo lịch. Cột xám: đã giải phóng (khi bật hiện khoản đã giải phóng).
           </figcaption>
         </figure>
       ) : null}

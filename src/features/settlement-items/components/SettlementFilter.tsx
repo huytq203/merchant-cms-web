@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { FilterCard } from "@/components/page/FilterCard";
+import { ComboBox } from "@/components/ui/combobox/ComboBox";
 import { DatePicker } from "@/components/ui/datepicker/DatePicker";
 import { Select } from "@/components/ui/select/Select";
 import type { SubMerchantChoice } from "@/features/sub-merchants/utils/sub-merchant-choice";
@@ -27,12 +28,22 @@ const ALL = "__all__";
 const toDay = (value: Date | undefined) => (value ? format(value, "yyyy-MM-dd") : "");
 const orUndefined = (value: string) => (value && value !== ALL ? value : undefined);
 
-/** Terminal của Sub đang chọn (hoặc mọi Sub trong phạm vi); chỉ tải khi phiên được đọc Terminal. */
+/** Số Terminal tối đa một lần tải (trần pageSize của route Terminal). */
+export const TERMINAL_CHOICE_LIMIT = 100;
+
+/**
+ * Terminal của Sub đang chọn (hoặc mọi Sub trong phạm vi); chỉ tải khi phiên được đọc Terminal. Tải tối đa
+ * {@link TERMINAL_CHOICE_LIMIT} và tìm trong số đó ở client: ComboBox dùng chung chưa phát sự kiện khi gõ nên chưa tìm
+ * phía server theo `name` được; vượt trần thì ô hiện ghi chú để người dùng chọn Sub cho hẹp lại.
+ */
 function useTerminalChoices(subMerchantId: string | undefined, enabled: boolean) {
   return useQuery({
-    ...terminalQueries.list({ page: 1, pageSize: 100, ...(subMerchantId ? { subMerchantId } : {}) }),
+    ...terminalQueries.list({ page: 1, pageSize: TERMINAL_CHOICE_LIMIT, ...(subMerchantId ? { subMerchantId } : {}) }),
     enabled,
-    select: (data) => data.rows.map(({ id, tid, name }) => ({ value: id, label: `${tid} — ${name}` })),
+    select: (data) => ({
+      options: data.rows.map(({ id, tid, name }) => ({ value: id, label: `${tid} — ${name}` })),
+      truncated: data.total > data.rows.length,
+    }),
   });
 }
 
@@ -73,13 +84,21 @@ export function SettlementFilter({ initial, choices, canFilterTerminal, onSearch
         clearable={false}
       />
       {canFilterTerminal ? (
-        <Select
-          label="Terminal"
-          options={[{ label: "Tất cả", value: ALL }, ...(terminals.data ?? [])]}
-          value={terminalId}
-          onChange={(value) => setTerminalId(value || ALL)}
-          clearable={false}
-        />
+        <div className="space-y-1">
+          <ComboBox
+            autocomplete
+            label="Terminal"
+            placeholder="Tất cả"
+            emptyText="Không có Terminal phù hợp"
+            options={terminals.data?.options ?? []}
+            isLoading={terminals.isFetching}
+            value={terminalId === ALL ? "" : terminalId}
+            onValueChange={(next) => setTerminalId((typeof next === "string" ? next : next[0]) || ALL)}
+          />
+          {terminals.data?.truncated ? (
+            <p className="text-xs text-muted-foreground">Chỉ hiện {TERMINAL_CHOICE_LIMIT} Terminal đầu; chọn Sub-merchant để thu hẹp.</p>
+          ) : null}
+        </div>
       ) : null}
       <Select
         label="Trạng thái đợt"

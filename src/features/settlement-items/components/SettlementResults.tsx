@@ -21,7 +21,7 @@ export function SettlementResults({ filter, onPageChange, onView, onPickSub }: P
 
   return (
     <>
-      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantId ? undefined : onPickSub} /> : null}
+      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantId ? undefined : onPickSub} trancheFiltered={Boolean(filter.trancheStatus)} /> : null}
       <ResultCard>
         {list.isPending ? <ResultState state="loading" loadingLabel="Đang tải dòng quyết toán" /> : null}
         {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}

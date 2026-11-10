@@ -19,11 +19,11 @@ const base = "/api/v1/admin/settlement-items";
 const filter = { paidFrom: "2026-10-08", paidTo: "2026-10-14", page: 1, pageSize: 20 };
 const choices = [{ id: subId, label: "SUB001 · Cửa hàng A" }];
 
-function renderContainer(current: Parameters<typeof SettlementItemsContainer>[0]["filter"] = filter) {
+function renderContainer(current: Parameters<typeof SettlementItemsContainer>[0]["filter"] = filter, canFilterTerminal = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <SettlementItemsContainer filter={current} choices={choices} canFilterTerminal={false} />
+      <SettlementItemsContainer filter={current} choices={choices} canFilterTerminal={canFilterTerminal} />
     </QueryClientProvider>,
   );
 }
@@ -141,5 +141,24 @@ describe("settlement items container", () => {
     expect(await within(sheet).findByText("MC000001-S001 · Halo tech")).toBeInTheDocument();
     expect(within(sheet).getByText("Quầy 1 (T0001 · QR)")).toBeInTheDocument();
     expect(within(sheet).getByText("FM26ABCDE")).toBeInTheDocument();
+  });
+
+  it("hides the split by tranche while filtering on a tranche group and says why", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({
+      rows: [rowFixture],
+      total: 1,
+      totals: { ...totalsFixture, byTrancheStatus: { HELD: 100, READY: 200 } },
+    })));
+    renderContainer({ ...filter, trancheStatus: "HELD" });
+    await screen.findByRole("table");
+    expect(screen.getByText("Thanh phân bổ chỉ hiện khi xem tất cả trạng thái.")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Phân bổ theo trạng thái đợt" })).not.toBeInTheDocument();
+  });
+
+  it("notes the Terminal limit when the session has more Terminals than one load", async () => {
+    const terminal = { id: "22222222-2222-4222-8222-222222222222", tid: "T0001", name: "Quầy 1" };
+    mswServer.use(http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: [terminal], total: 150 })));
+    renderContainer(filter, true);
+    expect(await screen.findByText("Chỉ hiện 100 Terminal đầu; chọn Sub-merchant để thu hẹp.")).toBeInTheDocument();
   });
 });

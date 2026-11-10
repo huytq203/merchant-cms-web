@@ -15,6 +15,9 @@ const holdDaySchema = z.object({
 /** Số khoản và tổng tiền của một nhóm khoản đã qua (mục 14). */
 const pastTotalSchema = z.object({ count: z.number().int(), amount: z.number() });
 
+/** Khoản đã giải phóng gom theo ngày VN (BE MR A), cho cột xám của biểu đồ. */
+const pastDaySchema = z.object({ date: z.string(), count: z.number().int(), amount: z.number() });
+
 /**
  * `GET /api/v1/merchant/hold-calendar/{subMerchantId}?range=` (hoặc `/hold-calendar?range=` cho mọi Sub); overdue holds
  * still held are folded into today's row. `pastFrom`, `releasedInPast`, `cancelledByRefund` (mục 14): khoản đã giải phóng /
@@ -35,6 +38,7 @@ export const holdCalendarSchema = z.object({
   pastFrom: z.string().nullish(),
   releasedInPast: pastTotalSchema.nullish().transform((value) => value ?? null),
   cancelledByRefund: pastTotalSchema.nullish().transform((value) => value ?? null),
+  releasedByDay: z.array(pastDaySchema).nullish().transform((value) => value ?? []),
 });
 
 /** Trạng thái một khoản tạm giữ, suy ra ở BE như danh sách tạm giữ Admin. */
@@ -61,11 +65,11 @@ export const holdItemSchema = z.object({
   paidAt: z.string(),
   heldAmount: z.number(),
   frozenAmount: z.number(),
-  holdReleaseAt: z.string(),
+  holdReleaseAt: z.string().nullish(),
   state: holdItemStateSchema,
   releasedAt: z.string().nullish(),
   cancelledAt: z.string().nullish(),
-  eventAt: z.string(),
+  eventAt: z.string().nullish(),
   earlyReleaseId: z.uuid().nullish(),
 });
 

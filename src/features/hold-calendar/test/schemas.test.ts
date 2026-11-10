@@ -31,4 +31,9 @@ describe("hold calendar schema", () => {
     expect(holdItemSchema.safeParse({ ...holdItemFixture, state: "LOST" }).success).toBe(false);
     expect(holdItemPageSchema.parse({ rows: [holdItemFixture], total: 1 }).rows).toHaveLength(1);
   });
+
+  it("accepts a hold item without dates and a calendar without the released days", () => {
+    expect(holdItemSchema.safeParse({ ...holdItemFixture, holdReleaseAt: null, eventAt: null }).success).toBe(true);
+    expect(holdCalendarSchema.parse(calendarFixture).releasedByDay).toEqual([]);
+  });
 });

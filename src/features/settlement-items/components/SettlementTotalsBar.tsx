@@ -57,10 +57,15 @@ interface Props {
   totals: SettlementTotals;
   /** Có khi đang xem Tất cả Sub: dải "Theo Sub", bấm để lọc. */
   onPickSub?: (subMerchantId: string) => void;
+  /**
+   * Đang lọc theo trạng thái đợt: dòng được giữ khi CÓ MỘT đợt ở trạng thái đó, nên phân bổ của tập đã lọc vẫn lẫn trạng
+   * thái khác và dễ đọc nhầm — ẩn thanh, thay bằng chú thích.
+   */
+  trancheFiltered?: boolean;
 }
 
 /** Thay hai hàng phương trình cũ: 3 ô Gộp / Phí / Doanh thu ghi nhận và thanh phân bổ theo trạng thái đợt. */
-export function SettlementTotalsBar({ totals, onPickSub }: Props) {
+export function SettlementTotalsBar({ totals, onPickSub, trancheFiltered = false }: Props) {
   const label = `Tổng của ${totals.count} đơn hàng`;
   return (
     <Card role="region" aria-label={label} className="space-y-3">
@@ -70,7 +75,9 @@ export function SettlementTotalsBar({ totals, onPickSub }: Props) {
         <Tile label="Phí" value={totals.feeAmount > 0 ? `− ${money(totals.feeAmount)}` : "0"} />
         <Tile label="Doanh thu ghi nhận" value={money(totals.recognisedAmount)} accent />
       </div>
-      <Allocation totals={totals} />
+      {trancheFiltered
+        ? <p className="text-sm text-muted-foreground">Thanh phân bổ chỉ hiện khi xem tất cả trạng thái.</p>
+        : <Allocation totals={totals} />}
       {onPickSub && totals.bySub.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Theo Sub:</span>
