@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseRefundSearchParams } from "../../revenue-refund-queries";
-import { refundFilterToSearch, refundPeriodToDates, refundQueryString, toRefundQuery } from "../refund-query";
+import { canCancelRefund, refundFilterToSearch, refundPeriodToDates, refundQueryString, toRefundQuery } from "../refund-query";
 
 const today = "2026-11-10";
 
@@ -50,5 +50,25 @@ describe("page URL", () => {
 
   it("ignores values it does not know instead of breaking the page", () => {
     expect(parseRefundSearchParams({ group: "NOPE", period: "1y", status: "WHATEVER" })).toEqual({});
+  });
+});
+
+describe("canCancelRefund (cùng quy tắc MerchantRevenueRefundService.cancel)", () => {
+  const creatorOnly = { canCancelAny: false, canCreate: true, userId: "u1" };
+  const canCancelAny = { canCancelAny: true, canCreate: false, userId: "u2" };
+
+  it("người chỉ có CREATE_REFUND chỉ hủy được yêu cầu của chính mình", () => {
+    expect(canCancelRefund({ createdSource: "PORTAL", createdBy: "u1" }, creatorOnly)).toBe(true);
+    expect(canCancelRefund({ createdSource: "PORTAL", createdBy: "u9" }, creatorOnly)).toBe(false);
+  });
+
+  it("CANCEL_REFUND/APPROVE_REFUND hủy được yêu cầu của người khác", () => {
+    expect(canCancelRefund({ createdSource: "PORTAL", createdBy: "u9" }, canCancelAny)).toBe(true);
+  });
+
+  it("chỉ yêu cầu do Portal tạo: Admin tạo hoặc thiếu nguồn tạo thì BE từ chối nên không hiện nút", () => {
+    expect(canCancelRefund({ createdSource: "ADMIN", createdBy: "u1" }, canCancelAny)).toBe(false);
+    expect(canCancelRefund({ createdSource: null, createdBy: "u1" }, creatorOnly)).toBe(false);
+    expect(canCancelRefund({ createdBy: "u1" }, canCancelAny)).toBe(false);
   });
 });

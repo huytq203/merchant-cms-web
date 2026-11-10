@@ -63,7 +63,7 @@ export function refundFilterToSearch(filter: RefundFilter): string {
 }
 
 /**
- * Nút Hủy theo cùng quy tắc BE: chỉ yêu cầu do Portal tạo (yêu cầu Admin tạo thì không); người có CANCEL_REFUND hoặc
+ * Nút Hủy theo cùng quy tắc BE: chỉ yêu cầu do Portal tạo (BE từ chối mọi nguồn khác PORTAL, kể cả khi thiếu trường); người có CANCEL_REFUND hoặc
  * APPROVE_REFUND hủy được của người khác; người chỉ có CREATE_REFUND chỉ hủy được yêu cầu do chính mình tạo.
  * BE vẫn kiểm lại, đây chỉ để không hiện nút chắc chắn bị từ chối.
  */
@@ -71,6 +71,6 @@ export function canCancelRefund(
   refund: { createdSource?: string | null; createdBy?: string | null },
   access: { canCancelAny: boolean; canCreate: boolean; userId: string },
 ): boolean {
-  if (refund.createdSource === "ADMIN") return false;
+  if (refund.createdSource !== "PORTAL") return false;
   return access.canCancelAny || (access.canCreate && refund.createdBy === access.userId);
 }

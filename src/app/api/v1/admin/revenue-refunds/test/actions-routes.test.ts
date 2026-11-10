@@ -53,13 +53,16 @@ describe("export route", () => {
 });
 
 describe("cancel route", () => {
-  it("accepts a creator or an approver and refuses a viewer", async () => {
+  it("accepts a creator, an approver or a canceller and refuses a viewer", async () => {
     cancelRevenueRefund.mockResolvedValue({ success: true, data: { ...pendingRefund, status: "CANCELLED" } });
     const call = () => cancel(new Request(`${url}/${pendingId}/cancel`, { method: "POST" }), { params: Promise.resolve({ id: pendingId }) });
     expect((await call()).status).toBe(403);
     getServerSession.mockResolvedValue({ ...session, permissions: ["VIEW_REFUND", "CREATE_REFUND"] });
     expect((await call()).status).toBe(200);
     getServerSession.mockResolvedValue({ ...session, permissions: ["VIEW_REFUND", "APPROVE_REFUND"] });
+    expect((await call()).status).toBe(200);
+    // BE (MerchantRevenueRefundPortalController.cancel) nhận cả CANCEL_REFUND: người chỉ có quyền hủy cũng vào được.
+    getServerSession.mockResolvedValue({ ...session, permissions: ["VIEW_REFUND", "CANCEL_REFUND"] });
     expect((await call()).status).toBe(200);
     expect(cancelRevenueRefund).toHaveBeenCalledWith(pendingId);
   });
