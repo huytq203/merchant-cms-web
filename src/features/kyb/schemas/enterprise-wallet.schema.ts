@@ -82,7 +82,7 @@ export const walletSubmitSchema = kybStepSchemas.legal
     context.addIssue({
       code: "custom",
       path: ["authorizationLetterStagingId"],
-      message: "Cần giấy uỷ quyền khi người quản lý khác người đại diện",
+      message: "Cần giấy ủy quyền khi người quản lý khác người đại diện",
     });
   });
 

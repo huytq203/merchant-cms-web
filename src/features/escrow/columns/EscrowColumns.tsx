@@ -14,21 +14,21 @@ export type EscrowContributionRow = EscrowContribution & { isTotal?: boolean };
 /** Set-off at withdrawal is escrow funded from the Sub's revenue, so it counts under "Từ doanh thu Sub". */
 const subRevenueOf = (byForm: EscrowContribution["byForm"]) => (byForm.SUB_REVENUE ?? 0) + (byForm.SETOFF ?? 0);
 
-/** Appends the totals row: each column is the sum of the rows above it, not a recomputation from another source. */
+/**
+ * Appends the totals row. Every column, including "Tổng", is summed from `byForm` (the BE V65 CHECK allows only
+ * TRANSFER, SUB_REVENUE and SETOFF), so the total row always equals the sum of its own columns.
+ */
 export function withTotalRow(rows: EscrowContribution[]): EscrowContributionRow[] {
-  const sum = (pick: (row: EscrowContribution) => number) => rows.reduce((acc, row) => acc + pick(row), 0);
+  const sum = (form: string) => rows.reduce((acc, row) => acc + (row.byForm[form] ?? 0), 0);
+  const byForm = { TRANSFER: sum("TRANSFER"), SUB_REVENUE: sum("SUB_REVENUE"), SETOFF: sum("SETOFF") };
   return [
     ...rows,
-    {
-      subMerchantId: null,
-      subCode: null,
-      subName: null,
-      amount: sum((row) => row.amount),
-      byForm: { TRANSFER: sum((row) => row.byForm.TRANSFER ?? 0), SUB_REVENUE: sum((row) => row.byForm.SUB_REVENUE ?? 0), SETOFF: sum((row) => row.byForm.SETOFF ?? 0) },
-      isTotal: true,
-    },
+    { subMerchantId: null, subCode: null, subName: null, amount: byForm.TRANSFER + byForm.SUB_REVENUE + byForm.SETOFF, byForm, isTotal: true },
   ];
 }
+
+/** The closing row reads heavier than the contributors above it. */
+const weight = (row: EscrowContributionRow) => (row.isTotal ? "font-bold" : "");
 
 export function escrowContributionColumns(masterName: string): ColumnDef<EscrowContributionRow>[] {
   return [
@@ -36,7 +36,7 @@ export function escrowContributionColumns(masterName: string): ColumnDef<EscrowC
       id: "contributor",
       header: "Bên đóng góp",
       cell: ({ row }) => (
-        <span className="font-semibold">
+        <span className={row.original.isTotal ? "font-bold uppercase" : "font-semibold"}>
           {row.original.isTotal
             ? "Tổng"
             : row.original.subMerchantId
@@ -45,7 +45,7 @@ export function escrowContributionColumns(masterName: string): ColumnDef<EscrowC
         </span>
       ),
     },
-    { id: "transfer", header: "Chuyển khoản", meta: right, cell: ({ row }) => <span className="tabular-nums">{money(row.original.byForm.TRANSFER ?? 0)}</span> },
+    { id: "transfer", header: "Chuyển khoản", meta: right, cell: ({ row }) => <span className={`tabular-nums ${weight(row.original)}`}>{money(row.original.byForm.TRANSFER ?? 0)}</span> },
     {
       id: "subRevenue",
       header: "Từ doanh thu Sub",
@@ -53,14 +53,14 @@ export function escrowContributionColumns(masterName: string): ColumnDef<EscrowC
       cell: ({ row }) => {
         const setoff = row.original.byForm.SETOFF ?? 0;
         return (
-          <div className="tabular-nums">
+          <div className={`tabular-nums ${weight(row.original)}`}>
             <span>{money(subRevenueOf(row.original.byForm))}</span>
             {setoff > 0 ? <p className="text-xs font-normal text-muted-foreground">trong đó cấn trừ khi rút {money(setoff)}</p> : null}
           </div>
         );
       },
     },
-    { id: "amount", header: "Tổng", meta: right, cell: ({ row }) => <span className="font-semibold tabular-nums">{money(row.original.amount)}</span> },
+    { id: "amount", header: "Tổng", meta: right, cell: ({ row }) => <span className={`tabular-nums ${row.original.isTotal ? "font-bold" : "font-semibold"}`}>{money(row.original.amount)}</span> },
   ];
 }
 

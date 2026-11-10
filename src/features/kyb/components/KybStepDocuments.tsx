@@ -69,7 +69,7 @@ export function KybStepDocuments({ wallet, control, missing, onStagingChange, on
         {/* A letter already on file stays visible when the names now match; it is not needed, so it cannot be swapped. */}
         {!showLetter && wallet.authorizationLetter && (
           <div className="grid gap-2">
-            <p className="text-sm font-medium text-foreground">Giấy uỷ quyền</p>
+            <p className="text-sm font-medium text-foreground">Giấy ủy quyền</p>
             <StoredFileCard file={wallet.authorizationLetter} onRefreshLinks={onRefreshLinks} />
           </div>
         )}

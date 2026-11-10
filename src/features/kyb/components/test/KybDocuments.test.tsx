@@ -33,7 +33,7 @@ describe("KybOverview legal documents", () => {
   it("shows a card with file name and a view link for each of the four documents", () => {
     render(<KybOverview wallet={wallet} />);
     for (const name of ["dkkd.pdf", "cccd-truoc.jpg", "cccd-sau.jpg", "uy-quyen.pdf"]) expect(screen.getByText(name)).toBeInTheDocument();
-    const links = screen.getAllByRole("link", { name: "Xem" });
+    const links = screen.getAllByRole("link", { name: /^Xem / });
     expect(links).toHaveLength(4);
     expect(links[0]).toHaveAttribute("href", "https://s3.example/dkkd.pdf?sig=x");
     expect(links[0]).toHaveAttribute("target", "_blank");
@@ -41,13 +41,22 @@ describe("KybOverview legal documents", () => {
 
   it("omits the optional authorization letter when none is on file", () => {
     render(<KybOverview wallet={{ ...wallet, authorizationLetter: null }} />);
-    expect(screen.queryByText("Giấy uỷ quyền")).not.toBeInTheDocument();
+    expect(screen.queryByText("Giấy ủy quyền")).not.toBeInTheDocument();
   });
 
-  it("does not offer a dead link when the signed URL has expired", () => {
+  it("offers a reload instead of a dead link when the signed URL has expired", async () => {
+    const expired = { ...wallet.businessLicense!, urlExpiresAt: "2020-01-01T00:00:00Z" };
+    const refresh = vi.fn();
+    render(<KybOverview wallet={{ ...wallet, businessLicense: expired }} onRefreshLinks={refresh} />);
+    expect(screen.getAllByRole("link", { name: /^Xem / })).toHaveLength(3);
+    await userEvent.click(screen.getByRole("button", { name: "Liên kết đã hết hạn, tải lại" }));
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("says to reload the page when no refetch is wired", () => {
     const expired = { ...wallet.businessLicense!, urlExpiresAt: "2020-01-01T00:00:00Z" };
     render(<KybOverview wallet={{ ...wallet, businessLicense: expired }} />);
-    expect(screen.getAllByRole("link", { name: "Xem" })).toHaveLength(3);
+    expect(screen.getByText("Liên kết đã hết hạn, vui lòng tải lại trang")).toBeInTheDocument();
   });
 });
 
@@ -57,11 +66,20 @@ describe("DocumentUploadField with a saved file", () => {
     expect(screen.getByText("dkkd.pdf")).toBeInTheDocument();
     expect(screen.queryByText("Nhấn để tải lên")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Thay tệp" }));
+    await userEvent.click(screen.getByRole("button", { name: "Thay tệp dkkd.pdf" }));
     expect(screen.getByText("Nhấn để tải lên")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Giữ tệp hiện tại" }));
     expect(screen.getByText("dkkd.pdf")).toBeInTheDocument();
+  });
+
+  it("returns to the card when the saved file changes after a replace was opened", async () => {
+    const { rerender } = render(<DocumentUploadField type="BUSINESS_LICENSE" existing={[wallet.businessLicense!]} onChange={() => undefined} />);
+    await userEvent.click(screen.getByRole("button", { name: "Thay tệp dkkd.pdf" }));
+    expect(screen.getByText("Nhấn để tải lên")).toBeInTheDocument();
+    rerender(<DocumentUploadField type="BUSINESS_LICENSE" existing={[file("aaaaaaaa-0000-4000-8000-000000000009", "moi.pdf", "application/pdf")]} onChange={() => undefined} />);
+    expect(screen.getByText("moi.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("Nhấn để tải lên")).not.toBeInTheDocument();
   });
 
   it("shows the empty upload box when nothing is saved", () => {

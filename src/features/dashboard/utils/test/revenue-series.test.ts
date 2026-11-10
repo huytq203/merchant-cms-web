@@ -45,8 +45,8 @@ describe("revenueRange", () => {
 describe("revenueWindowText", () => {
   it("names the period being viewed", () => {
     expect(revenueWindowText("DAY_7")).toBe("7 ngày gần nhất");
-    expect(revenueWindowText("THIS_MONTH", "2026-11-10")).toBe("Tháng 11/2026 (từ 01/11 đến 10/11)");
-    expect(revenueWindowText("LAST_MONTH", "2026-11-10")).toBe("Tháng 10/2026");
+    expect(revenueWindowText("THIS_MONTH", { from: "2026-11-01", to: "2026-11-10" })).toBe("Tháng 11/2026 (từ 01/11 đến 10/11)");
+    expect(revenueWindowText("LAST_MONTH", { from: "2026-10-01", to: "2026-10-31" })).toBe("Tháng 10/2026");
   });
 });
 

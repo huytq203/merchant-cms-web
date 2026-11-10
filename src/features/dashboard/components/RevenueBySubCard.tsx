@@ -60,7 +60,8 @@ export function RevenueBySubCard() {
   const [subMerchantId, setSubMerchantId] = useState("");
   const mode: Mode = preset === "THIS_MONTH" || preset === "LAST_MONTH" ? "MONTH" : "DAY";
   const query = useQuery(revenueQueries.series({ preset, ...(subMerchantId ? { subMerchantId } : {}) }));
-  const windowText = revenueWindowText(preset);
+  // The label follows the period of the data on screen when there is one (see revenueWindowText).
+  const windowText = revenueWindowText(preset, query.data ? { from: query.data.from, to: query.data.to } : undefined);
 
   return (
     <Card>

@@ -69,9 +69,9 @@ export function KybTab(props: Props) {
   const [sent, setSent] = useState(false);
 
   if (sent) return <KybDone onContinue={() => setSent(false)} />;
-  if (!canManage) return <KybOverview wallet={wallet} />;
+  if (!canManage) return <KybOverview wallet={wallet} onRefreshLinks={flowProps.onRefreshLinks} />;
   const showForm = canEditKyb(wallet) || editing;
-  if (!showForm) return <KybOverview wallet={wallet} onEdit={() => setEditing(true)} />;
+  if (!showForm) return <KybOverview wallet={wallet} onRefreshLinks={flowProps.onRefreshLinks} onEdit={() => setEditing(true)} />;
   return (
     <KybFlow
       {...flowProps}

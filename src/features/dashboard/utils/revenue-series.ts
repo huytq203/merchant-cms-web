@@ -34,10 +34,12 @@ export function revenueRange(preset: RevenuePreset, today: string): RevenueRange
 }
 
 /** Subtitle wording for the period on screen, so it never claims "30 ngày" while showing a month. */
-export function revenueWindowText(preset: RevenuePreset, today?: string): string {
+export function revenueWindowText(preset: RevenuePreset, bounds?: { from: string; to: string }): string {
   const count = PRESET_DAYS[preset];
   if (count) return `${count} ngày gần nhất`;
-  const range = revenueRange(preset, today ?? vnDay(new Date().toISOString()) ?? "");
+  // Once the response is in, its own from/to name the period: the server's "today" may differ from this browser's
+  // around Vietnam midnight, and the label must match the data shown.
+  const range = bounds ?? revenueRange(preset, vnDay(new Date().toISOString()) ?? "");
   const [year, month] = range.from.split("-");
   const label = `Tháng ${month}/${year}`;
   return preset === "THIS_MONTH" ? `${label} (từ ${periodLabel(range.from, "DAY")} đến ${periodLabel(range.to, "DAY")})` : label;

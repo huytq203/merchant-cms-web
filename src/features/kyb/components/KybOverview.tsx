@@ -16,6 +16,8 @@ type Props = {
   wallet: EnterpriseWallet;
   /** Offered for a verified dossier the session may manage: opens the form (identity changes go back to review). */
   onEdit?: () => void;
+  /** Reloads the dossier so expired presigned links are reissued. */
+  onRefreshLinks?: () => void;
 };
 
 /** The four legal documents of the dossier, in the order of the form; the letter only when one is on file. */
@@ -23,11 +25,11 @@ const DOCUMENT_CARDS = [
   { key: "businessLicense", label: "Giấy phép ĐKKD" },
   { key: "idCardFront", label: "CCCD mặt trước" },
   { key: "idCardBack", label: "CCCD mặt sau" },
-  { key: "authorizationLetter", label: "Giấy uỷ quyền" },
+  { key: "authorizationLetter", label: "Giấy ủy quyền" },
 ] as const;
 
 /** A dossier shown read only (under review, verified, or to a session that cannot manage it), with the review progress while pending. */
-export function KybOverview({ wallet, onEdit }: Props) {
+export function KybOverview({ wallet, onEdit, onRefreshLinks }: Props) {
   const status = WALLET_STATUS_LABELS[wallet.verificationStatus];
   const steps = kybTimeline(wallet);
   const pending = wallet.verificationStatus === "PENDING_APPROVAL";
@@ -80,7 +82,7 @@ export function KybOverview({ wallet, onEdit }: Props) {
             return (
               <div key={key} className="grid gap-1.5">
                 <p className="text-xs text-muted-foreground">{label}</p>
-                {file ? <StoredFileCard file={file} /> : <p className="text-sm text-muted-foreground">Chưa tải lên</p>}
+                {file ? <StoredFileCard file={file} onRefreshLinks={onRefreshLinks} /> : <p className="text-sm text-muted-foreground">Chưa tải lên</p>}
               </div>
             );
           })}

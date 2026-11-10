@@ -40,7 +40,7 @@ export function StoredFileCard({ file, action, onRefreshLinks }: Props) {
       </div>
       <div className="flex shrink-0 items-center gap-2 text-sm">
         {file.url && !expired && (
-          <a className="font-medium text-primary underline" href={file.url} target="_blank" rel="noreferrer">
+          <a className="font-medium text-primary underline" href={file.url} target="_blank" rel="noreferrer" aria-label={`Xem ${file.filename ?? "tệp"}`}>
             Xem
           </a>
         )}
@@ -48,6 +48,10 @@ export function StoredFileCard({ file, action, onRefreshLinks }: Props) {
           <Button type="button" variant="link" size="sm" onClick={onRefreshLinks}>
             Liên kết đã hết hạn, tải lại
           </Button>
+        )}
+        {/* No refetch available: say so instead of silently dropping the "Xem" link. */}
+        {file.url && expired && !onRefreshLinks && (
+          <span className="text-xs text-muted-foreground">Liên kết đã hết hạn, vui lòng tải lại trang</span>
         )}
         {action}
       </div>

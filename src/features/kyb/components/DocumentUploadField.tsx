@@ -28,7 +28,9 @@ export function DocumentUploadField(props: Props) {
   const { type, required, multiple, existing = [], error, disabled, onChange, onRefreshLinks } = props;
   const rule = DOCUMENT_RULES[type];
   // With a file already saved, the slot shows its card; "Thay tệp" opens the empty upload box instead.
-  const [replacing, setReplacing] = useState(false);
+  // Remember which saved file the user chose to replace, so a new saved file (after save/refetch) shows its card again.
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+  const replacing = replacingId !== null && replacingId === existing[0]?.id;
   const upload = useDocumentUpload({ type, multiple, onChange });
   const files = upload.items.map((item) => item.file);
   const handleChange = (next: File[]) => {
@@ -49,7 +51,7 @@ export function DocumentUploadField(props: Props) {
             onRefreshLinks={onRefreshLinks}
             action={
               index === 0 && !disabled ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setReplacing(true)}>
+                <Button type="button" variant="outline" size="sm" aria-label={`Thay tệp ${file.filename ?? rule.label}`} onClick={() => setReplacingId(existing[0]?.id ?? null)}>
                   Thay tệp
                 </Button>
               ) : undefined
@@ -80,7 +82,7 @@ export function DocumentUploadField(props: Props) {
         </p>
       </FileUpload>
       {existing.length > 0 && files.length === 0 && (
-        <Button type="button" variant="link" size="sm" className="justify-self-start" onClick={() => setReplacing(false)}>
+        <Button type="button" variant="link" size="sm" className="justify-self-start" onClick={() => setReplacingId(null)}>
           Giữ tệp hiện tại
         </Button>
       )}

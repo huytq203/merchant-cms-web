@@ -18,7 +18,7 @@ export const DOCUMENT_RULES = {
     contentTypes: ["image/jpeg", "image/png"],
   },
   AUTHORIZATION_LETTER: {
-    label: "Giấy uỷ quyền",
+    label: "Giấy ủy quyền",
     maxBytes: 10 * MB,
     contentTypes: ["application/pdf", "image/jpeg", "image/png"],
   },
