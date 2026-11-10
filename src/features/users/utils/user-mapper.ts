@@ -17,13 +17,14 @@ export interface MerchantUserUpdateRequest {
   phone?: string;
 }
 
-export function toCreateUserRequest(values: UserFormValues, merchantId: string): MerchantUserCreateRequest {
+/** `merchantId` is absent for a Sub-only manager: the BE derives the Master from the chosen Subs. */
+export function toCreateUserRequest(values: UserFormValues, merchantId: string | undefined): MerchantUserCreateRequest {
   return {
     email: values.email,
     fullName: values.fullName,
     phone: values.phone || undefined,
     groupIds: values.groupIds,
-    merchantIds: values.merchantIds?.length ? values.merchantIds : [merchantId],
+    merchantIds: values.merchantIds?.length ? values.merchantIds : merchantId ? [merchantId] : [],
     subMerchantIds: values.subMerchantIds ?? [],
   };
 }

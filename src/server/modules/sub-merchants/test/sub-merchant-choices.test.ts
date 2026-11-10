@@ -23,16 +23,17 @@ beforeEach(() => {
 });
 
 describe("listSubMerchantChoices", () => {
-  it("keeps using the full list for a session that may manage Subs", async () => {
-    let choicesCalled = false;
+  it("reads the light choices endpoint even for a session that may manage Subs, never the heavy list", async () => {
+    let listCalled = false;
     mswServer.use(
-      http.get(CHOICES_PATH, () => { choicesCalled = true; return HttpResponse.json(envelope([])); }),
-      http.get(LIST_PATH, () =>
-        HttpResponse.json(envelope({ content: [{ ...choice(ids.a, "S01", "Cửa hàng A"), isDefault: false }], totalElements: 1, totalPages: 1, number: 0, size: 100 })),
-      ),
+      http.get(CHOICES_PATH, () => HttpResponse.json(envelope([choice(ids.a, "S01", "Cửa hàng A"), choice(ids.b, "S02", "Cửa hàng B")]))),
+      http.get(LIST_PATH, () => { listCalled = true; return HttpResponse.json(envelope({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 100 })); }),
     );
-    expect(await listSubMerchantChoices(user(["MANAGE_SUB_MERCHANT"], [ids.a]))).toEqual({ success: true, data: [{ id: ids.a, label: "S01 · Cửa hàng A" }] });
-    expect(choicesCalled).toBe(false);
+    expect(await listSubMerchantChoices(user(["MANAGE_SUB_MERCHANT"], []))).toEqual({
+      success: true,
+      data: [{ id: ids.a, label: "S01 · Cửa hàng A" }, { id: ids.b, label: "S02 · Cửa hàng B" }],
+    });
+    expect(listCalled).toBe(false);
   });
 
   it("names the Subs from the choices endpoint when the session cannot manage Subs, keeping only its own", async () => {

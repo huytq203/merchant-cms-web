@@ -36,6 +36,10 @@ export async function requireGroupScope(ids: string[]): Promise<NextResponse | n
 export async function requireOwnedUser(id: string, actor: SessionUser): Promise<MerchantUser | NextResponse> {
   const result = await getUser(id);
   if (!result.success) return NextResponse.json({ message: merchantDomainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
+  // A manager assigned only Subs holds no Master, so a Master check would hide every user from it. The BE already
+  // answered this read with requireManagedUser (every assignment of the target inside the caller's Masters or Subs),
+  // and every write re-checks it, so the BE is the boundary for that actor.
+  if (actor.merchantIds.length === 0 && actor.subMerchantIds.length > 0) return result.data;
   const userMerchantIds = result.data.merchantIds;
   const insideActorScope = userMerchantIds.length > 0 && userMerchantIds.every((merchantId) => actor.merchantIds.includes(merchantId));
   if (!insideActorScope) {

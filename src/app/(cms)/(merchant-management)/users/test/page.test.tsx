@@ -54,8 +54,21 @@ describe("user page prefetch", () => {
     expect(await UsersPage({ searchParams: Promise.resolve({}) })).toEqual(<AccessDenied />);
   });
 
-  it("renders access denied instead of throwing when the session has no merchant", async () => {
-    getServerSession.mockResolvedValue({ userId: "actor", merchantIds: [], permissions: ["MANAGE_USER"] });
+  it("renders access denied instead of throwing when the session has neither a merchant nor a Sub", async () => {
+    getServerSession.mockResolvedValue({ userId: "actor", merchantIds: [], subMerchantIds: [], permissions: ["MANAGE_USER"] });
     expect(await UsersPage({ searchParams: Promise.resolve({}) })).toEqual(<AccessDenied />);
+  });
+
+  it("lets a user manager assigned only Subs in and asks the BE without a Master id", async () => {
+    // Quyết định 22/10: người chỉ được gán Sub quản lý user trong Sub của mình; BE tự giới hạn theo phạm vi Sub.
+    getServerSession.mockResolvedValue({ userId: "actor", merchantIds: [], subMerchantIds: ["sub-1"], permissions: ["MANAGE_USER"] });
+    let search: URLSearchParams | undefined;
+    mswServer.use(http.get(beUrl, ({ request }) => {
+      search = new URL(request.url).searchParams;
+      return HttpResponse.json({ success: true, data: { content: [user], totalElements: 1, totalPages: 1, number: 0, size: 10 } });
+    }));
+    const page = await UsersPage({ searchParams: Promise.resolve({}) });
+    expect(page).not.toEqual(<AccessDenied />);
+    expect(Object.fromEntries(search!)).toEqual({ page: "1", size: "10" });
   });
 });

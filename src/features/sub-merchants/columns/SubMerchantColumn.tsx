@@ -39,6 +39,7 @@ function BankAccountCell({ account }: { account: SubMerchantRow['settlementBankA
     <div className="flex flex-col items-start gap-1">
       <span className="tabular-nums">{[account.bankCode, account.maskedAccountNo].filter(Boolean).join(' ')}</span>
       <StatusBadge label={link.label} tone={link.tone} />
+      {account.isDefault === false ? <StatusBadge label="Chưa đặt TK mặc định" tone="warning" /> : null}
     </div>
   );
 }

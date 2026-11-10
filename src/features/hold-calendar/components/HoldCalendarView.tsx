@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card/Card";
 import { cn } from "@/lib/utils/cn";
 import { formatAmount } from "@/lib/utils/helper";
 import { formatVnDate, formatVnDateTime, shiftVnDate } from "@/lib/utils/vn-time";
-import { HOLD_RANGE_OPTIONS } from "../constants/hold-labels";
+import { HOLD_RANGE_OPTIONS, ledgerReconcileStatus } from "../constants/hold-labels";
 import type { HoldCalendar } from "../types";
 import { HoldReleaseBoard } from "./HoldReleaseBoard";
 
@@ -57,7 +57,7 @@ export function HoldCalendarView({ calendar, today, subMerchantId }: { calendar:
 
       <Card padding="md" className="flex flex-wrap gap-x-8 gap-y-4">
         <div className="max-w-xs space-y-1.5">
-          <StatusBadge label={calendar.reconciles ? "Khớp sổ cái" : "Lệch sổ cái"} tone={calendar.reconciles ? "success" : "warning"} />
+          <StatusBadge {...ledgerReconcileStatus(calendar)} />
           {calendar.ledgerHeld === null ? null : (
             <p className="text-sm text-muted-foreground">Số dư tạm giữ theo quy tắc trên sổ cái: {formatAmount(calendar.ledgerHeld)}.</p>
           )}

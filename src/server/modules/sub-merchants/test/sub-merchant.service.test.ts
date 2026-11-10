@@ -10,7 +10,6 @@ const LIST_PATH = PATH;
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const detail = { id: "22222222-2222-4222-8222-222222222222", merchantId, code: "SUB", name: "Sub-merchant", status: "ACTIVE", isDefault: false, taxCodeEditable: true, phone: { value: null, source: null, inherited: true, suspended: false }, address: { value: null, source: null, inherited: true, suspended: false } };
 const row = { id: detail.id, merchantId, code: detail.code, name: detail.name, status: detail.status, isDefault: false };
-const ids = { a: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", b: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", c: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" };
 const values = { name: " Sub-merchant ", businessField: "", inheritPhone: true, phone: "", inheritAddress: false, address: "Hà Nội" };
 const envelope = (data: unknown) => ({ success: true, data });
 const page = (content: unknown[], totalElements = content.length) => ({ content, totalElements, totalPages: 1, number: 0, size: 10 });
@@ -33,45 +32,16 @@ describe("sub merchant service", () => {
     const queries: URLSearchParams[] = [];
     mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page([row], 1))); }));
     await listSubMerchants({ page: 1, pageSize: 10, merchantId });
-    await listSubMerchants({ page: 1, pageSize: 10, merchantId, name: "sub" });
     expect(Object.fromEntries(queries[0]!)).toEqual({ page: "1", size: "10", merchantId });
-    expect(Object.fromEntries(queries[1]!)).toEqual({ page: "1", size: "100", merchantId });
   });
-  it("filters by code, name and status itself, because the merchant endpoint cannot", async () => {
-    const outlets = [
-      { ...row, id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", code: "MC01-S001", name: "Cửa hàng Điện máy", status: "ACTIVE" },
-      { ...row, id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", code: "MC01-S002", name: "Cửa hàng Thời trang", status: "INACTIVE" },
-      { ...row, id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", code: "MC01-S003", name: "Kho dien tu", status: "ACTIVE" },
-    ];
+  it("sends the code, name and status filters to the BE in one call and keeps its page and total", async () => {
+    // Tối ưu Portal 11/11: BE lọc tên/mã/trạng thái; không còn đọc 10 trang x 100 dòng rồi tự lọc.
     const queries: URLSearchParams[] = [];
-    mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page(outlets, 3))); }));
-    const idsOf = async (filter: Parameters<typeof listSubMerchants>[0]) => {
-      const result = await listSubMerchants(filter);
-      return result.success ? result.data.rows.map((r) => r.id) : result;
-    };
-    expect(await idsOf({ page: 1, pageSize: 10, code: "s002" })).toEqual(["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]);
-    expect(await idsOf({ page: 1, pageSize: 10, name: "dien" })).toEqual([ids.a, ids.c]);
-    expect(await idsOf({ page: 1, pageSize: 10, status: "ACTIVE" })).toEqual([ids.a, ids.c]);
-    expect(await idsOf({ page: 1, pageSize: 10, name: "cua hang", status: "ACTIVE" })).toEqual(["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
-    expect(Object.fromEntries(queries[0]!)).toEqual({ page: "1", size: "100" });
-  });
-  it("paginates the filtered rows and reports the filtered total", async () => {
-    const outlets = ["1", "2", "3"].map((n) => ({ ...row, id: `${n}0000000-0000-4000-8000-000000000000`, code: `S00${n}`, name: "Outlet" }));
-    mswServer.use(http.get(LIST_PATH, () => HttpResponse.json(envelope(page(outlets, 3)))));
-    const second = await listSubMerchants({ page: 2, pageSize: 2, name: "outlet" });
-    expect(second).toMatchObject({ success: true, data: { total: 3 } });
-    expect(second.success && second.data.rows.map((r) => r.id)).toEqual(["30000000-0000-4000-8000-000000000000"]);
-  });
-  it("reads every page of assigned outlets before filtering", async () => {
-    const seen: string[] = [];
-    mswServer.use(http.get(LIST_PATH, ({ request }) => {
-      const pageNo = new URL(request.url).searchParams.get("page") ?? "1";
-      seen.push(pageNo);
-      return HttpResponse.json(envelope({ ...page([{ ...row, id: `${pageNo}0000000-0000-4000-8000-000000000000`, code: `S${pageNo}` }], 2), totalPages: 2 }));
-    }));
-    const result = await listSubMerchants({ page: 1, pageSize: 10, code: "s" });
-    expect(seen).toEqual(["1", "2"]);
-    expect(result.success && result.data.rows.map((r) => r.id)).toEqual(["10000000-0000-4000-8000-000000000000", "20000000-0000-4000-8000-000000000000"]);
+    mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page([row], 37))); }));
+    const result = await listSubMerchants({ page: 3, pageSize: 10, code: "S002", name: "cửa hàng", status: "INACTIVE" });
+    expect(queries).toHaveLength(1);
+    expect(Object.fromEntries(queries[0]!)).toEqual({ page: "3", size: "10", code: "S002", name: "cửa hàng", status: "INACTIVE" });
+    expect(result).toEqual({ success: true, data: { rows: [expect.objectContaining(row)], total: 37 } });
   });
   it("maps an empty Page", async () => {
     mswServer.use(http.get(LIST_PATH, () => HttpResponse.json(envelope(page([], 0)))));
@@ -107,14 +77,13 @@ describe("sub merchant service", () => {
     mswServer.use(http.get(`${PATH}/${detail.id}`, () => HttpResponse.json(envelope(invalid))));
     expect(await getSubMerchant(detail.id)).toMatchObject({ success: false, error: { code: "INVALID_RESPONSE" } });
   });
-  it("forwards the receiving-account and created-date filters to the merchant endpoint, also while filtering by name", async () => {
+  it("forwards the receiving-account and created-date filters to the merchant endpoint together with the name", async () => {
     const queries: URLSearchParams[] = [];
     mswServer.use(http.get(LIST_PATH, ({ request }) => { queries.push(new URL(request.url).searchParams); return HttpResponse.json(envelope(page([row], 1))); }));
     await listSubMerchants({ page: 1, pageSize: 10, hasBankAccount: false, createdFrom: "2026-09-01", createdTo: "2026-09-30" });
     await listSubMerchants({ page: 1, pageSize: 10, name: "sub", hasBankAccount: true });
     expect(Object.fromEntries(queries[0]!)).toEqual({ page: "1", size: "10", hasBankAccount: "false", createdFrom: "2026-09-01", createdTo: "2026-09-30" });
-    // The BE narrows by account/date first; only the name is matched here, so totals stay consistent.
-    expect(Object.fromEntries(queries[1]!)).toEqual({ page: "1", size: "100", hasBankAccount: "true" });
+    expect(Object.fromEntries(queries[1]!)).toEqual({ page: "1", size: "10", name: "sub", hasBankAccount: "true" });
   });
   it("reads the overview columns of the Portal list row", async () => {
     const overview = {

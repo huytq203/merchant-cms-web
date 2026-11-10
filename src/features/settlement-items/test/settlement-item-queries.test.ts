@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSettlementSearchParams } from "../settlement-item-queries";
+import { MAX_SETTLEMENT_RANGE_DAYS, parseSettlementSearchParams, settlementRangeError } from "../settlement-item-queries";
 
 // 17:30 UTC on 13/10 is already 14/10 in Vietnam.
 const now = new Date("2026-10-13T17:30:00Z");
@@ -32,5 +32,30 @@ describe("parseSettlementSearchParams", () => {
     const parsed = parseSettlementSearchParams({ terminalId: "x", trancheStatus: "PAID" }, now);
     expect(parsed).not.toHaveProperty("terminalId");
     expect(parsed).not.toHaveProperty("trancheStatus");
+  });
+});
+
+describe("settlementRangeError", () => {
+  it("accepts up to 92 days counting both ends, like the BE", () => {
+    expect(MAX_SETTLEMENT_RANGE_DAYS).toBe(92);
+    // 01/08 -> 31/10 is 92 days inclusive.
+    expect(settlementRangeError("2026-08-01", "2026-10-31")).toBeNull();
+    expect(settlementRangeError("2026-10-14", "2026-10-14")).toBeNull();
+  });
+
+  it("refuses a 93rd day before any call is made", () => {
+    expect(settlementRangeError("2026-08-01", "2026-11-01")).toBe("Khoảng ngày tối đa 92 ngày");
+  });
+
+  it("does not judge an incomplete or reversed range (handled elsewhere)", () => {
+    expect(settlementRangeError("", "2026-11-01")).toBeNull();
+    expect(settlementRangeError("2026-11-01", "2026-10-01")).toBeNull();
+  });
+});
+
+describe("parseSettlementSearchParams range cap", () => {
+  it("falls back to the default 7 days when the URL asks for more than 92 days, so the BE is never called with it", () => {
+    expect(parseSettlementSearchParams({ paidFrom: "2026-01-01", paidTo: "2026-10-14" }, now))
+      .toMatchObject({ paidFrom: "2026-10-08", paidTo: "2026-10-14" });
   });
 });

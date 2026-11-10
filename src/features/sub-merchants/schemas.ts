@@ -33,6 +33,11 @@ export const subMerchantSummarySchema = z
         bankCode: z.string(),
         maskedAccountNo: z.string().nullish(),
         linkStatus: z.enum(["PENDING_VERIFICATION", "LINKED", "LINK_FAILED"]),
+        /**
+         * false = Sub chưa đặt TK mặc định, đây là TK rút được của Sub (BE 11/11). Rút tay vẫn chọn được, rút tự động
+         * chỉ chi vào TK mặc định. BE cũ không gửi: coi là TK mặc định như trước.
+         */
+        isDefault: z.boolean().optional(),
       })
       .nullish(),
     /** Gross revenue of the last 7 days from the settlement lines (VND, before fees and refunds). */

@@ -13,6 +13,17 @@ interface Actions {
   onDelete: (group: PermissionGroup) => void;
 }
 
+/** Tên nhóm, kèm mã nhóm ở dòng phụ khi BE gửi (BE thêm `code` vào danh sách nhóm của Portal ngày 11/11). */
+export function PermissionGroupNameCell({ group }: { group: PermissionGroup }) {
+  if (!group.code) return <>{group.name}</>;
+  return (
+    <div className="flex flex-col">
+      <span>{group.name}</span>
+      <span className="font-mono text-xs text-muted-foreground">{group.code}</span>
+    </div>
+  );
+}
+
 export function buildPermissionColumns(
   actions: Actions,
   page: number,
@@ -20,7 +31,12 @@ export function buildPermissionColumns(
 ): ColumnDef<PermissionGroup>[] {
   return [
     createIndexColumn<PermissionGroup>({ page, pageSize }),
-    { accessorKey: "name", header: "Tên nhóm quyền" , size: 50,},
+    {
+      accessorKey: "name",
+      header: "Tên nhóm quyền",
+      size: 50,
+      cell: ({ row }) => <PermissionGroupNameCell group={row.original} />,
+    },
     {
       accessorKey: "description",
       header: "Mô tả",

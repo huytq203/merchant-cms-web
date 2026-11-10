@@ -31,6 +31,7 @@ const existingUser: MerchantUser = {
 };
 
 const merchantB = "22222222-2222-4222-8222-222222222222";
+const subMerchantOfB = "99999999-9999-4999-8999-999999999999";
 const namedMerchants = [
   { id: merchantId, code: "MC000001", name: "Halo tech" },
   { id: merchantB, code: "MC000002", name: "Green mart" },
@@ -50,9 +51,13 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}
       { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A", "B", "C"] },
       { id: otherGroupId, code: "ACC", name: "Kế toán", system: false, permissions: ["A"] },
     ])),
-    http.get("/api/v1/admin/sub-merchants", ({ request }) => {
+    // Một lần đọc /choices cho mọi Master; ô chọn tự lọc theo merchantId của từng Sub.
+    http.get("/api/v1/admin/sub-merchants/choices", ({ request }) => {
       subRequests.push(new URL(request.url));
-      return HttpResponse.json({ rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }], total: 1 });
+      return HttpResponse.json([
+        { id: subMerchantId, code: "S1", name: "Cửa hàng 1", status: "ACTIVE", merchantId },
+        { id: subMerchantOfB, code: "S9", name: "Cửa hàng Green", status: "ACTIVE", merchantId: merchantB },
+      ]);
     }),
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -181,13 +186,15 @@ describe("user modal: create", () => {
     renderModal({ merchantIds: [merchantId, merchantB], merchants: namedMerchants });
     await userEvent.click(screen.getByRole("radio", { name: "Chọn sub-merchant" }));
     await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
-    expect(subRequests.at(-1)?.searchParams.get("merchantId")).toBe(merchantId);
+    expect(screen.queryByRole("checkbox", { name: /Cửa hàng Green/ })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("combobox"));
     await userEvent.click(await screen.findByRole("option", { name: /Green mart/ }));
 
-    await waitFor(() => expect(subRequests.at(-1)?.searchParams.get("merchantId")).toBe(merchantB));
-    expect(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ })).not.toBeChecked();
+    expect(await screen.findByRole("checkbox", { name: /Cửa hàng Green/ })).not.toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: /Cửa hàng 1/ })).not.toBeInTheDocument();
+    // Đổi Master không gọi lại BE: danh sách /choices đã có Sub của mọi Master.
+    expect(subRequests).toHaveLength(1);
   });
 
   it("creates the user under the merchant that was chosen", async () => {

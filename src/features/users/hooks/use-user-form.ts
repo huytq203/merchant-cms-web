@@ -37,7 +37,8 @@ function validate(values: UserFormState) {
     fullName: values.fullName,
     phone: values.phone.trim(),
     groupIds: values.groupIds,
-    merchantIds: [values.merchantId],
+    // Empty for a Sub-only manager (no Master of its own): never send [""].
+    merchantIds: values.merchantId ? [values.merchantId] : [],
     subMerchantIds,
   });
   const issues: Record<string, string> = parsed.success

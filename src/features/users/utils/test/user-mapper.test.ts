@@ -6,6 +6,8 @@ const values = { email: "user@example.com", fullName: "Test User", phone: "09123
 describe("user mapper", () => {
   it("creates a request with the selected merchant", () => {
     expect(toCreateUserRequest(values, "merchant-1").merchantIds).toEqual(["merchant-1"]);
+    // Người quản lý cấp Sub không có Master riêng: không gửi Master rỗng, BE suy Master từ Sub đã chọn.
+    expect(toCreateUserRequest(values, undefined).merchantIds).toEqual([]);
   });
 
   it("excludes email and assignments from update", () => {

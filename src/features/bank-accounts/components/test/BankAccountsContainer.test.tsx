@@ -267,9 +267,9 @@ describe("bank accounts container", () => {
   });
 
   it("adds a Sub-merchant level account with the chosen Sub-merchant", async () => {
-    const sub = { id: "77777777-7777-4777-8777-777777777777", code: "SUB01", name: "Chi nhanh 1" };
+    const sub = { id: "77777777-7777-4777-8777-777777777777", code: "SUB01", name: "Chi nhanh 1", status: "ACTIVE" };
     let body: unknown;
-    mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [sub], total: 1 })));
+    mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([sub])));
     mswServer.use(http.post(base, async ({ request }) => {
       body = await request.json();
       return HttpResponse.json({ account, applied: true }, { status: 201 });

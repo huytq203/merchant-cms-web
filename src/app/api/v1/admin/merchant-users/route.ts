@@ -20,7 +20,12 @@ export async function GET(request: Request) {
   const parsed = querySchema.safeParse(Object.fromEntries(params));
   if (!parsed.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
   const merchantId = params.get("merchantId") || access.user.merchantIds[0];
-  if (!merchantId) return NextResponse.json({ message: "Không có merchant" }, { status: 403 });
+  // A manager assigned only Subs (quyết định 22/10) has no Master of its own: the BE accepts no merchantId and bounds
+  // the list by the caller's Masters and Subs itself (MerchantUserSpecification.portalSearch), so ask without one.
+  if (!merchantId) {
+    if (access.user.subMerchantIds.length === 0) return NextResponse.json({ message: "Không có merchant" }, { status: 403 });
+    return serviceResponse(await listUsers(parsed.data));
+  }
   const forbidden = requireMerchantScope(access.user, [merchantId]);
   if (forbidden) return forbidden;
   return serviceResponse(await listUsers({ merchantId, ...parsed.data }));
@@ -32,7 +37,8 @@ export async function POST(request: Request) {
   const body = userFormSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });
   const merchantId = body.data.merchantIds[0] || access.user.merchantIds[0];
-  if (!merchantId) return NextResponse.json({ message: "Không có merchant" }, { status: 403 });
+  // A Sub-only manager sends no Master: the BE derives it from the chosen Subs (merchantIdsForCreate).
+  if (!merchantId && access.user.subMerchantIds.length === 0) return NextResponse.json({ message: "Không có merchant" }, { status: 403 });
   const forbidden = requireMerchantScope(access.user, body.data.merchantIds) || requireSubMerchantScope(access.user, body.data.subMerchantIds) || await requireGroupScope(body.data.groupIds);
   if (forbidden) return forbidden;
   return serviceResponse(await createUser(body.data, merchantId), 201);

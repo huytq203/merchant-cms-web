@@ -50,6 +50,19 @@ it('shows the overview: business field, terminal split, masked account with link
   expect(screen.getByText(/1\.748\.000/)).toBeInTheDocument();
   expect(screen.getByText('28/09/2026')).toBeInTheDocument();
 });
+it('shows a usable account that is not the default with a "Chưa đặt TK mặc định" warning instead of "Chưa có TK"', () => {
+  // Dev 11/11 (Halo tech): một TK VPB đã liên kết nhưng chưa đặt mặc định; rút tay dùng được, rút tự động thì không.
+  const account = { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' as const, isDefault: false };
+  render(<SubMerchantTable data={[{ ...base, settlementBankAccount: account }]} {...callbacks()} />);
+  expect(screen.queryByText('Chưa có TK')).not.toBeInTheDocument();
+  expect(screen.getByText('VPB *********2111')).toBeInTheDocument();
+  expect(screen.getByText('Chưa đặt TK mặc định')).toBeInTheDocument();
+});
+it('shows no default warning for the default account', () => {
+  const account = { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' as const, isDefault: true };
+  render(<SubMerchantTable data={[{ ...base, settlementBankAccount: account }]} {...callbacks()} />);
+  expect(screen.queryByText('Chưa đặt TK mặc định')).not.toBeInTheDocument();
+});
 it('says "Chưa có TK" and shows zero revenue for a Sub without an account or payments', () => {
   render(<SubMerchantTable data={[{ ...base, settlementBankAccount: null, terminalCount: 0, revenue7d: 0 }]} {...callbacks()} />);
   expect(screen.getByText('Chưa có TK')).toBeInTheDocument();

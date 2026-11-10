@@ -13,4 +13,17 @@ export const PERMISSION_GATES = {
   bankAccountWrite: ["MANAGE_BANK_ACCOUNT"],
   userScopeApprove: ["APPROVE_USER_SCOPE"],
   sensitiveOtp: ["MANAGE_SUB_MERCHANT", "MANAGE_BANK_ACCOUNT"],
+  /**
+   * Who may read the light Sub list behind every Sub picker; must equal the BE `GET /sub-merchants/choices` gate.
+   * Finance screens, Terminal, Order, User, Bank account and Complaint screens all show a Sub picker.
+   */
+  subMerchantChoices: [
+    "MANAGE_SUB_MERCHANT",
+    "VIEW_BALANCE", "VIEW_HOLD", "VIEW_REFUND", "VIEW_WITHDRAWAL", "CREATE_WITHDRAWAL",
+    "VIEW_TERMINAL", "MANAGE_TERMINAL",
+    "VIEW_ORDER", "CREATE_ORDER",
+    "MANAGE_USER", "APPROVE_USER_SCOPE",
+    "VIEW_BANK_ACCOUNT", "MANAGE_BANK_ACCOUNT",
+    "VIEW_DISPUTE", "CREATE_DISPUTE",
+  ],
 } as const satisfies Record<string, readonly MerchantPermission[]>;

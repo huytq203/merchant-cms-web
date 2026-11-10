@@ -44,6 +44,26 @@ describe("merchant user collection route", () => {
     expect(listUsers).toHaveBeenCalledWith({ merchantId, page: 2, pageSize: 10 });
   });
 
+  it("lists users for a manager assigned only Subs without inventing a Master id", async () => {
+    getServerSession.mockResolvedValue({ ...session, merchantIds: [], subMerchantIds: ["sub-1"] });
+    const response = await GET(new Request("http://localhost/api/v1/admin/merchant-users?page=1&pageSize=10"));
+    expect(response.status).toBe(200);
+    expect(listUsers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
+  });
+
+  it("still refuses a session with neither a Master nor a Sub", async () => {
+    getServerSession.mockResolvedValue({ ...session, merchantIds: [], subMerchantIds: [] });
+    expect((await GET(new Request("http://localhost/api/v1/admin/merchant-users"))).status).toBe(403);
+    expect(listUsers).not.toHaveBeenCalled();
+  });
+
+  it("lets a Sub-only manager create a user in its Subs and leaves the Master to the BE", async () => {
+    getServerSession.mockResolvedValue({ ...session, merchantIds: [], subMerchantIds: ["sub-1"] });
+    const response = await POST(postRequest({ ...body, merchantIds: [], subMerchantIds: ["sub-1"] }));
+    expect(response.status).toBe(201);
+    expect(createUser).toHaveBeenCalledWith(expect.objectContaining({ subMerchantIds: ["sub-1"] }), undefined);
+  });
+
   it("rejects a merchant outside the session", async () => {
     const response = await POST(postRequest({ ...body, merchantIds: [foreignMerchantId] }));
     expect(response.status).toBe(403);

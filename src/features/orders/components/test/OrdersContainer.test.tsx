@@ -45,7 +45,7 @@ function listReturns(rows: Order[]) {
 beforeEach(() => {
   listReturns([activeOrder]);
   mswServer.use(http.get(`${base}/${activeOrder.id}`, () => HttpResponse.json(activeOrder)));
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])));
   mswServer.use(http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: [], total: 0 })));
 });
 afterEach(() => {
@@ -180,10 +180,9 @@ describe("create order flow", () => {
 
   function sellerHas(terminals: { id: string; tid: string; name: string }[]) {
     mswServer.use(
-      http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
-        rows: [{ id: subId, code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: true }],
-        total: 1,
-      })),
+      http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+        { id: subId, code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: true },
+      ])),
       http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: terminals, total: terminals.length })),
     );
   }
@@ -260,10 +259,9 @@ describe("create order flow", () => {
 
 describe("order list filters", () => {
   it("searches by status, Sub-merchant and created date", async () => {
-    mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
-      rows: [{ id: "11111111-1111-4111-8111-111111111111", code: "MC1-S001", name: "Halo tech", status: "ACTIVE" }],
-      total: 1,
-    })));
+    mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+      { id: "11111111-1111-4111-8111-111111111111", code: "MC1-S001", name: "Halo tech", status: "ACTIVE" },
+    ])));
     renderContainer();
     await screen.findByText("INV-1");
     const filter = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });

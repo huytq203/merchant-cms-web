@@ -14,14 +14,16 @@ interface Props {
   onPageChange: (page: number, pageSize: number) => void;
   onView: (row: SettlementItem) => void;
   onPickSub: (subMerchantId: string) => void;
+  /** Sub có trong ô lọc; Sub ngoài danh sách (đã khóa) hiện ở dải "Theo Sub" nhưng không bấm được. */
+  pickableSubIds?: ReadonlySet<string>;
 }
 
-export function SettlementResults({ filter, onPageChange, onView, onPickSub }: Props) {
+export function SettlementResults({ filter, onPageChange, onView, onPickSub, pickableSubIds }: Props) {
   const list = useQuery(settlementItemQueries.list(filter));
 
   return (
     <>
-      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantId ? undefined : onPickSub} trancheFiltered={Boolean(filter.trancheStatus)} /> : null}
+      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantId ? undefined : onPickSub} trancheFiltered={Boolean(filter.trancheStatus)} pickableSubIds={pickableSubIds} /> : null}
       <ResultCard>
         {list.isPending ? <ResultState state="loading" loadingLabel="Đang tải dòng quyết toán" /> : null}
         {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}

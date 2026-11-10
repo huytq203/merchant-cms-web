@@ -62,10 +62,15 @@ interface Props {
    * thái khác và dễ đọc nhầm — ẩn thanh, thay bằng chú thích.
    */
   trancheFiltered?: boolean;
+  /**
+   * Sub chọn được ở ô lọc (danh sách /choices, chỉ gồm Sub đang hoạt động trong phạm vi). Sub có doanh thu trong kỳ mà
+   * không có ở đây là Sub đã khóa: vẫn hiện số nhưng không bấm lọc được. Bỏ trống = không biết, mọi Sub bấm được.
+   */
+  pickableSubIds?: ReadonlySet<string>;
 }
 
 /** Thay hai hàng phương trình cũ: 3 ô Gộp / Phí / Doanh thu ghi nhận và thanh phân bổ theo trạng thái đợt. */
-export function SettlementTotalsBar({ totals, onPickSub, trancheFiltered = false }: Props) {
+export function SettlementTotalsBar({ totals, onPickSub, trancheFiltered = false, pickableSubIds }: Props) {
   const label = `Tổng của ${totals.count} đơn hàng`;
   return (
     <Card role="region" aria-label={label} className="space-y-3">
@@ -81,18 +86,28 @@ export function SettlementTotalsBar({ totals, onPickSub, trancheFiltered = false
       {onPickSub && totals.bySub.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Theo Sub:</span>
-          {totals.bySub.map((sub) => (
-            <button
-              key={sub.subMerchantId}
-              type="button"
-              onClick={() => onPickSub(sub.subMerchantId)}
-              aria-label={`Lọc theo ${sub.subMerchantName ?? sub.subMerchantCode ?? "Sub-merchant"}`}
-              className="rounded-md border border-border bg-background px-2.5 py-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="font-medium">{sub.subMerchantName ?? sub.subMerchantCode}</span>{" "}
-              <span className="tabular-nums text-muted-foreground">{money(sub.recognisedAmount)}</span>
-            </button>
-          ))}
+          {totals.bySub.map((sub) => {
+            const name = sub.subMerchantName ?? sub.subMerchantCode ?? "Sub-merchant";
+            const locked = pickableSubIds !== undefined && !pickableSubIds.has(sub.subMerchantId);
+            // aria-disabled thay cho disabled: nút disabled không nhận hover nên không hiện tooltip giải thích.
+            return (
+              <button
+                key={sub.subMerchantId}
+                type="button"
+                aria-disabled={locked || undefined}
+                title={locked ? "Sub-merchant đã khóa" : undefined}
+                onClick={locked ? undefined : () => onPickSub(sub.subMerchantId)}
+                aria-label={locked ? `${name} (Sub-merchant đã khóa)` : `Lọc theo ${name}`}
+                className={cn(
+                  "rounded-md border border-border bg-background px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  locked ? "cursor-not-allowed opacity-60" : "hover:bg-accent",
+                )}
+              >
+                <span className="font-medium">{sub.subMerchantName ?? sub.subMerchantCode}</span>{" "}
+                <span className="tabular-nums text-muted-foreground">{money(sub.recognisedAmount)}</span>
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </Card>

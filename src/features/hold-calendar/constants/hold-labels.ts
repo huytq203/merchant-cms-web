@@ -34,3 +34,12 @@ export const HOLD_ITEM_STATE: Record<HoldItemState, { label: string; tone: Statu
   RELEASED_EARLY: { label: "Giải phóng sớm", tone: "success" },
   CANCELLED_BY_REFUND: { label: "Hủy do hoàn tiền", tone: "danger" },
 };
+
+/**
+ * Nhãn đối chiếu sổ cái của lịch tạm giữ. `ledgerHeld = null` nghĩa là BE chưa đọc được số dư tạm giữ trên sổ cái
+ * (Wallet Core không trả lời), nên không có gì để so: không được báo "Khớp sổ cái" dù cờ `reconciles` vẫn đúng.
+ */
+export function ledgerReconcileStatus(calendar: { reconciles: boolean; ledgerHeld: number | null }): { label: string; tone: StatusTone } {
+  if (calendar.ledgerHeld === null) return { label: "Chưa đối soát được sổ cái", tone: "neutral" };
+  return calendar.reconciles ? { label: "Khớp sổ cái", tone: "success" } : { label: "Lệch sổ cái", tone: "warning" };
+}

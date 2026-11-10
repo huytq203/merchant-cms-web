@@ -8,7 +8,7 @@ import { mswServer } from "@/test/msw";
 import { TerminalFilters } from "../TerminalFilters";
 
 function renderFilters(onSearch = vi.fn()) {
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>

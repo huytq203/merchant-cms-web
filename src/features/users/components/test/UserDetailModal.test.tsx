@@ -44,10 +44,9 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserDetailModal>
       rows: [{ id: groupId, name: "Vận hành", merchantId: merchantA, permissions: [] }],
       total: 1,
     })),
-    http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
-      rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }],
-      total: 1,
-    })),
+    http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+      { id: subMerchantId, code: "S1", name: "Cửa hàng 1", status: "ACTIVE" },
+    ])),
   );
   const handlers = { onReset: vi.fn(), onToggleLock: vi.fn(), onEdit: vi.fn(), onApprove: vi.fn(), onReject: vi.fn() };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

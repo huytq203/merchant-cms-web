@@ -30,7 +30,7 @@ const detail: TerminalDetail = {
 };
 
 function renderForm(props: Partial<React.ComponentProps<typeof TerminalFormModal>> = {}) {
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [{ id: subMerchantId, code: "SM001", name: "Halo Tech" }], total: 1 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([{ id: subMerchantId, code: "SM001", name: "Halo Tech", status: "ACTIVE" }])));
   const onSubmit = vi.fn().mockResolvedValue(undefined);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(

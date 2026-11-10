@@ -10,7 +10,8 @@ import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils
 import { userPaths } from "./user.paths";
 
 export interface UserFilter {
-  merchantId: string;
+  /** Absent for a manager assigned only Subs: the BE then bounds the list by the caller's scope. */
+  merchantId?: string;
   page: number;
   pageSize: number;
   query?: string;
@@ -50,7 +51,7 @@ async function readAfterWrite(result: BeResult<z.infer<typeof writtenUserSchema>
   return detail.success ? ok(detail.data, result.message) : detail;
 }
 
-export async function createUser(values: UserFormValues, merchantId: string): Promise<BeResult<MerchantUser>> {
+export async function createUser(values: UserFormValues, merchantId: string | undefined): Promise<BeResult<MerchantUser>> {
   return readAfterWrite(await merchantClient().post({ path: userPaths.create, schema: writtenUserSchema, body: toCreateUserRequest(values, merchantId) }));
 }
 

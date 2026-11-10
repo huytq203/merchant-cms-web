@@ -98,7 +98,7 @@ beforeEach(() => {
   bankOptionsReturn();
   mswServer.use(
     http.post(`${base}/otp-challenge`, () => HttpResponse.json(challenge)),
-    http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })),
+    http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])),
   );
   balanceReturns();
 });

@@ -19,7 +19,8 @@ import SubBalancesPage from "../page";
 
 const firstSub = "11111111-1111-4111-8111-111111111111";
 const secondSub = "22222222-2222-4222-8222-222222222222";
-const subsUrl = "https://merchant.test/api/v1/merchant/sub-merchants";
+// Mọi phiên (kể cả người quản lý Sub) đọc tên Sub từ /choices nhẹ, không đọc danh sách đầy đủ.
+const subsUrl = "https://merchant.test/api/v1/merchant/sub-merchants/choices";
 const balanceUrl = "https://merchant.test/api/v1/merchant/sub-balances/:id";
 const subRow = (id: string, code: string, name: string) => ({ id, code, name, status: "ACTIVE", isDefault: false });
 const session = { merchantIds: ["m"], subMerchantIds: [], permissions: ["VIEW_BALANCE", "MANAGE_SUB_MERCHANT", "CREATE_WITHDRAWAL"] };
@@ -27,10 +28,7 @@ const session = { merchantIds: ["m"], subMerchantIds: [], permissions: ["VIEW_BA
 let requestedBalanceIds: string[] = [];
 
 function listSubs(rows = [subRow(firstSub, "SUB001", "Cửa hàng A"), subRow(secondSub, "SUB002", "Cửa hàng B")]) {
-  mswServer.use(http.get(subsUrl, () => HttpResponse.json({
-    success: true,
-    data: { content: rows, totalElements: rows.length, totalPages: 1, number: 0, size: 100 },
-  })));
+  mswServer.use(http.get(subsUrl, () => HttpResponse.json({ success: true, data: rows })));
 }
 
 async function renderPage(searchParams: Record<string, string> = {}) {

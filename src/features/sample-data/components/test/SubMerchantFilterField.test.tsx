@@ -13,7 +13,7 @@ const SUB = { id: "5dcda5e6-afd1-4201-a02f-7187164f0f86", name: "Halo Láng", co
 
 function renderField(props: { value: string; allowAll?: boolean }) {
   const onChange = vi.fn();
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [SUB], total: 1 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([SUB])));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>

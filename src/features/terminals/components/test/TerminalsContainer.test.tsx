@@ -42,7 +42,7 @@ function renderContainer(canManage = true) {
 
 beforeEach(() => {
   mswServer.use(http.get(base, () => HttpResponse.json({ rows: [row], total: 1 })));
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [{ id: subMerchantId, code: "SM001", name: "Điểm bán" }], total: 1 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([{ id: subMerchantId, code: "SM001", name: "Điểm bán", status: "ACTIVE" }])));
 });
 afterEach(() => {
   cleanup();

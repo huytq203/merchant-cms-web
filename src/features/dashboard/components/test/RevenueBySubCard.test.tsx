@@ -43,7 +43,7 @@ function renderCard() {
 
 beforeEach(() => {
   requests.length = 0;
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({ rows: [], total: 0 })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])));
 });
 afterEach(() => cleanup());
 

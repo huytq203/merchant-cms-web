@@ -19,7 +19,9 @@ export default async function UsersPage({ searchParams }: Props) {
   }
   const filter = parseUserSearchParams(await searchParams, session.merchantIds);
   const merchantId = filter.merchantId ?? session.merchantIds[0];
-  if (!merchantId) {
+  // A manager assigned only Subs has no Master of its own but may still manage the users of its Subs (quyết định
+  // 22/10); the BE bounds the list by the caller's Subs. Only a session with neither is turned away.
+  if (!merchantId && (session.subMerchantIds ?? []).length === 0) {
     return <AccessDenied />;
   }
   const state = await prefetchDehydrated(async (client) => {
@@ -27,7 +29,7 @@ export default async function UsersPage({ searchParams }: Props) {
       ...userQueries.list(filter),
       queryFn: async () => unwrapOrRedirect(await getUsersOnServer({
         ...filter,
-        merchantId,
+        ...(merchantId ? { merchantId } : {}),
         page: filter.page,
       })),
     });

@@ -76,10 +76,9 @@ beforeEach(() => {
   mswServer.use(http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json([
     { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A"] },
   ])));
-  mswServer.use(http.get("/api/v1/admin/sub-merchants", () => HttpResponse.json({
-    rows: [{ id: subMerchantId, code: "S1", name: "Cửa hàng 1" }],
-    total: 1,
-  })));
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+    { id: subMerchantId, code: "S1", name: "Cửa hàng 1", status: "ACTIVE" },
+  ])));
 });
 afterEach(() => {
   cleanup();

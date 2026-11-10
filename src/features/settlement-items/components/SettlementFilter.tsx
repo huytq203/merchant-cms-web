@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select/Select";
 import type { SubMerchantChoice } from "@/features/sub-merchants/utils/sub-merchant-choice";
 import { terminalQueries } from "@/features/terminals/terminal-queries";
 import { TRANCHE_GROUPS } from "../constants/settlement-labels";
+import { settlementRangeError } from "../settlement-item-queries";
 import type { SettlementCriteria } from "../hooks/use-settlement-navigation";
 import type { TrancheGroup } from "../types";
 
@@ -58,9 +59,11 @@ export function SettlementFilter({ initial, choices, canFilterTerminal, onSearch
   const [paidFrom, setPaidFrom] = useState(initial.paidFrom);
   const [paidTo, setPaidTo] = useState(initial.paidTo);
   const terminals = useTerminalChoices(orUndefined(subMerchantId), canFilterTerminal);
+  // Khoảng > 92 ngày: báo ngay dưới ô ngày và không tìm (BE từ chối khoảng đó).
+  const rangeError = settlementRangeError(paidFrom, paidTo);
 
   const submit = () => {
-    if (!paidFrom || !paidTo) return;
+    if (!paidFrom || !paidTo || rangeError) return;
     onSearch({
       subMerchantId: orUndefined(subMerchantId),
       terminalId: orUndefined(terminalId),
@@ -113,6 +116,7 @@ export function SettlementFilter({ initial, choices, canFilterTerminal, onSearch
         mode="range"
         label="Ngày thanh toán"
         placeholder="Từ ngày, đến ngày"
+        error={rangeError ?? undefined}
         value={paidFrom ? { from: parseISO(paidFrom), to: paidTo ? parseISO(paidTo) : undefined } : undefined}
         onChange={(value) => {
           const range = value && !(value instanceof Date) ? (value as DateRange) : undefined;
