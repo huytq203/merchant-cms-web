@@ -80,6 +80,7 @@ export function ComplaintRejectDialog({ complaint, open, onOpenChange }: Props) 
         </AlertDialogHeader>
         <Textarea
           label="Lý do từ chối"
+          placeholder="Nhập lý do từ chối khiếu nại"
           required
           rows={4}
           maxLength={MAX_REJECT_REASON}
