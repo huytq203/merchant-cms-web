@@ -8,6 +8,8 @@ import { listAuditLogs } from '@/server/modules/audit-logs/audit-log.service';
 
 const querySchema = paginationQuerySchema.extend({
   actorUsername: z.string().optional(),
+  actorType: z.string().optional(),
+  category: z.string().optional(),
   action: z.string().optional(),
   entityName: z.string().optional(),
   entityId: z.string().optional(),

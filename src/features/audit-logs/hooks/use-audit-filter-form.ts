@@ -1,23 +1,41 @@
 import { useState } from 'react';
+import { presetRange } from '../audit-log-queries';
 import { auditFilterSchema } from '../schemas';
-import type { AuditFilter } from '../types';
+import type { AuditFilter, AuditPeriod } from '../types';
 
+/**
+ * Trạng thái form lọc. Chọn kỳ 7/30 ngày áp dụng ngay (một chạm, như các màn thống kê khác); "Tùy chỉnh" chỉ mở hai
+ * ô ngày, áp dụng khi bấm Tìm kiếm cùng các lọc còn lại.
+ */
 export function useAuditFilterForm(filter: AuditFilter, onSearch: (filter: AuditFilter) => void) {
-  const [actorUsername, setActorUsername] = useState(filter.actorUsername ?? '');
-  const [entityName, setEntityName] = useState(filter.entityName ?? '');
+  const [period, setPeriodState] = useState<AuditPeriod>(filter.period ?? 'custom');
+  const [category, setCategory] = useState<string>(filter.category ?? '');
+  const [actorType, setActorType] = useState<string>(filter.actorType ?? '');
+  const [action, setAction] = useState<string>(filter.action ?? '');
   const [occurredFromDate, setOccurredFromDate] = useState(filter.occurredFrom?.slice(0, 10) ?? '');
   const [occurredToDate, setOccurredToDate] = useState(filter.occurredTo?.slice(0, 10) ?? '');
   const [error, setError] = useState('');
 
-  const submit = () => {
-    const parsed = auditFilterSchema.safeParse({
+  const build = (chosen: AuditPeriod) => {
+    const range = chosen === 'custom'
+      ? {
+          occurredFrom: occurredFromDate ? `${occurredFromDate}T00:00:00` : undefined,
+          occurredTo: occurredToDate ? `${occurredToDate}T23:59:59` : undefined,
+        }
+      : presetRange(chosen);
+    return auditFilterSchema.safeParse({
       ...filter,
       page: 1,
-      actorUsername: actorUsername.trim() || undefined,
-      entityName: entityName || undefined,
-      occurredFrom: occurredFromDate ? `${occurredFromDate}T00:00:00` : undefined,
-      occurredTo: occurredToDate ? `${occurredToDate}T23:59:59` : undefined,
+      period: chosen,
+      category: category || undefined,
+      actorType: actorType || undefined,
+      action: action || undefined,
+      ...range,
     });
+  };
+
+  const apply = (chosen: AuditPeriod) => {
+    const parsed = build(chosen);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Bộ lọc không hợp lệ');
       return;
@@ -26,16 +44,25 @@ export function useAuditFilterForm(filter: AuditFilter, onSearch: (filter: Audit
     onSearch(parsed.data);
   };
 
+  const setPeriod = (next: AuditPeriod) => {
+    setPeriodState(next);
+    if (next !== 'custom') apply(next);
+  };
+
   return {
-    actorUsername,
-    entityName,
+    period,
+    category,
+    actorType,
+    action,
     occurredFromDate,
     occurredToDate,
     error,
-    setActorUsername,
-    setEntityName,
+    setPeriod,
+    setCategory,
+    setActorType,
+    setAction,
     setOccurredFromDate,
     setOccurredToDate,
-    submit,
+    submit: () => apply(period),
   };
 }

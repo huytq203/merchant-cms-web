@@ -138,13 +138,37 @@ describe("audit log screen", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("updates the URL when searching and when pressing Enter in a field", async () => {
+  it("keeps the custom dates in the URL when searching", async () => {
     renderContainer();
     await screen.findByRole("table");
+    // Bộ lọc không có period (link cũ) là Tùy chỉnh: hai ô ngày hiện và đi lên URL khi Tìm kiếm.
+    expect(screen.getByRole("button", { name: "Tùy chỉnh" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
     expect(push).toHaveBeenLastCalledWith(expect.stringContaining("occurredFrom=2026-09-28T00%3A00%3A00"));
-    await userEvent.type(screen.getByRole("textbox", { name: /Người thực hiện/ }), "alice{Enter}");
-    expect(push).toHaveBeenLastCalledWith(expect.stringContaining("actorUsername=alice"));
+    expect(push).toHaveBeenLastCalledWith(expect.stringContaining("period=custom"));
+  });
+
+  it("applies a preset period at once and keeps the dates out of the URL", async () => {
+    renderContainer();
+    await screen.findByRole("table");
+    await userEvent.click(screen.getByRole("button", { name: "30 ngày" }));
+    const url = String(push.mock.lastCall?.[0]);
+    expect(url).toContain("period=30d");
+    expect(url).not.toContain("occurredFrom");
+  });
+
+  it("shows the category pill, the object label and a FlexPay actor without any admin name", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{
+      ...row, entityName: "merchant_revenue_refunds", category: "REFUND", action: "APPROVE", reason: null,
+      actorType: "FLEXPAY", actorLabel: "FlexPay", actorDisplayName: "FlexPay",
+    }], total: 1 })));
+    renderContainer();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "Nhóm" })).toBeInTheDocument();
+    expect(within(table).getByText("Hoàn tiền")).toBeInTheDocument();
+    expect(within(table).getByText("Yêu cầu hoàn tiền")).toBeInTheDocument();
+    expect(within(table).getByText("Phê duyệt")).toBeInTheDocument();
+    expect(within(table).getByText("FlexPay")).toBeInTheDocument();
   });
 
   it("clears the filter without refilling the date range", async () => {
@@ -153,5 +177,6 @@ describe("audit log screen", () => {
     const url = String(push.mock.calls[0]?.[0]);
     expect(url).not.toContain("occurredFrom");
     expect(url).not.toContain("occurredTo");
+    expect(url).toContain("period=custom");
   });
 });

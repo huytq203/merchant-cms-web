@@ -27,4 +27,19 @@ describe('audit schemas', () => {
   it('rejects an unknown actor type', () => {
     expect(auditLogSchema.safeParse({ ...entry, actorType: 'USER' }).success).toBe(false);
   });
+
+  it('accepts a FlexPay row with its category and display name (BE 10/11/2026)', () => {
+    const parsed = auditLogSchema.parse({
+      ...entry, actorType: 'FLEXPAY', actorLabel: 'FlexPay', actorDisplayName: 'FlexPay', category: 'SUB_MERCHANT',
+    });
+    expect(parsed.actorType).toBe('FLEXPAY');
+    expect(parsed.category).toBe('SUB_MERCHANT');
+  });
+
+  it('accepts the new filters and rejects unknown values', () => {
+    expect(auditFilterSchema.safeParse({ category: 'REFUND', actorType: 'SYSTEM', period: '30d' }).success).toBe(true);
+    expect(auditFilterSchema.safeParse({ category: 'WALLET' }).success).toBe(false);
+    expect(auditFilterSchema.safeParse({ actorType: 'ADMIN' }).success).toBe(false);
+    expect(auditFilterSchema.safeParse({ period: '90d' }).success).toBe(false);
+  });
 });

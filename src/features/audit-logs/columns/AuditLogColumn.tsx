@@ -6,8 +6,9 @@ import { DateTimeCell } from '@/components/page/DateTimeCell';
 import { createIndexColumn } from '@/components/page/IndexColumn';
 import { RowActions } from '@/components/page/RowActions';
 import type { AuditLog } from '../types';
-import { actionLabel, entityLabel } from '../utils/audit-mapper';
+import { actionLabel, actorName, categoryLabel, entityLabel } from '../utils/audit-mapper';
 
+/** Cột theo mockup mục 6: Thời gian, Nhóm (pill), Đối tượng, Hành động, Người thực hiện. */
 export function auditLogColumns(onView: (row: AuditLog) => void, page: number, pageSize: number): ColumnDef<AuditLog>[] {
   return [
     createIndexColumn<AuditLog>({ page, pageSize }),
@@ -17,22 +18,33 @@ export function auditLogColumns(onView: (row: AuditLog) => void, page: number, p
       cell: ({ row }) => <DateTimeCell value={row.original.occurredAt} />,
     },
     {
-      accessorKey: 'actorLabel',
-      header: 'Người thực hiện',
+      accessorKey: 'category',
+      header: 'Nhóm',
+      cell: ({ row }) => <Badge variant="secondary">{categoryLabel(row.original.category)}</Badge>,
+    },
+    {
+      accessorKey: 'entityName',
+      header: 'Đối tượng',
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <p>{entityLabel(row.original.entityName ?? '—')}</p>
+          {row.original.reason && (
+            <p className="max-w-xs truncate text-xs text-muted-foreground" title={row.original.reason}>
+              {row.original.reason}
+            </p>
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: 'action',
       header: 'Hành động',
-      cell: ({ row }) => (
-        <span title={row.original.reason ?? undefined}>
-          {actionLabel(row.original.action)}
-        </span>
-      ),
+      cell: ({ row }) => actionLabel(row.original.action),
     },
     {
-      accessorKey: 'entityName',
-      header: 'Phân hệ',
-      cell: ({ row }) => <Badge variant="secondary">{entityLabel(row.original.entityName ?? '—')}</Badge>,
+      id: 'actor',
+      header: 'Người thực hiện',
+      cell: ({ row }) => actorName(row.original),
     },
     {
       id: 'actions',

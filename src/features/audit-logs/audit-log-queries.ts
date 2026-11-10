@@ -2,47 +2,74 @@ import { queryOptions } from '@tanstack/react-query';
 import { format, subDays } from 'date-fns';
 import { z } from 'zod';
 import { apiClient } from '@/lib/http/api-client';
-import { auditFilterSchema, auditLogSchema } from './schemas';
-import type { AuditFilter, AuditListResult, AuditLog } from './types';
+import { auditFilterSchema, auditLogSchema, auditPeriodSchema } from './schemas';
+import type { AuditFilter, AuditListResult, AuditLog, AuditPeriod } from './types';
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 const dateFormat = "yyyy-MM-dd'T'HH:mm:ss";
 const listResultSchema = z.object({ rows: z.array(auditLogSchema), total: z.number().int().min(0) });
 
 const filterParamNames = [
-  'page', 'pageSize', 'actorUsername', 'action', 'entityName', 'entityId', 'occurredFrom', 'occurredTo',
+  'page', 'pageSize', 'period', 'actorUsername', 'actorType', 'category', 'action', 'entityName', 'entityId',
+  'occurredFrom', 'occurredTo',
 ] as const;
+
+/** Số ngày lùi của các kỳ có sẵn; "custom" lấy ngày từ URL. */
+const presetDays: Record<Exclude<AuditPeriod, 'custom'>, number> = { '7d': 7, '30d': 30 };
 
 function toPositiveInteger(value: string | undefined, fallback: number, max = Infinity): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 && parsed <= max ? parsed : fallback;
 }
 
-/** Defaults to the last seven days only on a first visit; any search parameter means the user chose the range. */
+/** Khoảng thời gian của một kỳ có sẵn, tính lại mỗi lần đọc URL để "7 ngày" luôn là 7 ngày tính đến lúc xem. */
+export function presetRange(period: Exclude<AuditPeriod, 'custom'>, now = new Date()) {
+  return { occurredFrom: format(subDays(now, presetDays[period]), dateFormat), occurredTo: format(now, dateFormat) };
+}
+
+/**
+ * Kỳ của URL: có `period` thì theo nó; lần đầu vào màn (URL trống) là 7 ngày (chốt 10/11/2026); URL có tham số
+ * khác mà không có `period` (link cũ, hoặc sau "Xóa lọc") là tự chọn - ngày nào có thì lọc theo ngày đó.
+ */
+function periodOf(raw: string | undefined, firstVisit: boolean): AuditPeriod {
+  const parsed = auditPeriodSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  return firstVisit ? '7d' : 'custom';
+}
+
 export function parseAuditSearchParams(raw: RawSearchParams, now = new Date()): AuditFilter {
-  const defaultFrom = format(subDays(now, 7), dateFormat);
-  const defaultTo = format(now, dateFormat);
   const params = Object.fromEntries(Object.entries(raw).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
   const firstVisit = filterParamNames.every((name) => raw[name] === undefined);
+  const period = periodOf(params.period, firstVisit);
+  const range = period === 'custom'
+    ? { occurredFrom: params.occurredFrom || undefined, occurredTo: params.occurredTo || undefined }
+    : presetRange(period, now);
   const candidate = {
     page: toPositiveInteger(params.page, 1),
     pageSize: toPositiveInteger(params.pageSize, 10, 100),
+    period,
     actorUsername: params.actorUsername || undefined,
+    actorType: params.actorType || undefined,
+    category: params.category || undefined,
     action: params.action || undefined,
     entityName: params.entityName || undefined,
     entityId: params.entityId || undefined,
-    occurredFrom: params.occurredFrom || (firstVisit ? defaultFrom : undefined),
-    occurredTo: params.occurredTo || (firstVisit ? defaultTo : undefined),
+    ...range,
   };
   const parsed = auditFilterSchema.safeParse(candidate);
   if (parsed.success) return parsed.data;
+  // URL hỏng (ngày ngược, enum lạ...): giữ các lọc còn hợp lệ, quay về 7 ngày.
+  const keep = <K extends 'actorType' | 'category' | 'action'>(key: K) =>
+    params[key] && auditFilterSchema.safeParse({ [key]: params[key] }).success ? { [key]: params[key] as AuditFilter[K] } : {};
   return {
     page: candidate.page,
     pageSize: candidate.pageSize,
-    occurredFrom: defaultFrom,
-    occurredTo: defaultTo,
+    period: '7d',
+    ...presetRange('7d', now),
     ...(params.actorUsername ? { actorUsername: params.actorUsername } : {}),
-    ...(params.action && auditFilterSchema.safeParse({ action: params.action }).success ? { action: params.action as AuditFilter['action'] } : {}),
+    ...keep('actorType'),
+    ...keep('category'),
+    ...keep('action'),
     ...(params.entityName ? { entityName: params.entityName } : {}),
   };
 }

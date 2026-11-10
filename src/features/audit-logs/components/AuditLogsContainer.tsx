@@ -14,7 +14,8 @@ interface Props {
 }
 
 function filterKey(filter: AuditFilter): string {
-  return [filter.actorUsername, filter.entityName, filter.occurredFrom, filter.occurredTo].join('|');
+  return [filter.period, filter.category, filter.actorType, filter.action, filter.actorUsername, filter.entityName,
+    filter.occurredFrom, filter.occurredTo].join('|');
 }
 
 export function AuditLogsContainer({ filter }: Props) {

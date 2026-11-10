@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog/Dialog';
 import { auditLogQueries } from '../audit-log-queries';
 import type { AuditLog } from '../types';
-import { actionLabel, entityLabel } from '../utils/audit-mapper';
+import { actionLabel, actorName, categoryLabel, entityLabel } from '../utils/audit-mapper';
 
 interface Props {
   row: AuditLog | null;
@@ -45,9 +45,10 @@ export function AuditLogDetailModal({ row, onClose }: Props) {
         {value && (
           <div className="space-y-4">
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
-              <Field label="Người thực hiện">{value.actorLabel}</Field>
+              <Field label="Người thực hiện">{actorName(value)}</Field>
               <Field label="Hành động">{actionLabel(value.action)}</Field>
-              <Field label="Phân hệ">{entityLabel(value.entityName ?? '—')}</Field>
+              <Field label="Nhóm">{categoryLabel(value.category)}</Field>
+              <Field label="Đối tượng">{entityLabel(value.entityName ?? '—')}</Field>
               <Field label="Thời gian">{format(new Date(value.occurredAt), 'dd/MM/yyyy HH:mm:ss')}</Field>
               <Field label="Lý do">{value.reason ?? '—'}</Field>
             </dl>

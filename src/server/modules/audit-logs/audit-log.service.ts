@@ -16,6 +16,9 @@ export async function listAuditLogs(filter: AuditFilter): Promise<BeResult<Audit
       page: filter.page,
       size: filter.pageSize,
       actorUsername: filter.actorUsername,
+      // Lọc portal-only (BE 10/11/2026): nhóm đối tượng và loại người thực hiện MERCHANT/FLEXPAY/SYSTEM.
+      actorType: filter.actorType,
+      category: filter.category,
       action: filter.action,
       entityName: filter.entityName,
       entityId: filter.entityId,

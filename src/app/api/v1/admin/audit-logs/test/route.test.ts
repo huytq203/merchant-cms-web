@@ -38,4 +38,15 @@ describe('audit collection route', () => {
     expect(listAuditLogs).toHaveBeenCalledWith(expect.not.objectContaining({ actorId: expect.anything() }));
     expect(listAuditLogs).toHaveBeenCalledWith(expect.objectContaining({ actorUsername: 'alice' }));
   });
+
+  it('passes the category and actor type filters through', async () => {
+    listAuditLogs.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    await GET(request('?category=REFUND&actorType=FLEXPAY'));
+    expect(listAuditLogs).toHaveBeenCalledWith(expect.objectContaining({ category: 'REFUND', actorType: 'FLEXPAY' }));
+  });
+
+  it('rejects an unknown category', async () => {
+    expect((await GET(request('?category=WALLET'))).status).toBe(400);
+    expect(listAuditLogs).not.toHaveBeenCalled();
+  });
 });
