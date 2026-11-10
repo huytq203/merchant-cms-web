@@ -1,10 +1,11 @@
 import "server-only";
 
+import { z } from "zod";
 import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
 import type { BeResult } from "@/lib/be/client";
-import { subMerchantDetailSchema, subMerchantSummarySchema, type SubMerchantFormValues } from "@/features/sub-merchants/schemas";
+import { subMerchantDetailSchema, subMerchantStatusSchema, subMerchantSummarySchema, type SubMerchantFormValues } from "@/features/sub-merchants/schemas";
 import type { SubMerchantDetail, SubMerchantListFilter, SubMerchantListResult } from "@/features/sub-merchants/types";
 import { hasSubMerchantFilter, matchesSubMerchantFilter } from "@/features/sub-merchants/utils/sub-merchant-filter";
 import { toCreateRequest, toUpdateRequest } from "@/features/sub-merchants/utils/sub-merchant-mapper";
@@ -38,6 +39,13 @@ export async function listSubMerchants(filter: SubMerchantListFilter): Promise<B
   const result = await fetchPage(filter.page, filter.pageSize, filter.merchantId);
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
+
+const subMerchantChoiceRowSchema = z.object({ id: z.uuid(), code: z.string(), name: z.string(), status: subMerchantStatusSchema });
+export type SubMerchantChoiceRow = z.infer<typeof subMerchantChoiceRowSchema>;
+
+/** The session's own Subs (id/code/name/status), no pagination; readable without MANAGE_SUB_MERCHANT. */
+export const listSubMerchantChoiceRows = (): Promise<BeResult<SubMerchantChoiceRow[]>> =>
+  merchantClient().get({ path: subMerchantPaths.choices, schema: z.array(subMerchantChoiceRowSchema) });
 
 export const getSubMerchant = (id: string): Promise<BeResult<SubMerchantDetail>> =>
   merchantClient().get({ path: subMerchantPaths.detail(id), schema: subMerchantDetailSchema });

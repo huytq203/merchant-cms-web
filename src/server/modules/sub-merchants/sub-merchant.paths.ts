@@ -5,6 +5,8 @@ const MERCHANT = "/api/v1/merchant/sub-merchants";
 
 export const subMerchantPaths = {
   list: MERCHANT,
+  /** Read-only {id, code, name, status} of the session's Subs; open to finance-screen permissions, not only MANAGE_SUB_MERCHANT. */
+  choices: `${MERCHANT}/choices`,
   detail: (id: string) => `${MERCHANT}/${encodeURIComponent(id)}`,
   create: MERCHANT,
   update: (id: string) => `${MERCHANT}/${encodeURIComponent(id)}`,
