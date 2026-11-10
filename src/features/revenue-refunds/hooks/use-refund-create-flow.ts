@@ -25,7 +25,7 @@ function validate(values: RefundFormFields, orderAmount: number): { data?: Creat
     return { errors };
   }
   if (parsed.data.amount > orderAmount) {
-    return { errors: { amount: `Không vượt quá ${new Intl.NumberFormat("vi-VN").format(orderAmount)} vnđ giá trị giao dịch.` } };
+    return { errors: { amount: `Không vượt quá ${new Intl.NumberFormat("vi-VN").format(orderAmount)} vnđ giá trị đơn hàng.` } };
   }
   return { data: parsed.data, errors: {} };
 }

@@ -78,7 +78,7 @@ export function RefundCreateDialog({ order, onClose }: Props) {
       <DialogContent size={flow.step === "form" ? "md" : "sm"}>
         <DialogHeader>
           <DialogTitle>{TITLES[flow.step]}</DialogTitle>
-          <DialogDescription>{`Giao dịch ${order.orderCode}, bước ${STEP[flow.step]}/3`}</DialogDescription>
+          <DialogDescription>{`Đơn hàng ${order.orderCode}, bước ${STEP[flow.step]}/3`}</DialogDescription>
         </DialogHeader>
         {flow.step === "form" ? (
           <>
@@ -98,7 +98,7 @@ export function RefundCreateDialog({ order, onClose }: Props) {
             <DialogBody className="grid justify-items-center gap-3 text-center">
               <span className="flex size-12 items-center justify-center rounded-full bg-success-soft text-success"><Check size={26} aria-hidden="true" /></span>
               <p className="font-semibold">Yêu cầu đang chờ người có quyền phê duyệt.</p>
-              <Summary rows={[["Mã yêu cầu", flow.created.refundCode], ["Số tiền hoàn", formatAmount(flow.created.amount)], ["Trạng thái", "Chờ phê duyệt"]]} />
+              <Summary rows={[["Mã hoàn tiền", flow.created.refundCode], ["Số tiền hoàn", formatAmount(flow.created.amount)], ["Trạng thái", "Chờ phê duyệt"]]} />
             </DialogBody>
             <DialogFooter>
               <Button variant="outline" nativeButton={false} render={<Link href={`/revenue-refunds?orderId=${order.id}`} role="link" />}>Xem trong danh sách</Button>

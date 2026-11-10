@@ -315,7 +315,7 @@ describe("order detail", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
     await userEvent.click(await screen.findByRole("button", { name: "Hoàn tiền" }));
     const dialog = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
-    expect(dialog).toHaveTextContent("Giao dịch INV-1");
+    expect(dialog).toHaveTextContent("Đơn hàng INV-1");
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
@@ -339,7 +339,7 @@ describe("refund and dispute entries", () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Hoàn tiền đơn INV-1/ }));
     const dialog = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
-    expect(dialog).toHaveTextContent("Giao dịch INV-1");
+    expect(dialog).toHaveTextContent("Đơn hàng INV-1");
   });
 
   it("hides the row refund for an unpaid order or without CREATE_REFUND", async () => {
@@ -386,6 +386,39 @@ describe("refund and dispute entries", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
     await screen.findByRole("dialog");
     expect(screen.queryByRole("button", { name: "Tra soát" })).not.toBeInTheDocument();
+  });
+});
+
+describe("complaint entry on the row", () => {
+  const paid = makeOrder({ status: "SUCCESS", transactionCode: "FM26NEFQ9", paidAt: "2026-11-02T14:17:54" });
+  it("shows the transaction code under the order code and a Khiếu nại button on a paid order", async () => {
+    listReturns([paid]);
+    renderContainer();
+    const row = await screen.findByRole("button", { name: /Khiếu nại đơn INV-1/ });
+    expect(row).toBeEnabled();
+    expect(screen.getByText(paid.transactionCode!)).toBeInTheDocument();
+    await userEvent.click(row);
+    const dialog = await screen.findByRole("dialog", { name: "Khởi tạo yêu cầu Tra soát" });
+    // Mã cố định lấy từ đơn: đúng nhãn "Mã giao dịch", kèm mã đơn hàng để đối chiếu.
+    expect(dialog).toHaveTextContent(`Mã giao dịch: ${paid.transactionCode}`);
+    expect(dialog).toHaveTextContent("Mã đơn hàng: INV-1");
+  });
+
+  it("hides it for an unpaid order, an order without a transaction code, and without CREATE_DISPUTE", async () => {
+    listReturns([makeOrder({ status: "ACTIVE", transactionCode: null })]);
+    renderContainer();
+    await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ });
+    expect(screen.queryByRole("button", { name: /Khiếu nại đơn/ })).not.toBeInTheDocument();
+    cleanup();
+    listReturns([{ ...paid, transactionCode: null }]);
+    renderContainer();
+    await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ });
+    expect(screen.queryByRole("button", { name: /Khiếu nại đơn/ })).not.toBeInTheDocument();
+    cleanup();
+    listReturns([paid]);
+    renderContainer({ abilities: { ...abilities, canDispute: false } });
+    await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ });
+    expect(screen.queryByRole("button", { name: /Khiếu nại đơn/ })).not.toBeInTheDocument();
   });
 });
 

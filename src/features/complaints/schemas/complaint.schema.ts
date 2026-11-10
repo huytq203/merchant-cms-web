@@ -87,12 +87,20 @@ export const attachmentLinkSchema = z.object({
 export const attachmentUploadSchema = z.object({ attachmentId: z.string() });
 
 /** `GET /complaints/transaction-check`: the order the typed code belongs to (merchant scope already applied by the BE). */
+/**
+ * Đơn tìm được từ MỘT mã (mã giao dịch FM… hoặc mã đơn hàng). Các trường sau `createdAt` do BE thêm ở tối ưu Portal
+ * 10/11/2026 nên nullish: thẻ xác nhận chỉ hiện phần có dữ liệu.
+ */
 export const transactionCheckSchema = z.object({
   transactionId: z.string(),
   transactionCode: z.string(),
+  orderCode: z.string().nullish(),
+  subMerchantName: z.string().nullish(),
+  terminalCode: z.string().nullish(),
   amount: z.number().nullish(),
   status: z.string(),
   createdAt: z.string().nullish(),
+  paidAt: z.string().nullish(),
 });
 
 export const MAX_COMPLAINT_ATTACHMENTS = 10;
@@ -107,7 +115,7 @@ const attachmentIdsSchema = z
 
 /** Body of `POST /complaints`, checked by the route before it is forwarded; the BE checks again. */
 export const createComplaintBodySchema = z.object({
-  transactionCode: z.string().trim().min(1, "Vui lòng nhập mã giao dịch").max(100, "Mã giao dịch không hợp lệ"),
+  transactionCode: z.string().trim().min(1, "Vui lòng nhập mã giao dịch hoặc mã đơn hàng").max(100, "Mã giao dịch hoặc mã đơn hàng không hợp lệ"),
   reasonCode: complaintReasonSchema,
   content: z
     .string()

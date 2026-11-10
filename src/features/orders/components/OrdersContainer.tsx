@@ -40,8 +40,8 @@ export function OrdersContainer({ filter, abilities }: Props) {
   const list = useQuery(orderQueries.list(filter));
   const { activeDialog, target } = dialogs;
   const [refundOrder, setRefundOrder] = useState<RefundOrder | null>(null);
-  // "Tra soát" mở từ chi tiết đơn: dialog giữ mã giao dịch của đơn đang xem.
-  const [disputeOpen, setDisputeOpen] = useState(false);
+  // Khiếu nại mở từ chi tiết đơn ("Tra soát") hoặc từ nút trên dòng: dialog giữ mã giao dịch (và mã đơn hàng) của đơn đó.
+  const [dispute, setDispute] = useState<{ transactionCode: string; orderCode: string } | null>(null);
   const [cancelFromDetail, setCancelFromDetail] = useState(false);
   const startCancel = (order: Order, fromDetail: boolean) => {
     actions.cancel.reset();
@@ -52,6 +52,9 @@ export function OrdersContainer({ filter, abilities }: Props) {
     const back = cancelFromDetail ? target : null;
     actions.closeDialog();
     if (back) dialogs.openFor("detail", back);
+  };
+  const startDispute = (order: Order) => {
+    if (order.transactionCode) setDispute({ transactionCode: order.transactionCode, orderCode: order.orderCode });
   };
   const startRefund = (order: Order) => {
     actions.closeDialog();
@@ -105,6 +108,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onViewQr={(order) => dialogs.openFor("qr", order)}
             onCancel={abilities.canCancel ? (order) => startCancel(order, false) : undefined}
             onRefund={abilities.canRefund ? startRefund : undefined}
+            onDispute={abilities.canDispute ? startDispute : undefined}
           />
         ) : null}
       </ResultCard>
@@ -128,15 +132,16 @@ export function OrdersContainer({ filter, abilities }: Props) {
         onOpenChange={(open) => !open && actions.closeDialog()}
         refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
         cancel={{ canCancel: abilities.canCancel, onStart: (order) => startCancel(order, true) }}
-        dispute={{ canCreate: abilities.canDispute, onStart: () => setDisputeOpen(true) }}
+        dispute={{ canCreate: abilities.canDispute, onStart: () => { const order = fresh.data ?? target; if (order) startDispute(order); } }}
         {...qrDialog}
       />
       {abilities.canDispute ? (
         <ComplaintCreateDialog
           title="Khởi tạo yêu cầu Tra soát"
-          transactionCode={(fresh.data ?? target)?.transactionCode}
-          open={disputeOpen}
-          onOpenChange={setDisputeOpen}
+          transactionCode={dispute?.transactionCode}
+          orderCode={dispute?.orderCode}
+          open={dispute !== null}
+          onOpenChange={(open) => !open && setDispute(null)}
         />
       ) : null}
       <OrderCancelDialog

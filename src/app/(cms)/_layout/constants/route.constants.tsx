@@ -8,7 +8,6 @@ import {
   Store,
   MonitorSmartphone,
   ShoppingBag,
-  RotateCcw,
   MessageSquareWarning,
   Wallet,
   ScrollText,
@@ -163,11 +162,12 @@ export const routesConfig: SidebarSection[] = [
         icon: <ShoppingBag className="w-4 h-4" />,
       },
       {
-        title: "Danh sách yêu cầu hoàn tiền",
+        // Một màn hoàn tiền duy nhất (10/11/2026): gộp màn /refund cũ (stub trả 501) vào luồng thật /revenue-refunds.
+        // Không requiresMerchant: user chỉ được gán Sub vẫn xem được (BE giới hạn theo phạm vi phiên).
+        title: "Hoàn tiền",
         permission: "VIEW_REFUND",
-        href: "/refund",
-        requiresMerchant: true,
-        icon: <RotateCcw className="w-4 h-4" />,
+        href: "/revenue-refunds",
+        icon: <Undo2 className="w-4 h-4" />,
       },
       {
         title: "Danh sách khiếu nại",
@@ -220,12 +220,6 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_BALANCE",
         href: "/revenue-freezes",
         icon: <Snowflake className="w-4 h-4" />,
-      },
-      {
-        title: "Hoàn tiền doanh thu",
-        permission: "VIEW_REFUND",
-        href: "/revenue-refunds",
-        icon: <Undo2 className="w-4 h-4" />,
       },
     ],
   },

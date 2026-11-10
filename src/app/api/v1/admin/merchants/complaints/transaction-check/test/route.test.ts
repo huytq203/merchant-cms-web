@@ -28,7 +28,7 @@ describe("transaction-check route", () => {
     for (const query of ["", "?transactionCode=", "?transactionCode=%20%20"]) {
       const response = await GET(url(query));
       expect(response.status).toBe(400);
-      expect(await response.json()).toEqual({ message: "Vui lòng nhập mã giao dịch" });
+      expect(await response.json()).toEqual({ message: "Vui lòng nhập mã giao dịch hoặc mã đơn hàng" });
     }
     expect(service.checkTransaction).not.toHaveBeenCalled();
   });

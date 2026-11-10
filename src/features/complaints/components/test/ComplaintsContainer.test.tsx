@@ -278,7 +278,7 @@ describe("create", () => {
   it("checks the required fields before sending anything", async () => {
     const dialog = await openCreate();
     await userEvent.click(within(dialog).getByRole("button", { name: "Gửi yêu cầu" }));
-    expect(await within(dialog).findByText("Vui lòng nhập mã giao dịch")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Vui lòng nhập mã giao dịch hoặc mã đơn hàng")).toBeInTheDocument();
     expect(within(dialog).getByText("Vui lòng chọn lý do khiếu nại")).toBeInTheDocument();
     expect(within(dialog).getByText("Vui lòng nhập nội dung khiếu nại")).toBeInTheDocument();
   });

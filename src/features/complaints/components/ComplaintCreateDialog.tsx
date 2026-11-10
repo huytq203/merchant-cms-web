@@ -9,11 +9,14 @@ import { Input } from '@/components/ui/input/Input';
 import { ApiError } from '@/lib/http/api-client';
 import { Select } from '@/components/ui/select/Select';
 import { Textarea } from '@/components/ui/textarea/Textarea';
+import { formatAmount } from '@/lib/utils/helper';
+import { formatVnDateTime } from '@/lib/utils/vn-time';
+import { ORDER_STATUS_DISPLAY_OPTIONS, labelOf } from '@/features/orders/constants/Order.constants';
 import { checkComplaintTransaction, describeComplaintError, submitComplaint } from '../complaint-api';
 import { COMPLAINTS_KEY } from '../complaint-queries';
 import { COMPLAINT_REASON_OPTIONS } from '../constants/Complaint.constants';
 import { complaintReasonSchema, createComplaintBodySchema, MAX_CREATE_CONTENT } from '../schemas/complaint.schema';
-import type { Complaint } from '../types/types';
+import type { Complaint, TransactionCheck } from '../types/types';
 import { ComplaintEvidenceField } from './ComplaintEvidenceField';
 
 type Props = {
@@ -24,6 +27,8 @@ type Props = {
    * `POST /complaints` (one module on the BE).
    */
   transactionCode?: string | null;
+  /** Mã đơn hàng của đơn đang khiếu nại (nếu đã biết), hiện thêm một dòng cho người dùng đối chiếu. */
+  orderCode?: string | null;
   title?: string;
   onCreated?: (complaint: Complaint) => void;
 };
@@ -44,7 +49,7 @@ function validate(values: typeof EMPTY): FieldErrors {
   return errors;
 }
 
-export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, title = 'Tạo khiếu nại mới', onCreated }: Props) {
+export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, orderCode, title = 'Tạo khiếu nại mới', onCreated }: Props) {
   const client = useQueryClient();
   const [values, setValues] = useState(EMPTY);
   const [files, setFiles] = useState<File[]>([]);
@@ -55,6 +60,8 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
   const [refused, setRefused] = useState<{ code: string; message: string } | null>(null);
   // Latest typed code, so a slow answer for an older value never paints over a newer one.
   const latestCode = useRef('');
+  // Đơn BE tìm được từ mã đã nhập (mã giao dịch hoặc mã đơn hàng), hiện thành thẻ xác nhận dưới ô nhập.
+  const [found, setFound] = useState<{ code: string; check: TransactionCheck } | null>(null);
 
   const create = useMutation({
     mutationFn: submitComplaint,
@@ -67,6 +74,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
     setErrors({});
     setFailure(null);
     setRefused(null);
+    setFound(null);
     create.reset();
   };
 
@@ -79,6 +87,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
   const set = (field: keyof typeof EMPTY) => (value: string) => {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
+    if (field === 'transactionCode') setFound(null);
   };
 
   /**
@@ -90,8 +99,11 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
     const code = values.transactionCode.trim();
     if (fixedCode || !code) return;
     try {
-      await checkComplaintTransaction(code);
-      if (latestCode.current === code) setRefused(null);
+      const check = await checkComplaintTransaction(code);
+      if (latestCode.current === code) {
+        setRefused(null);
+        setFound({ code, check });
+      }
     } catch (error) {
       if (latestCode.current !== code || !(error instanceof ApiError) || error.status >= 500) return;
       const message = describeComplaintError(error);
@@ -127,7 +139,13 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
           <DialogTitle>{title}</DialogTitle>
           {fixedCode ? (
             <p className="text-sm text-muted-foreground">
-              Giao dịch: <span className="font-mono font-semibold text-primary">{fixedCode}</span>
+              {/* Mã cố định luôn là mã giao dịch của đơn (nút Khiếu nại/Tra soát lấy từ đơn): đúng nhãn của nó. */}
+              Mã giao dịch: <span className="font-mono font-semibold text-primary">{fixedCode}</span>
+              {orderCode ? (
+                <>
+                  {' · '}Mã đơn hàng: <span className="font-mono font-semibold text-primary">{orderCode}</span>
+                </>
+              ) : null}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">Gửi yêu cầu tra soát một giao dịch tới Cổng thanh toán.</p>
@@ -143,8 +161,8 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
         >
           {!fixedCode && (
             <Input
-              label="Mã giao dịch cần khiếu nại"
-              placeholder="Nhập mã giao dịch"
+              label="Mã giao dịch hoặc mã đơn hàng"
+              placeholder="Nhập mã giao dịch (FM…) hoặc mã đơn hàng"
               required
               value={values.transactionCode}
               onChange={(event) => {
@@ -155,6 +173,7 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
               error={errors.transactionCode}
             />
           )}
+          {!fixedCode && found && found.code === values.transactionCode.trim() ? <FoundOrderCard check={found.check} /> : null}
           <Select
             label="Lý do"
             placeholder="Chọn lý do"
@@ -192,5 +211,25 @@ export function ComplaintCreateDialog({ open, onOpenChange, transactionCode, tit
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Thẻ xác nhận đơn tìm được: mã đơn hàng, mã giao dịch, Sub · terminal · số tiền · trạng thái · thời điểm thanh toán. */
+function FoundOrderCard({ check }: { check: TransactionCheck }) {
+  const parts = [
+    check.subMerchantName,
+    check.terminalCode,
+    check.amount == null ? null : formatAmount(check.amount),
+    labelOf(ORDER_STATUS_DISPLAY_OPTIONS, check.status),
+    check.paidAt ? formatVnDateTime(check.paidAt) : null,
+  ].filter(Boolean);
+  return (
+    <div role="status" className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+      <p className="font-semibold text-foreground">
+        {check.orderCode ? `Đơn ${check.orderCode} · ` : ''}Mã GD <span className="font-mono">{check.transactionCode}</span>
+      </p>
+      <p className="text-muted-foreground">{parts.join(' · ')}</p>
+      {check.status !== 'SUCCESS' ? <p className="mt-1 font-medium text-danger">Chỉ hỗ trợ tra soát giao dịch Thành công</p> : null}
+    </div>
   );
 }

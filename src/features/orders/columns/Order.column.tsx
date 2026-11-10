@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Ban, Eye, QrCode, Undo2 } from "lucide-react";
+import { Ban, Eye, MessageSquareWarning, QrCode, Undo2 } from "lucide-react";
 import { DateTimeCell } from "@/components/page/DateTimeCell";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
@@ -16,6 +16,8 @@ export type OrderColumnActions = {
   onCancel?: (order: Order) => void;
   /** Present only for a session with CREATE_REFUND; the row shows it for a paid (SUCCESS) order. */
   onRefund?: (order: Order) => void;
+  /** Present only for a session with CREATE_DISPUTE; the row shows it for a paid order that has a transaction code. */
+  onDispute?: (order: Order) => void;
 };
 
 const statusTone: Record<Order["status"], StatusTone> = {
@@ -55,6 +57,13 @@ function OrderRowActions({ order, actions }: { order: Order; actions: OrderColum
     { label: "Xem mã QR", icon: <QrCode size={16} />, visible: showQr, onClick: () => actions.onViewQr(order) },
     // Chỉ đơn đã thanh toán thành công mới hoàn được; quyền CREATE_REFUND quyết định có truyền onRefund hay không.
     { label: "Hoàn tiền", icon: <Undo2 size={16} />, visible: Boolean(actions.onRefund) && order.status === "SUCCESS", onClick: () => actions.onRefund?.(order) },
+    // Khiếu nại ngay trên dòng (10/11/2026): chỉ đơn Thành công đã có mã giao dịch, vì BE tra soát theo mã giao dịch.
+    {
+      label: "Khiếu nại",
+      icon: <MessageSquareWarning size={16} />,
+      visible: Boolean(actions.onDispute) && order.status === "SUCCESS" && Boolean(order.transactionCode),
+      onClick: () => actions.onDispute?.(order),
+    },
     { label: "Hủy", icon: <Ban size={16} />, visible: Boolean(actions.onCancel) && canCancelOrder(order.status), onClick: () => actions.onCancel?.(order) },
   ]} />;
 }
@@ -65,7 +74,13 @@ export function getOrderColumns(actions: OrderColumnActions, page: number, pageS
     {
       accessorKey: "orderCode",
       header: "Mã đơn hàng",
-      cell: ({ row }) => <span className="font-mono font-semibold">{row.original.orderCode}</span>,
+      // Mã đơn hàng ở dòng chính, mã giao dịch (FM…) ở dòng phụ để người dùng đối chiếu và nhập khiếu nại.
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <span className="font-mono font-semibold">{row.original.orderCode}</span>
+          {row.original.transactionCode ? <p className="font-mono text-xs text-muted-foreground">{row.original.transactionCode}</p> : null}
+        </div>
+      ),
     },
     {
       id: "amount",

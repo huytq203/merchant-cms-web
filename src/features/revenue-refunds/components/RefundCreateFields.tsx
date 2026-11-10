@@ -29,7 +29,7 @@ export function RefundCreateFields({ flow, orderAmount, subMerchantName }: Props
             value={values.amount}
             onChange={(event) => change("amount", event.target.value)}
             error={errors.amount}
-            description={`Không vượt quá ${new Intl.NumberFormat("vi-VN").format(orderAmount)} vnđ giá trị giao dịch.`}
+            description={`Không vượt quá ${new Intl.NumberFormat("vi-VN").format(orderAmount)} vnđ giá trị đơn hàng.`}
           />
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">Trừ vào</span>

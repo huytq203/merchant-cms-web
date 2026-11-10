@@ -29,7 +29,7 @@ function renderContainer(canCreate: boolean) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <RevenueRefundsContainer filter={{}} canApprove={false} canCreate={canCreate} subNames={{}} />
+      <RevenueRefundsContainer filter={{}} today="2026-11-10" canApprove={false} canCreate={canCreate} subNames={{}} />
     </QueryClientProvider>,
   );
 }
@@ -74,6 +74,6 @@ describe("creating a refund from the revenue refunds page", () => {
     await userEvent.click(within(picker).getByRole("button", { name: "Chọn đơn hàng DH261102-2208" }));
 
     const form = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
-    expect(form).toHaveTextContent("Giao dịch DH261102-2208");
+    expect(form).toHaveTextContent("Đơn hàng DH261102-2208");
   });
 });

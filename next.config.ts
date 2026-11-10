@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  async redirects() {
+    // Màn /refund cũ (stub) đã gộp vào /revenue-refunds; giữ liên kết/bookmark cũ chạy được, kèm query nếu có.
+    return [{ source: "/refund", destination: "/revenue-refunds", permanent: true }];
+  },
   async headers() {
     return [
       {

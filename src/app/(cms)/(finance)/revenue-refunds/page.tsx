@@ -4,9 +4,11 @@ import { AccessDenied } from "@/features/auth/components/access-denied";
 import { hasPermission } from "@/features/auth/permissions";
 import { RevenueRefundsContainer } from "@/features/revenue-refunds/components/RevenueRefundsContainer";
 import { parseRefundSearchParams, revenueRefundQueries } from "@/features/revenue-refunds/revenue-refund-queries";
+import { toRefundQuery } from "@/features/revenue-refunds/utils/refund-query";
 import { getServerSession } from "@/lib/auth/session";
+import { vnToday } from "@/lib/utils/vn-time";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
-import { listRevenueRefunds } from "@/server/modules/revenue-refunds/revenue-refund.service";
+import { getRevenueRefundSummary, listRevenueRefunds } from "@/server/modules/revenue-refunds/revenue-refund.service";
 import { listSubMerchantChoices } from "@/server/modules/sub-merchants/sub-merchant-choices";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -18,12 +20,21 @@ export default async function RevenueRefundsPage({ searchParams }: Props) {
   if (!hasPermission(user.permissions, "VIEW_REFUND")) return <AccessDenied />;
 
   const filter = parseRefundSearchParams(await searchParams);
+  // Kỳ mặc định "7 ngày gần nhất" tính từ hôm nay giờ VN; đưa xuống client để hai phía cùng một khoá query.
+  const today = vnToday();
+  const query = toRefundQuery(filter, today);
   const [state, choices] = await Promise.all([
     prefetchDehydrated(async (client) => {
-      await client.prefetchQuery({
-        ...revenueRefundQueries.list(filter),
-        queryFn: async () => unwrapOrRedirect(await listRevenueRefunds(filter)),
-      });
+      await Promise.all([
+        client.prefetchQuery({
+          ...revenueRefundQueries.list(filter, today),
+          queryFn: async () => unwrapOrRedirect(await listRevenueRefunds(query)),
+        }),
+        client.prefetchQuery({
+          ...revenueRefundQueries.summary(filter, today),
+          queryFn: async () => unwrapOrRedirect(await getRevenueRefundSummary(query)),
+        }),
+      ]);
     }),
     listSubMerchantChoices(user),
   ]);
@@ -34,6 +45,7 @@ export default async function RevenueRefundsPage({ searchParams }: Props) {
     <HydrationBoundary state={state}>
       <RevenueRefundsContainer
         filter={filter}
+        today={today}
         canApprove={hasPermission(user.permissions, "APPROVE_REFUND")}
         canCreate={hasPermission(user.permissions, "CREATE_REFUND")}
         subNames={subNames}

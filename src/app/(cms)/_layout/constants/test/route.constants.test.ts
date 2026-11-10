@@ -20,7 +20,7 @@ describe("filterRoutesByAccess", () => {
     );
     expect(visible).toContain("Danh sách người dùng");
     expect(visible).toContain("Danh sách đơn hàng");
-    expect(visible).not.toContain("Danh sách yêu cầu hoàn tiền");
+    expect(visible).not.toContain("Hoàn tiền");
     expect(visible).not.toContain("Danh sách nhóm quyền");
   });
 
@@ -77,6 +77,17 @@ describe("filterRoutesByAccess", () => {
     );
     expect(visible).toContain("Danh sách Terminal");
     expect(visible).toContain("Nhật ký hệ thống");
+  });
+});
+
+describe("màn Hoàn tiền (gộp /refund vào /revenue-refunds)", () => {
+  it("chỉ còn một mục Hoàn tiền, trỏ /revenue-refunds, nằm cùng nhóm với đơn hàng", () => {
+    const items = routesConfig.flatMap((section) => section.items);
+    expect(items.filter((item) => item.href === "/revenue-refunds")).toHaveLength(1);
+    expect(items.map((item) => item.href)).not.toContain("/refund");
+    const section = routesConfig.find((candidate) => candidate.items.some((item) => item.href === "/revenue-refunds"));
+    expect(section?.items.map((item) => item.title)).toEqual(expect.arrayContaining(["Danh sách đơn hàng", "Hoàn tiền"]));
+    expect(titles(filterRoutesByAccess(routesConfig, { permissions: ["VIEW_REFUND"], hasMerchant: true }))).toContain("Hoàn tiền");
   });
 });
 

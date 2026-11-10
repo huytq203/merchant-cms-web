@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { sensitiveOtpSchema } from "@/lib/schemas/sensitive-otp";
 
-export const refundStatusSchema = z.enum(["PENDING_APPROVAL", "PROCESSING", "ACCOUNTING_QUEUE", "SUCCEEDED", "FAILED", "REJECTED"]);
+export const refundStatusSchema = z.enum(["PENDING_APPROVAL", "PROCESSING", "ACCOUNTING_QUEUE", "SUCCEEDED", "FAILED", "REJECTED", "CANCELLED"]);
 export const payoutStatusSchema = z.enum(["PENDING", "PAID"]);
 
 /**
@@ -23,13 +23,55 @@ export const revenueRefundSchema = z.object({
   payoutStatus: payoutStatusSchema.nullable(),
   reason: z.string(),
   createdAt: z.string(),
+  // Nhãn BE trả kèm (mục 2·7): mã đơn hàng, mã giao dịch, Sub, terminal. nullish để một BE cũ chưa có vẫn đọc được.
+  orderCode: z.string().nullish(),
+  transactionCode: z.string().nullish(),
+  subMerchantCode: z.string().nullish(),
+  subMerchantName: z.string().nullish(),
+  terminalCode: z.string().nullish(),
+  terminalType: z.string().nullish(),
 });
+
+/** `GET /revenue-refunds/summary`: đếm theo nhóm trạng thái + tổng tiền hoàn thành công. */
+export const refundSummarySchema = z.object({
+  total: z.number(),
+  pending: z.number(),
+  processing: z.number(),
+  succeeded: z.number(),
+  failed: z.number(),
+  succeededAmount: z.number(),
+});
+
+/** Nhóm trạng thái của dải đếm; bấm một nhóm = lọc theo các trạng thái của nhóm (xem constants/refund-status). */
+export const refundGroupSchema = z.enum(["PENDING", "PROCESSING", "SUCCEEDED", "FAILED"]);
+export const refundPeriodSchema = z.enum(["7d", "30d", "custom"]);
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const refundListResultSchema = z.object({ rows: z.array(revenueRefundSchema) });
 
+/**
+ * Bộ lọc của màn Hoàn tiền (nằm trên URL). Kỳ mặc định là 7 ngày gần nhất; `from`/`to` chỉ có nghĩa khi
+ * `period=custom`. `status` đơn lẻ giữ lại cho liên kết cũ; `orderId` đến từ màn Đơn hàng.
+ */
 export const refundFilterSchema = z.object({
   status: refundStatusSchema.optional(),
   orderId: z.uuid().optional(),
+  q: z.string().trim().max(100).optional(),
+  group: refundGroupSchema.optional(),
+  subMerchantId: z.uuid().optional(),
+  period: refundPeriodSchema.optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+});
+
+/** Tham số gửi BE (đã đổi kỳ thành ngày): browser → route handler → BE dùng chung một dạng. */
+export const refundQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  statuses: z.string().regex(/^[A-Z_]+(,[A-Z_]+)*$/).optional(),
+  orderId: z.uuid().optional(),
+  subMerchantId: z.uuid().optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
 });
 
 /** Same rules the BE applies, so the user sees them before spending an OTP. */

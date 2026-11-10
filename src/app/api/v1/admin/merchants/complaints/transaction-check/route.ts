@@ -5,7 +5,7 @@ import { checkTransaction } from "@/server/modules/complaints/complaint.service"
 import { beErrorResponse } from "@/server/modules/orders/require-order-access";
 
 const querySchema = z.object({
-  transactionCode: z.string("Vui lòng nhập mã giao dịch").trim().min(1, "Vui lòng nhập mã giao dịch").max(100, "Mã giao dịch không hợp lệ"),
+  transactionCode: z.string("Vui lòng nhập mã giao dịch hoặc mã đơn hàng").trim().min(1, "Vui lòng nhập mã giao dịch hoặc mã đơn hàng").max(100, "Mã giao dịch hoặc mã đơn hàng không hợp lệ"),
 });
 
 /** Same permission as creating a complaint: the check only exists to feed that form. */

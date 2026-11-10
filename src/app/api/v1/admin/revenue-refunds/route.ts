@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createRefundBodySchema, refundFilterSchema } from "@/features/revenue-refunds/schemas";
+import { createRefundBodySchema, refundQuerySchema } from "@/features/revenue-refunds/schemas";
 import { requirePermission } from "@/server/auth/require-permission";
 import { badRequest, refundErrorResponse } from "@/server/modules/revenue-refunds/refund-response";
 import { createRevenueRefund, listRevenueRefunds } from "@/server/modules/revenue-refunds/revenue-refund.service";
@@ -8,9 +8,9 @@ import { createRevenueRefund, listRevenueRefunds } from "@/server/modules/revenu
 export async function GET(request: Request) {
   const access = await requirePermission("VIEW_REFUND");
   if (!access.ok) return access.response;
-  const filter = refundFilterSchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
-  if (!filter.success) return badRequest("Tham số không hợp lệ");
-  const result = await listRevenueRefunds(filter.data);
+  const query = refundQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+  if (!query.success) return badRequest("Tham số không hợp lệ");
+  const result = await listRevenueRefunds(query.data);
   return result.success ? NextResponse.json({ rows: result.data }) : refundErrorResponse(result.error);
 }
 
