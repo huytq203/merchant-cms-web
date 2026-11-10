@@ -5,8 +5,9 @@ import { MAX_PAGE_SIZE } from "@/lib/schemas/pagination";
 export const movementTypeSchema = z.enum(["ORDER", "WITHDRAWAL", "REFUND", "FREEZE", "ESCROW", "OTHER"]);
 
 /**
- * The chips: OTHER ("Điều chỉnh khác") is only reachable through "Tất cả". There is no "Ký quỹ" chip (10/11/2026): paying
- * into the escrow does not go through the available balance, and an escrow return (type ESCROW) is listed under "Tất cả".
+ * The chips: OTHER ("Điều chỉnh khác") is only reachable through "Tất cả". There is no "Ký quỹ" chip: the user decided
+ * (10/11/2026) to list every escrow row under "Tất cả" — paying into the escrow from revenue (RESERVE_REVENUE /
+ * ESCROW_FUNDING, which DOES take from the available balance), its return, and the escrow surplus paid back.
  */
 export const movementTypeFilterSchema = z.enum(["ALL", "ORDER", "WITHDRAWAL", "REFUND", "FREEZE"], "Loại biến động không hợp lệ");
 
@@ -25,8 +26,10 @@ export const movementSchema = z.object({
 });
 
 /**
- * Totals of the chosen period over every type (not the chip), so opening + in − out = closing. `totalIn`/`totalOut` are
- * null when the period has too many movements to add up (`totalsComplete` false); opening and closing are still exact.
+ * Totals of the chosen period over every type (not the chip), so opening + in − out = closing. In and out are gross: an
+ * amount held then given back (rejected withdrawal, lifted freeze) counts on both sides. `totalIn`/`totalOut` are null
+ * when the BE could not add them up (too many movements, or they did not reconcile: `totalsComplete` false); opening and
+ * closing are still given. Only the first page carries the totals.
  */
 export const movementSummarySchema = z.object({
   openingBalance: z.number(),

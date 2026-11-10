@@ -135,6 +135,7 @@ describe("SubBalanceMovementsDialog", () => {
     expect(within(strip).getByText("−1.568.000 vnđ")).toBeInTheDocument();
     expect(within(strip).getByText("Cuối kỳ")).toBeInTheDocument();
     expect(within(strip).getByText("223.000 vnđ")).toBeInTheDocument();
+    expect(within(strip).getByText("Tổng gộp, gồm cả khoản giữ rồi trả lại (lệnh rút bị từ chối, gỡ đóng băng).")).toBeInTheDocument();
   });
 
   it("says the totals could not be added up when the period is too long, but keeps opening and closing", async () => {
@@ -142,7 +143,7 @@ describe("SubBalanceMovementsDialog", () => {
     await openDialog();
     const strip = await screen.findByRole("group", { name: "Tổng kỳ" });
     expect(within(strip).getByText("99 vnđ")).toBeInTheDocument();
-    expect(within(strip).getAllByText("Kỳ quá dài, thu hẹp để xem")).toHaveLength(2);
+    expect(within(strip).getAllByText("Chưa cộng được, thu hẹp kỳ để xem")).toHaveLength(2);
   });
 
   it("hides the totals strip when the BE sends none", async () => {
