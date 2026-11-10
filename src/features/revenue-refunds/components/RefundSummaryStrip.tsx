@@ -17,6 +17,7 @@ const COUNT_OF: Record<RefundGroup, (summary: RefundSummary) => number> = {
   PROCESSING: (summary) => summary.processing,
   SUCCEEDED: (summary) => summary.succeeded,
   FAILED: (summary) => summary.failed,
+  CANCELLED: (summary) => summary.cancelled,
 };
 
 const GROUPS = Object.keys(REFUND_GROUPS) as RefundGroup[];
@@ -27,7 +28,7 @@ const GROUPS = Object.keys(REFUND_GROUPS) as RefundGroup[];
  */
 export function RefundSummaryStrip({ summary, selected, onSelect }: Props) {
   return (
-    <section aria-label="Tổng quan hoàn tiền" className="grid grid-cols-2 gap-3 @container md:grid-cols-5">
+    <section aria-label="Tổng quan hoàn tiền" className="grid grid-cols-2 gap-3 @container md:grid-cols-3 lg:grid-cols-6">
       {GROUPS.map((group) => {
         const active = selected === group;
         return (

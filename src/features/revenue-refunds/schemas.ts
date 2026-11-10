@@ -23,6 +23,9 @@ export const revenueRefundSchema = z.object({
   payoutStatus: payoutStatusSchema.nullable(),
   reason: z.string(),
   createdAt: z.string(),
+  // Ai tạo và tạo từ đâu: quyết định nút Hủy (chỉ yêu cầu do Portal tạo; người chỉ có CREATE_REFUND chỉ hủy của chính mình).
+  createdSource: z.enum(["ADMIN", "PORTAL"]).nullish(),
+  createdBy: z.string().nullish(),
   // Nhãn BE trả kèm (mục 2·7): mã đơn hàng, mã giao dịch, Sub, terminal. nullish để một BE cũ chưa có vẫn đọc được.
   orderCode: z.string().nullish(),
   transactionCode: z.string().nullish(),
@@ -39,11 +42,12 @@ export const refundSummarySchema = z.object({
   processing: z.number(),
   succeeded: z.number(),
   failed: z.number(),
+  cancelled: z.number(),
   succeededAmount: z.number(),
 });
 
 /** Nhóm trạng thái của dải đếm; bấm một nhóm = lọc theo các trạng thái của nhóm (xem constants/refund-status). */
-export const refundGroupSchema = z.enum(["PENDING", "PROCESSING", "SUCCEEDED", "FAILED"]);
+export const refundGroupSchema = z.enum(["PENDING", "PROCESSING", "SUCCEEDED", "FAILED", "CANCELLED"]);
 export const refundPeriodSchema = z.enum(["7d", "30d", "custom"]);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 

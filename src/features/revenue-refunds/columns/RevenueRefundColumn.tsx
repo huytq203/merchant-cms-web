@@ -11,13 +11,15 @@ interface Options {
   onApprove?: (refund: RevenueRefund) => void;
   /** Hủy yêu cầu đang Chờ phê duyệt (người tạo hoặc người có quyền duyệt; BE kiểm tiếp). */
   onCancel?: (refund: RevenueRefund) => void;
+  /** Quyết định theo từng dòng: yêu cầu do Portal tạo, và quyền hủy của phiên (xem `canCancelRefund`). */
+  canCancel?: (refund: RevenueRefund) => boolean;
   /** Tên Sub dự phòng khi dòng chưa mang `subMerchantName`. */
   subNames: Record<string, string>;
 }
 
 const money = (value: number) => new Intl.NumberFormat("vi-VN").format(value);
 
-export function revenueRefundColumns({ onApprove, onCancel, subNames }: Options): ColumnDef<RevenueRefund>[] {
+export function revenueRefundColumns({ onApprove, onCancel, canCancel, subNames }: Options): ColumnDef<RevenueRefund>[] {
   const columns: ColumnDef<RevenueRefund>[] = [
     {
       id: "refund",
@@ -103,7 +105,7 @@ export function revenueRefundColumns({ onApprove, onCancel, subNames }: Options)
                 onClick: () => onApprove?.(row.original),
               },
               // Chỉ hiện trên dòng Chờ phê duyệt: các trạng thái khác không còn hủy được.
-              { label: "Hủy yêu cầu", icon: <Ban size={16} />, visible: Boolean(onCancel) && pending, onClick: () => onCancel?.(row.original) },
+              { label: "Hủy yêu cầu", icon: <Ban size={16} />, visible: Boolean(onCancel) && pending && (canCancel?.(row.original) ?? true), onClick: () => onCancel?.(row.original) },
             ]}
           />
         );

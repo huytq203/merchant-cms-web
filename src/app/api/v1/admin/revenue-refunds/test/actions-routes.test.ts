@@ -23,7 +23,7 @@ beforeEach(() => {
 
 describe("summary route", () => {
   it("needs VIEW_REFUND, validates the filter and forwards it", async () => {
-    getRevenueRefundSummary.mockResolvedValue({ success: true, data: { total: 1, pending: 1, processing: 0, succeeded: 0, failed: 0, succeededAmount: 0 } });
+    getRevenueRefundSummary.mockResolvedValue({ success: true, data: { total: 1, pending: 1, processing: 0, succeeded: 0, failed: 0, cancelled: 0, succeededAmount: 0 } });
     const response = await summary(new Request(`${url}/summary?q=DH26&from=2026-11-04&to=2026-11-10`));
     expect(response.status).toBe(200);
     expect(getRevenueRefundSummary).toHaveBeenCalledWith({ q: "DH26", from: "2026-11-04", to: "2026-11-10" });

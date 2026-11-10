@@ -15,7 +15,7 @@ import RevenueRefundsPage from "../page";
 const session = { merchantIds: ["m"], subMerchantIds: [], permissions: ["VIEW_REFUND"] };
 let query: URLSearchParams | undefined;
 let summaryQuery: URLSearchParams | undefined;
-const summary = { total: 4, pending: 1, processing: 2, succeeded: 1, failed: 0, succeededAmount: 40_000 };
+const summary = { total: 4, pending: 1, processing: 2, succeeded: 1, failed: 0, cancelled: 0, succeededAmount: 40_000 };
 
 beforeEach(() => {
   vi.stubEnv("MERCHANT_BASE_URL", "https://merchant.test");

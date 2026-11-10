@@ -21,11 +21,12 @@ export const PAYOUT_STATUS_LABEL = { PENDING: "Chờ chuyển tiền", PAID: "Đ
 
 /**
  * Nhóm trạng thái của dải đếm (khớp BE /summary): "Đang xử lý" gồm cả hàng đợi Kế toán; nhóm cuối gom các yêu cầu
- * không còn hiệu lực (từ chối, thất bại, đã hủy).
+ * bị từ chối hoặc thất bại; "Đã hủy" là nhóm riêng (merchant tự rút lại), nhãn khớp BE (summary.cancelled, CSV).
  */
 export const REFUND_GROUPS: Record<RefundGroup, { label: string; statuses: RefundStatus[]; tone: StatusTone }> = {
   PENDING: { label: "Chờ duyệt", statuses: ["PENDING_APPROVAL"], tone: "info" },
   PROCESSING: { label: "Đang xử lý", statuses: ["PROCESSING", "ACCOUNTING_QUEUE"], tone: "warning" },
   SUCCEEDED: { label: "Thành công", statuses: ["SUCCEEDED"], tone: "success" },
-  FAILED: { label: "Từ chối/Thất bại", statuses: ["REJECTED", "FAILED", "CANCELLED"], tone: "danger" },
+  FAILED: { label: "Từ chối/Thất bại", statuses: ["REJECTED", "FAILED"], tone: "danger" },
+  CANCELLED: { label: "Đã hủy", statuses: ["CANCELLED"], tone: "neutral" },
 };

@@ -15,14 +15,14 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const base = "/api/v1/admin/revenue-refunds";
 const rows = [pendingRefund, processingRefund, succeededRefund, queuedRefund];
-const summary = { total: 4, pending: 1, processing: 2, succeeded: 1, failed: 0, succeededAmount: 40_000 };
+const summary = { total: 5, pending: 1, processing: 2, succeeded: 1, failed: 0, cancelled: 1, succeededAmount: 40_000 };
 let listQuery: URL | undefined;
 
-function renderContainer(canApprove = true, canCreate = false, filter: RefundFilter = {}) {
+function renderContainer(canApprove = true, canCreate = false, filter: RefundFilter = {}, access: { canCancelAny?: boolean; userId?: string } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <RevenueRefundsContainer filter={filter} today="2026-11-10" canApprove={canApprove} canCreate={canCreate} subNames={{ [subId]: "SUB001 · Cửa hàng A" }} />
+      <RevenueRefundsContainer filter={filter} today="2026-11-10" canApprove={canApprove} canCreate={canCreate} canCancelAny={access.canCancelAny ?? canApprove} userId={access.userId} subNames={{ [subId]: "SUB001 · Cửa hàng A" }} />
     </QueryClientProvider>,
   );
 }
@@ -119,6 +119,8 @@ describe("revenue refunds container", () => {
     expect(screen.getByTestId("refund-count-PENDING")).toHaveTextContent("1");
     expect(screen.getByTestId("refund-count-SUCCEEDED")).toHaveTextContent("1");
     expect(screen.getByTestId("refund-count-FAILED")).toHaveTextContent("0");
+    expect(screen.getByTestId("refund-count-CANCELLED")).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: /Đã hủy/ })).toBeInTheDocument();
     expect(screen.getByTestId("refund-succeeded-amount")).toHaveTextContent("40.000");
   });
 
@@ -127,6 +129,18 @@ describe("revenue refunds container", () => {
     await screen.findByRole("table");
     expect(listQuery?.searchParams.get("from")).toBe("2026-11-04");
     expect(listQuery?.searchParams.get("to")).toBe("2026-11-10");
+  });
+
+  it("does not limit the dates of a link that names an order, but does once a period is written", async () => {
+    renderContainer(true, false, { orderId: "7c1f2a3e-1111-4222-8333-444455556666" });
+    await screen.findByRole("table");
+    expect(listQuery?.searchParams.get("orderId")).toBe("7c1f2a3e-1111-4222-8333-444455556666");
+    expect(listQuery?.searchParams.has("from")).toBe(false);
+    expect(listQuery?.searchParams.has("to")).toBe(false);
+    cleanup();
+    renderContainer(true, false, { orderId: "7c1f2a3e-1111-4222-8333-444455556666", period: "7d" });
+    await screen.findByRole("table");
+    await waitFor(() => expect(listQuery?.searchParams.get("from")).toBe("2026-11-04"));
   });
 
   it("filters by status group through the URL and clears it by pressing the same group", async () => {
@@ -199,6 +213,26 @@ describe("revenue refunds container", () => {
     expect(screen.queryByRole("button", { name: /Hủy yêu cầu/ })).not.toBeInTheDocument();
   });
 
+  it("shows Hủy by the BE rule: own request with CREATE_REFUND, anyone's with CANCEL_REFUND, never an Admin-created one", async () => {
+    // Người chỉ có CREATE_REFUND: chỉ yêu cầu của chính mình.
+    let view = renderContainer(false, true, {}, { userId: "someone-else" });
+    await screen.findByRole("table");
+    expect(screen.queryByRole("button", { name: /Hủy yêu cầu MRF/ })).not.toBeInTheDocument();
+    view.unmount();
+    view = renderContainer(false, true, {}, { userId: "user-creator" });
+    expect(await screen.findByRole("button", { name: "Hủy yêu cầu MRF7A21C3D8E4B90F11" })).toBeEnabled();
+    view.unmount();
+    // CANCEL_REFUND (không phải người tạo) hủy được.
+    view = renderContainer(false, false, {}, { canCancelAny: true, userId: "someone-else" });
+    expect(await screen.findByRole("button", { name: "Hủy yêu cầu MRF7A21C3D8E4B90F11" })).toBeEnabled();
+    view.unmount();
+    // Yêu cầu do Admin tạo: không ai ở Portal hủy được.
+    mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...pendingRefund, createdSource: "ADMIN" }] })));
+    renderContainer(true, true, {}, { canCancelAny: true, userId: "user-creator" });
+    await screen.findByRole("table");
+    expect(screen.queryByRole("button", { name: /Hủy yêu cầu MRF/ })).not.toBeInTheDocument();
+  });
+
   it("cancels after an in-page confirmation, without the browser confirm()", async () => {
     const confirm = vi.spyOn(window, "confirm");
     let called = false;
@@ -206,7 +240,7 @@ describe("revenue refunds container", () => {
       called = true;
       return HttpResponse.json({ ...pendingRefund, status: "CANCELLED" });
     }));
-    renderContainer(false, true);
+    renderContainer(false, true, {}, { userId: "user-creator" });
     await userEvent.click(await screen.findByRole("button", { name: "Hủy yêu cầu MRF7A21C3D8E4B90F11" }));
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Hủy yêu cầu hoàn tiền");
@@ -221,7 +255,7 @@ describe("revenue refunds container", () => {
     mswServer.use(http.post(`${base}/${pendingId}/cancel`, () => HttpResponse.json(
       { message: "Chỉ hủy được yêu cầu đang chờ phê duyệt", code: "MERCHANT_REFUND_STATE_INVALID" }, { status: 409 },
     )));
-    renderContainer(false, true);
+    renderContainer(false, true, {}, { userId: "user-creator" });
     await userEvent.click(await screen.findByRole("button", { name: "Hủy yêu cầu MRF7A21C3D8E4B90F11" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: "Hủy yêu cầu" }));

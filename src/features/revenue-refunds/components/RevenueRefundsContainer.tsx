@@ -15,8 +15,8 @@ import { revenueRefundColumns } from "../columns/RevenueRefundColumn";
 import { useRefundApproval } from "../hooks/use-refund-approval";
 import { useRefundCancel } from "../hooks/use-refund-cancel";
 import { downloadRefundsCsv, revenueRefundQueries } from "../revenue-refund-queries";
-import type { RefundFilter } from "../types";
-import { refundFilterToSearch, toRefundQuery } from "../utils/refund-query";
+import type { RefundFilter, RevenueRefund } from "../types";
+import { canCancelRefund, refundFilterToSearch, toRefundQuery } from "../utils/refund-query";
 import { RefundApproveDialog } from "./RefundApproveDialog";
 import { RefundCancelDialog } from "./RefundCancelDialog";
 import { RefundCreateDialog, type RefundOrder } from "./RefundCreateDialog";
@@ -29,6 +29,10 @@ interface Props {
   /** Hôm nay theo giờ Việt Nam (yyyy-MM-dd), do server đưa xuống để kỳ "7 ngày" giống nhau ở SSR và client. */
   today: string;
   canApprove: boolean;
+  /** CANCEL_REFUND hoặc APPROVE_REFUND: hủy được yêu cầu của người khác. */
+  canCancelAny?: boolean;
+  /** Người đang đăng nhập, để người chỉ có CREATE_REFUND thấy nút Hủy trên yêu cầu của chính mình. */
+  userId?: string;
   /** CREATE_REFUND: offers "Tạo yêu cầu hoàn tiền", which starts by picking a successful transaction. */
   canCreate?: boolean;
   subNames: Record<string, string>;
@@ -37,7 +41,7 @@ interface Props {
 /** Creating starts here or from an order's detail; both end in the same OTP-confirmed form. */
 type CreateStep = { step: "closed" } | { step: "pick" } | { step: "form"; order: RefundOrder };
 
-export function RevenueRefundsContainer({ filter, today, canApprove, canCreate = false, subNames }: Props) {
+export function RevenueRefundsContainer({ filter, today, canApprove, canCancelAny = canApprove, userId = "", canCreate = false, subNames }: Props) {
   const [create, setCreate] = useState<CreateStep>({ step: "closed" });
   const router = useRouter();
   const pathname = usePathname();
@@ -54,8 +58,9 @@ export function RevenueRefundsContainer({ filter, today, canApprove, canCreate =
     const query = refundFilterToSearch(next);
     router.push(query ? `${pathname}?${query}` : pathname);
   };
-  // Người tạo hoặc người duyệt mới hủy được; BE kiểm tiếp người tạo, FE chỉ ẩn nút với người không có quyền nào.
-  const canCancel = canApprove || canCreate;
+  // Hủy: quyền hủy/duyệt, hoặc người tạo có CREATE_REFUND; theo từng dòng (xem canCancelRefund).
+  const showCancel = canCancelAny || canCreate;
+  const canCancelRow = (refund: RevenueRefund) => canCancelRefund(refund, { canCancelAny, canCreate, userId });
 
   return (
     <div className="space-y-5">
@@ -91,7 +96,7 @@ export function RevenueRefundsContainer({ filter, today, canApprove, canCreate =
           <div className="max-w-full overflow-x-auto">
             <Table
               data={list.data}
-              columns={revenueRefundColumns({ onApprove: canApprove ? approval.open : undefined, onCancel: canCancel ? cancel.open : undefined, subNames })}
+              columns={revenueRefundColumns({ onApprove: canApprove ? approval.open : undefined, onCancel: showCancel ? cancel.open : undefined, canCancel: canCancelRow, subNames })}
               labels={{ empty: "Chưa có yêu cầu hoàn tiền" }}
             />
           </div>

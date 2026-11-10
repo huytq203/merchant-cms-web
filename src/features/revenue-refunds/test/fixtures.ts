@@ -13,6 +13,8 @@ const base = {
   outcomeCode: null,
   payoutStatus: null,
   createdAt: "2026-10-13T02:20:00Z",
+  createdSource: "PORTAL",
+  createdBy: "user-creator",
 };
 
 export const pendingRefund = { ...base, id: pendingId, refundCode: "MRF7A21C3D8E4B90F11", amount: 120_000, fullRefund: true, status: "PENDING_APPROVAL", reason: "Giao sai sản phẩm" };

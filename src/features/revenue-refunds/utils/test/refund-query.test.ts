@@ -10,6 +10,11 @@ describe("refundPeriodToDates", () => {
     expect(refundPeriodToDates({ period: "30d" }, today)).toEqual({ from: "2026-10-12", to: today });
   });
 
+  it("does not limit the dates of a link that names an order unless a period is written in the URL", () => {
+    expect(refundPeriodToDates({ orderId: "7c1f2a3e-1111-4222-8333-444455556666" }, today)).toEqual({});
+    expect(refundPeriodToDates({ orderId: "7c1f2a3e-1111-4222-8333-444455556666", period: "30d" }, today)).toEqual({ from: "2026-10-12", to: today });
+  });
+
   it("uses the typed dates for a custom period and leaves an empty side open", () => {
     expect(refundPeriodToDates({ period: "custom", from: "2026-10-01", to: "2026-10-31" }, today)).toEqual({ from: "2026-10-01", to: "2026-10-31" });
     expect(refundPeriodToDates({ period: "custom", from: "2026-10-01" }, today)).toEqual({ from: "2026-10-01" });
@@ -20,7 +25,8 @@ describe("refundPeriodToDates", () => {
 describe("toRefundQuery", () => {
   it("turns the status group and a single status into one comma list", () => {
     expect(toRefundQuery({ group: "PROCESSING" }, today).statuses).toBe("PROCESSING,ACCOUNTING_QUEUE");
-    expect(toRefundQuery({ group: "FAILED" }, today).statuses).toBe("REJECTED,FAILED,CANCELLED");
+    expect(toRefundQuery({ group: "FAILED" }, today).statuses).toBe("REJECTED,FAILED");
+    expect(toRefundQuery({ group: "CANCELLED" }, today).statuses).toBe("CANCELLED");
     expect(toRefundQuery({ group: "PENDING", status: "SUCCEEDED" }, today).statuses).toBe("PENDING_APPROVAL,SUCCEEDED");
     expect(toRefundQuery({}, today).statuses).toBeUndefined();
   });

@@ -48,6 +48,8 @@ export default async function RevenueRefundsPage({ searchParams }: Props) {
         today={today}
         canApprove={hasPermission(user.permissions, "APPROVE_REFUND")}
         canCreate={hasPermission(user.permissions, "CREATE_REFUND")}
+        canCancelAny={hasPermission(user.permissions, "CANCEL_REFUND") || hasPermission(user.permissions, "APPROVE_REFUND")}
+        userId={user.userId}
         subNames={subNames}
       />
     </HydrationBoundary>

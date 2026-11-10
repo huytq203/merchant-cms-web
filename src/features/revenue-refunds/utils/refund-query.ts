@@ -15,7 +15,9 @@ export const REFUND_PERIOD_OPTIONS: { value: RefundPeriod; label: string }[] = [
  * Đổi kỳ thành ngày `yyyy-MM-dd` giờ Việt Nam mà BE nhận (`to` gồm cả ngày đó). "7 ngày" = hôm nay + 6 ngày trước, nên
  * một kỳ cố định luôn đúng số ngày lịch. Kỳ tùy chỉnh để hở phía bỏ trống.
  */
-export function refundPeriodToDates(filter: Pick<RefundFilter, "period" | "from" | "to">, today: string): { from?: string; to?: string } {
+export function refundPeriodToDates(filter: Pick<RefundFilter, "period" | "from" | "to" | "orderId">, today: string): { from?: string; to?: string } {
+  // Liên kết từ màn Đơn hàng (?orderId=…) xem MỌI yêu cầu của đơn đó: không ghi kỳ thì không giới hạn ngày.
+  if (filter.orderId && !filter.period) return {};
   const period = filter.period ?? DEFAULT_REFUND_PERIOD;
   if (period === "custom") return { ...(filter.from ? { from: filter.from } : {}), ...(filter.to ? { to: filter.to } : {}) };
   return { from: shiftVnDate(today, period === "7d" ? -6 : -29), to: today };
@@ -58,4 +60,17 @@ export function refundFilterToSearch(filter: RefundFilter): string {
     put("to", filter.to);
   }
   return params.toString();
+}
+
+/**
+ * Nút Hủy theo cùng quy tắc BE: chỉ yêu cầu do Portal tạo (yêu cầu Admin tạo thì không); người có CANCEL_REFUND hoặc
+ * APPROVE_REFUND hủy được của người khác; người chỉ có CREATE_REFUND chỉ hủy được yêu cầu do chính mình tạo.
+ * BE vẫn kiểm lại, đây chỉ để không hiện nút chắc chắn bị từ chối.
+ */
+export function canCancelRefund(
+  refund: { createdSource?: string | null; createdBy?: string | null },
+  access: { canCancelAny: boolean; canCreate: boolean; userId: string },
+): boolean {
+  if (refund.createdSource === "ADMIN") return false;
+  return access.canCancelAny || (access.canCreate && refund.createdBy === access.userId);
 }
