@@ -74,6 +74,7 @@ export function SettlementFilter({ initial, choices, canFilterTerminal, onSearch
     <FilterCard fieldCount={canFilterTerminal ? 4 : 3} onSubmit={submit} onClear={onClear}>
       <Select
         label="Sub-merchant"
+        placeholder="Tất cả sub-merchant"
         options={[{ label: "Tất cả sub-merchant", value: ALL }, ...choices.map((choice) => ({ label: choice.label, value: choice.id }))]}
         value={subMerchantId}
         onChange={(value) => {
@@ -102,6 +103,7 @@ export function SettlementFilter({ initial, choices, canFilterTerminal, onSearch
       ) : null}
       <Select
         label="Trạng thái đợt"
+        placeholder="Tất cả"
         options={[{ label: "Tất cả", value: ALL }, ...TRANCHE_GROUPS.map((group) => ({ label: group.label, value: group.value }))]}
         value={trancheStatus}
         onChange={(value) => setTrancheStatus(value || ALL)}
