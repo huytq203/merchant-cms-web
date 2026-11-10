@@ -27,8 +27,7 @@ describe("settlement items route", () => {
     expect(listSettlementItems).not.toHaveBeenCalled();
   });
 
-  it("requires a Sub and a complete, ordered date range", async () => {
-    expect((await GET(request("?paidFrom=2026-10-08&paidTo=2026-10-14"))).status).toBe(400);
+  it("requires a complete, ordered date range", async () => {
     expect((await GET(request(`?subMerchantId=${subId}&paidFrom=2026-10-08`))).status).toBe(400);
     expect((await GET(request(`?subMerchantId=${subId}&paidFrom=2026-10-14&paidTo=2026-10-08`))).status).toBe(400);
     expect(listSettlementItems).not.toHaveBeenCalled();
@@ -48,5 +47,19 @@ describe("settlement items route", () => {
     const response = await GET(request(valid));
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ message: "SubMerchant không tìm thấy" });
+  });
+
+  // Mục 11: không chọn Sub = mọi Sub trong phạm vi phiên; Terminal và nhóm trạng thái đợt đi tiếp xuống service.
+  it("lists every Sub in scope when no Sub is given and passes the Terminal and tranche group on", async () => {
+    const terminalId = "22222222-2222-4222-8222-222222222222";
+    const response = await GET(request(`?paidFrom=2026-10-08&paidTo=2026-10-14&terminalId=${terminalId}&trancheStatus=IN_WITHDRAWAL&page=1&pageSize=20`));
+    expect(response.status).toBe(200);
+    expect(listSettlementItems).toHaveBeenCalledWith({ paidFrom: "2026-10-08", paidTo: "2026-10-14", terminalId, trancheStatus: "IN_WITHDRAWAL", page: 1, pageSize: 20 });
+  });
+
+  it("rejects an unknown tranche group or a malformed Terminal", async () => {
+    expect((await GET(request("?paidFrom=2026-10-08&paidTo=2026-10-14&trancheStatus=LOST"))).status).toBe(400);
+    expect((await GET(request("?paidFrom=2026-10-08&paidTo=2026-10-14&terminalId=abc"))).status).toBe(400);
+    expect(listSettlementItems).not.toHaveBeenCalled();
   });
 });

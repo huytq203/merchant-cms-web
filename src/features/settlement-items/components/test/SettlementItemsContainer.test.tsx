@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
-import { detailFixture, itemId, rowFixture, subId, totalsFixture } from "../../test/fixtures";
+import { detailFixture, detailWithTerminalFixture, itemId, rowFixture, subId, totalsFixture } from "../../test/fixtures";
 import { SettlementItemsContainer } from "../SettlementItemsContainer";
 
 const push = vi.fn();
@@ -16,14 +16,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 const base = "/api/v1/admin/settlement-items";
-const filter = { subMerchantId: subId, paidFrom: "2026-10-08", paidTo: "2026-10-14", page: 1, pageSize: 20 };
+const filter = { paidFrom: "2026-10-08", paidTo: "2026-10-14", page: 1, pageSize: 20 };
 const choices = [{ id: subId, label: "SUB001 · Cửa hàng A" }];
 
-function renderContainer() {
+function renderContainer(current: Parameters<typeof SettlementItemsContainer>[0]["filter"] = filter) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <SettlementItemsContainer filter={filter} choices={choices} />
+      <SettlementItemsContainer filter={current} choices={choices} canFilterTerminal={false} />
     </QueryClientProvider>,
   );
 }
@@ -58,7 +58,7 @@ describe("settlement items container", () => {
   it("explains an empty range", async () => {
     mswServer.use(http.get(base, () => HttpResponse.json({ rows: [], total: 0, totals: { ...totalsFixture, count: 0 } })));
     renderContainer();
-    expect(await screen.findByText("Không có giao dịch nào trong khoảng ngày đã chọn.")).toBeInTheDocument();
+    expect(await screen.findByText("Không có đơn hàng nào trong khoảng ngày đã chọn.")).toBeInTheDocument();
   });
 
   it("shows each tranche with its status and the range totals", async () => {
@@ -67,7 +67,7 @@ describe("settlement items container", () => {
     expect(within(table).getByText("MO20261013000123")).toBeInTheDocument();
     expect(within(table).getByText("Chờ quyết toán")).toBeInTheDocument();
     expect(within(table).getByText("Đang giữ")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Tổng của 128 giao dịch/ })).toHaveTextContent("12.800.000");
+    expect(screen.getByRole("region", { name: /Tổng của 128 đơn hàng/ })).toHaveTextContent("12.800.000");
   });
 
   it("opens the lines of a transaction in a side sheet", async () => {
@@ -80,10 +80,66 @@ describe("settlement items container", () => {
     expect(within(sheet).getByText("Đã hủy")).toBeInTheDocument();
   });
 
-  it("searches with the chosen dates and returns to page 1", async () => {
+  it("searches every Sub with the chosen dates and returns to page 1", async () => {
     renderContainer();
     await screen.findByRole("table");
     await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
-    expect(push).toHaveBeenCalledWith(`/settlement-items?subMerchantId=${subId}&paidFrom=2026-10-08&paidTo=2026-10-14&page=1&pageSize=20`);
+    expect(push).toHaveBeenCalledWith("/settlement-items?paidFrom=2026-10-08&paidTo=2026-10-14&page=1&pageSize=20");
+  });
+
+  it("labels the order code as such, with the transaction code and Sub · Terminal underneath", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({
+      rows: [{ ...rowFixture, subMerchantCode: "MC000001-S001", subMerchantName: "Halo tech", transactionCode: "FM26ABCDE", terminalCode: "T0001", terminalType: "QR" }],
+      total: 1,
+      totals: totalsFixture,
+    })));
+    renderContainer();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "Mã đơn hàng" })).toBeInTheDocument();
+    expect(within(table).queryByRole("columnheader", { name: "Mã giao dịch" })).not.toBeInTheDocument();
+    expect(within(table).getByText("FM26ABCDE")).toBeInTheDocument();
+    expect(within(table).getByText("Halo tech")).toBeInTheDocument();
+    expect(within(table).getByText("S001 · T0001 · QR")).toBeInTheDocument();
+  });
+
+  it("splits recognised revenue by tranche group and lets a Sub be picked from the split by Sub", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({
+      rows: [rowFixture],
+      total: 1,
+      totals: {
+        ...totalsFixture,
+        recognisedAmount: 248_000,
+        byTrancheStatus: { IN_WITHDRAWAL: 60_000, PAID: 28_000, PENDING_SETTLEMENT: 135_000, HELD: 25_000 },
+        bySub: [{ subMerchantId: subId, subMerchantCode: "S001", subMerchantName: "Halo tech", count: 3, grossAmount: 250_000, feeAmount: 2_000, recognisedAmount: 248_000, firstTrancheAmount: 223_000, heldAmount: 25_000 }],
+      },
+    })));
+    renderContainer();
+    const split = await screen.findByRole("list", { name: "Phân bổ theo trạng thái đợt" });
+    expect(within(split).getByText("Đã vào lệnh rút").parentElement).toHaveTextContent("88.000");
+    expect(within(split).getByText("Chờ quyết toán").parentElement).toHaveTextContent("135.000");
+    await userEvent.click(screen.getByRole("button", { name: "Lọc theo Halo tech" }));
+    expect(push).toHaveBeenCalledWith(`/settlement-items?paidFrom=2026-10-08&paidTo=2026-10-14&page=1&pageSize=20&subMerchantId=${subId}`);
+  });
+
+  it("does not offer the split by Sub once a Sub is chosen", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json({
+      rows: [rowFixture],
+      total: 1,
+      totals: { ...totalsFixture, bySub: [{ subMerchantId: subId, subMerchantCode: "S001", subMerchantName: "Halo tech", count: 1, grossAmount: 1, feeAmount: 0, recognisedAmount: 1, firstTrancheAmount: 1, heldAmount: 0 }] },
+    })));
+    renderContainer({ ...filter, subMerchantId: subId });
+    await screen.findByRole("table");
+    expect(screen.queryByRole("button", { name: "Lọc theo Halo tech" })).not.toBeInTheDocument();
+  });
+
+  // Mục 12: BE chi tiết không gửi 4 trường trạng thái đợt của dòng danh sách; drawer phải mở được thay vì báo sự cố.
+  it("opens the detail exactly as the BE sends it and shows the Sub and Terminal", async () => {
+    mswServer.use(http.get(`${base}/${itemId}`, () => HttpResponse.json(detailWithTerminalFixture)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: "Xem chi tiết MO20261013000123" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(await within(sheet).findByText("MC000001-S001 · Halo tech")).toBeInTheDocument();
+    expect(within(sheet).getByText("Quầy 1 (T0001 · QR)")).toBeInTheDocument();
+    expect(within(sheet).getByText("FM26ABCDE")).toBeInTheDocument();
   });
 });

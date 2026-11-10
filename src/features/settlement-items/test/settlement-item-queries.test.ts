@@ -25,4 +25,12 @@ describe("parseSettlementSearchParams", () => {
   it("drops a Sub id that is not a UUID", () => {
     expect(parseSettlementSearchParams({ subMerchantId: "abc" }, now)).not.toHaveProperty("subMerchantId");
   });
+
+  it("keeps a valid Terminal and tranche group and drops unknown ones", () => {
+    const terminalId = "22222222-2222-4222-8222-222222222222";
+    expect(parseSettlementSearchParams({ terminalId, trancheStatus: "HELD" }, now)).toMatchObject({ terminalId, trancheStatus: "HELD" });
+    const parsed = parseSettlementSearchParams({ terminalId: "x", trancheStatus: "PAID" }, now);
+    expect(parsed).not.toHaveProperty("terminalId");
+    expect(parsed).not.toHaveProperty("trancheStatus");
+  });
 });

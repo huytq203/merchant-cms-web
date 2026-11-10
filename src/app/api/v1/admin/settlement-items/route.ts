@@ -7,11 +7,13 @@ import { readSettlementList } from "@/server/modules/settlement-items/settlement
 
 const rawQuerySchema = paginationQuerySchema.extend({
   subMerchantId: settlementFilterSchema.shape.subMerchantId,
+  terminalId: settlementFilterSchema.shape.terminalId,
+  trancheStatus: settlementFilterSchema.shape.trancheStatus,
   paidFrom: settlementFilterSchema.shape.paidFrom,
   paidTo: settlementFilterSchema.shape.paidTo,
 });
 
-/** The BE answers 500 when a required parameter is missing, so the range is checked here first. */
+/** The range is required and checked here first; Sub, Terminal and tranche group are optional (mục 11). */
 export async function GET(request: Request) {
   const access = await requirePermission("VIEW_BALANCE");
   if (!access.ok) return access.response;

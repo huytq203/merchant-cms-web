@@ -5,10 +5,10 @@ import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { ServerResultState } from "@/components/page/ServerResultState";
 import { AccessDenied } from "@/features/auth/components/access-denied";
-import { hasPermission } from "@/features/auth/permissions";
+import { PERMISSION_GATES } from "@/features/auth/permission-gates";
+import { hasAnyPermission, hasPermission } from "@/features/auth/permissions";
 import { SettlementItemsContainer } from "@/features/settlement-items/components/SettlementItemsContainer";
 import { parseSettlementSearchParams, settlementItemQueries } from "@/features/settlement-items/settlement-item-queries";
-import { pickSubMerchantId } from "@/features/sub-merchants/utils/sub-merchant-choice";
 import { getServerSession } from "@/lib/auth/session";
 import { domainErrorMessage } from "@/lib/be/errors";
 import { prefetchDehydrated, unwrapOrRedirect } from "@/lib/query/prefetch";
@@ -17,7 +17,10 @@ import { listSubMerchantChoices } from "@/server/modules/sub-merchants/sub-merch
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Hybrid: the server prefetches the first page; the client owns paging, the range and the detail sheet. */
+/**
+ * Hybrid: the server prefetches the first page; the client owns paging, the range and the detail sheet. Mục 11: mặc định
+ * xem mọi Sub trong phạm vi phiên (không tự chọn Sub đầu tiên); Sub trên URL ngoài danh sách được chọn thì bỏ.
+ */
 export default async function SettlementItemsPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
@@ -28,12 +31,13 @@ export default async function SettlementItemsPage({ searchParams }: Props) {
   if (!choices.success) {
     return <Empty title={title}><ServerResultState state="error" message={domainErrorMessage(choices.error)} /></Empty>;
   }
-  const subMerchantId = pickSubMerchantId(choices.data, parsed.subMerchantId);
-  if (!subMerchantId) {
+  if (choices.data.length === 0) {
     return <Empty title={title}><ServerResultState state="empty" message="Chưa có Sub-merchant nào để xem dòng quyết toán." /></Empty>;
   }
-
-  const filter = { ...parsed, subMerchantId };
+  const { subMerchantId: requested, ...rest } = parsed;
+  const filter = requested && choices.data.some((choice) => choice.id === requested) ? { ...rest, subMerchantId: requested } : rest;
+  // Bộ lọc Terminal cần quyền đọc Terminal; thiếu quyền thì ẩn ô thay vì để người dùng gặp lỗi 403.
+  const canFilterTerminal = hasAnyPermission(user.permissions, PERMISSION_GATES.terminalRead);
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...settlementItemQueries.list(filter),
@@ -42,7 +46,7 @@ export default async function SettlementItemsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <SettlementItemsContainer filter={filter} choices={choices.data} />
+      <SettlementItemsContainer filter={filter} choices={choices.data} canFilterTerminal={canFilterTerminal} />
     </HydrationBoundary>
   );
 }

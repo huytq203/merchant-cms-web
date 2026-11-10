@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiClient } from "@/lib/http/api-client";
 import { shiftVnDate, vnToday } from "@/lib/utils/vn-time";
-import { settlementItemDetailSchema, settlementListResultSchema } from "./schemas";
+import { settlementItemDetailSchema, settlementListResultSchema, trancheGroupSchema } from "./schemas";
 import type { ResolvedSettlementFilter, SettlementFilter, SettlementItemDetail, SettlementListResult } from "./types";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -21,15 +21,22 @@ function positiveInteger(value: string | undefined, fallback: number, max = Infi
   return Number.isInteger(parsed) && parsed > 0 && parsed <= max ? parsed : fallback;
 }
 
-/** Reads the URL; a missing, malformed or reversed range becomes the last 7 days in Vietnam. */
+/**
+ * Reads the URL; a missing, malformed or reversed range becomes the last 7 days in Vietnam. Sub/Terminal không phải UUID
+ * và nhóm trạng thái lạ bị bỏ (= Tất cả).
+ */
 export function parseSettlementSearchParams(raw: RawSearchParams, now = new Date()): SettlementFilter {
   const paidToDefault = vnToday(now);
   const paidFrom = single(raw, "paidFrom");
   const paidTo = single(raw, "paidTo");
   const rangeValid = !!paidFrom && !!paidTo && day.test(paidFrom) && day.test(paidTo) && paidFrom <= paidTo;
   const subMerchantId = single(raw, "subMerchantId");
+  const terminalId = single(raw, "terminalId");
+  const trancheStatus = trancheGroupSchema.safeParse(single(raw, "trancheStatus"));
   return {
     ...(subMerchantId && z.uuid().safeParse(subMerchantId).success ? { subMerchantId } : {}),
+    ...(terminalId && z.uuid().safeParse(terminalId).success ? { terminalId } : {}),
+    ...(trancheStatus.success ? { trancheStatus: trancheStatus.data } : {}),
     paidFrom: rangeValid ? paidFrom : shiftVnDate(paidToDefault, 1 - RANGE_DAYS),
     paidTo: rangeValid ? paidTo : paidToDefault,
     page: positiveInteger(single(raw, "page"), 1),

@@ -4,6 +4,7 @@ import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import type { BeResult } from "@/lib/be/client";
 import { ok } from "@/lib/http/result";
+import { trancheStatusesOf } from "@/features/settlement-items/constants/settlement-labels";
 import { settlementItemDetailSchema, settlementItemSchema, settlementTotalsSchema } from "@/features/settlement-items/schemas";
 import type {
   ResolvedSettlementFilter,
@@ -12,12 +13,15 @@ import type {
   SettlementTotals,
 } from "@/features/settlement-items/types";
 
-// Merchant Portal endpoints: Sub + paidFrom + paidTo are mandatory (the BE answers 500 when one is
-// missing), order is fixed to paidAt desc, and a Sub outside the session scope answers 404.
+// Merchant Portal endpoints: paidFrom + paidTo are mandatory, order is fixed to paidAt desc, and a Sub outside the
+// session scope answers 404. Mục 11 (BE MR A): không gửi Sub = mọi Sub trong phạm vi phiên; lọc thêm terminalId và
+// trancheStatus (danh sách trạng thái BE, phân tách dấu phẩy).
 const SETTLEMENT_ITEMS = "/api/v1/merchant/settlement-items";
 
 const rangeQuery = (filter: ResolvedSettlementFilter) => ({
   subMerchantId: filter.subMerchantId,
+  terminalId: filter.terminalId,
+  trancheStatus: filter.trancheStatus ? trancheStatusesOf(filter.trancheStatus) : undefined,
   paidFrom: filter.paidFrom,
   paidTo: filter.paidTo,
 });
