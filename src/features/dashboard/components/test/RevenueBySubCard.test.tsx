@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
@@ -27,8 +27,7 @@ function answer(points: unknown[], granularity = "DAY") {
   mswServer.use(
     http.get(path, ({ request }) => {
       requests.push(new URL(request.url));
-      const asked = new URL(request.url).searchParams.get("granularity") ?? granularity;
-      return HttpResponse.json({ granularity: asked, from: "2026-10-05", to: "2026-11-03", points });
+      return HttpResponse.json({ granularity, from: "2026-10-05", to: "2026-11-03", points });
     }),
   );
 }
@@ -49,7 +48,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("RevenueBySubCard", () => {
-  it("opens on the last 30 days and lists each Sub's gross, fee and net with a total", async () => {
+  it("opens on the last 7 days and lists each Sub's gross, fee and net with a total", async () => {
     answer([point({}), point({ subMerchantId: "1311ae27-4ecb-447d-8c78-f3eb1307684c", subMerchantCode: "MC000001-S002", subMerchantName: "Halo Cầu Giấy", grossAmount: 700_000, feeAmount: 0, netAmount: 700_000 })]);
     renderCard();
 
@@ -62,19 +61,31 @@ describe("RevenueBySubCard", () => {
     expect(rows[2]).toHaveTextContent("Halo Cầu Giấy");
     expect(screen.getByText("Tổng cộng")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Doanh thu gộp theo ngày/ })).toBeInTheDocument();
-    expect(requests[0]!.searchParams.get("granularity")).toBe("DAY");
+    expect(requests[0]!.searchParams.get("preset")).toBe("DAY_7");
     expect(requests[0]!.searchParams.has("subMerchantId")).toBe(false);
   });
 
-  it("switches to the last 12 months", async () => {
-    answer([point({ period: "2026-11" })]);
+  it("offers 7, 15 and 30 days by day and picks the preset sent to the route", async () => {
+    answer([point({})]);
+    renderCard();
+    await screen.findByRole("table");
+
+    await userEvent.click(screen.getByRole("button", { name: "30 ngày" }));
+
+    await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("DAY_30"));
+  });
+
+  it("by month shows this month by default and can switch to last month", async () => {
+    answer([point({})]);
     renderCard();
     await screen.findByRole("table");
 
     await userEvent.click(screen.getByRole("button", { name: "Theo tháng" }));
+    await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("THIS_MONTH"));
 
-    await screen.findByRole("img", { name: /Doanh thu gộp theo tháng/ });
-    expect(requests.at(-1)!.searchParams.get("granularity")).toBe("MONTH");
+    await userEvent.click(screen.getByRole("button", { name: "Tháng trước" }));
+    await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("LAST_MONTH"));
+    expect(screen.getByText(/^Tháng \d{2}\/\d{4}, theo ngày thanh toán/)).toBeInTheDocument();
   });
 
   it("says when there is no payment yet and shows the BE error with a retry", async () => {

@@ -1,27 +1,46 @@
-import type { RevenueGranularity, RevenuePoint } from "../schemas/revenue.schema";
-import { lastDays } from "./order-week";
-
-/** Days shown by day and months shown by month: the latest window, ending today. */
-export const REVENUE_DAYS = 30;
-export const REVENUE_MONTHS = 12;
+import type { RevenueGranularity, RevenuePoint, RevenuePreset } from "../schemas/revenue.schema";
+import { lastDays, vnDay } from "./order-week";
 
 /** Chart colours cycle through the system chart tokens, so they follow the theme. */
 const SUB_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
-export type RevenueRange = { from: string; to: string; periods: string[] };
+const PRESET_DAYS: Partial<Record<RevenuePreset, number>> = { DAY_7: 7, DAY_15: 15, DAY_30: 30 };
 
-/** The latest 30 days or 12 months ending on `today` (a Vietnam `yyyy-MM-dd`), and each period in it. */
-export function revenueRange(granularity: RevenueGranularity, today: string): RevenueRange {
-  if (granularity === "DAY") {
-    const periods = lastDays(today, REVENUE_DAYS);
-    return { from: periods[0] as string, to: today, periods };
+export type RevenueRange = { from: string; to: string; periods: string[]; granularity: RevenueGranularity };
+
+/** Every day from `from` to `to` inclusive (`yyyy-MM-dd`). */
+export function daysBetween(from: string, to: string): string[] {
+  const days: string[] = [];
+  for (let time = Date.parse(from); time <= Date.parse(to); time += 86_400_000) days.push(new Date(time).toISOString().slice(0, 10));
+  return days;
+}
+
+/**
+ * Dates of a preset, from `today` (a Vietnam `yyyy-MM-dd`). Always charted by day: the last 7/15/30 days, this
+ * month (1st to today) or the whole previous month. The BE caps a day range at 92 days, well above any of these.
+ */
+export function revenueRange(preset: RevenuePreset, today: string): RevenueRange {
+  const count = PRESET_DAYS[preset];
+  if (count) {
+    const periods = lastDays(today, count);
+    return { from: periods[0] as string, to: today, periods, granularity: "DAY" };
   }
   const [year = 0, month = 1] = today.split("-").map(Number);
-  const periods = Array.from({ length: REVENUE_MONTHS }, (_, index) => {
-    const date = new Date(Date.UTC(year, month - 1 - (REVENUE_MONTHS - 1 - index), 1));
-    return date.toISOString().slice(0, 7);
-  });
-  return { from: `${periods[0]}-01`, to: today, periods };
+  const first = preset === "THIS_MONTH" ? Date.UTC(year, month - 1, 1) : Date.UTC(year, month - 2, 1);
+  const from = new Date(first).toISOString().slice(0, 10);
+  // Day 0 of the next month = last day of this one; this month stops at today instead of listing future days.
+  const to = preset === "THIS_MONTH" ? today : new Date(Date.UTC(year, month - 1, 0)).toISOString().slice(0, 10);
+  return { from, to, periods: daysBetween(from, to), granularity: "DAY" };
+}
+
+/** Subtitle wording for the period on screen, so it never claims "30 ngày" while showing a month. */
+export function revenueWindowText(preset: RevenuePreset, today?: string): string {
+  const count = PRESET_DAYS[preset];
+  if (count) return `${count} ngày gần nhất`;
+  const range = revenueRange(preset, today ?? vnDay(new Date().toISOString()) ?? "");
+  const [year, month] = range.from.split("-");
+  const label = `Tháng ${month}/${year}`;
+  return preset === "THIS_MONTH" ? `${label} (từ ${periodLabel(range.from, "DAY")} đến ${periodLabel(range.to, "DAY")})` : label;
 }
 
 /** `dd/MM` for a day, `MM/yyyy` for a month. */

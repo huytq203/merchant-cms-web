@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RevenuePoint } from "../../schemas/revenue.schema";
-import { buildRevenueChart, periodLabel, revenueRange, totalsBySub } from "../revenue-series";
+import { buildRevenueChart, periodLabel, revenueRange, revenueWindowText, totalsBySub } from "../revenue-series";
 
 const point = (overrides: Partial<RevenuePoint>): RevenuePoint => ({
   subMerchantId: "5dcda5e6-afd1-4201-a02f-7187164f0f86",
@@ -16,22 +16,37 @@ const point = (overrides: Partial<RevenuePoint>): RevenuePoint => ({
 const KIOSK = "1311ae27-4ecb-447d-8c78-f3eb1307684c";
 
 describe("revenueRange", () => {
-  it("covers the last 30 days ending today by day", () => {
-    const range = revenueRange("DAY", "2026-11-03");
-    expect(range.from).toBe("2026-10-05");
-    expect(range.to).toBe("2026-11-03");
-    expect(range.periods).toHaveLength(30);
-    expect(range.periods.at(-1)).toBe("2026-11-03");
+  it("covers the last 7, 15 or 30 days ending today by day", () => {
+    const week = revenueRange("DAY_7", "2026-11-10");
+    expect(week).toMatchObject({ from: "2026-11-04", to: "2026-11-10", granularity: "DAY" });
+    expect(week.periods).toHaveLength(7);
+    expect(revenueRange("DAY_15", "2026-11-10").from).toBe("2026-10-27");
+    const month = revenueRange("DAY_30", "2026-11-03");
+    expect(month.from).toBe("2026-10-05");
+    expect(month.periods).toHaveLength(30);
+    expect(month.periods.at(-1)).toBe("2026-11-03");
   });
 
-  it("covers the last 12 months by month, from the first day of the first month", () => {
-    const range = revenueRange("MONTH", "2026-11-03");
-    expect(range.from).toBe("2025-12-01");
-    expect(range.to).toBe("2026-11-03");
-    expect(range.periods).toEqual([
-      "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05",
-      "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11",
-    ]);
+  it("covers this month by day, from the 1st to today", () => {
+    const range = revenueRange("THIS_MONTH", "2026-11-10");
+    expect(range).toMatchObject({ from: "2026-11-01", to: "2026-11-10", granularity: "DAY" });
+    expect(range.periods).toHaveLength(10);
+  });
+
+  it("covers the whole previous month, across a year boundary and in a leap February", () => {
+    const range = revenueRange("LAST_MONTH", "2026-11-10");
+    expect(range).toMatchObject({ from: "2026-10-01", to: "2026-10-31" });
+    expect(range.periods).toHaveLength(31);
+    expect(revenueRange("LAST_MONTH", "2027-01-05")).toMatchObject({ from: "2026-12-01", to: "2026-12-31" });
+    expect(revenueRange("LAST_MONTH", "2028-03-02")).toMatchObject({ from: "2028-02-01", to: "2028-02-29" });
+  });
+});
+
+describe("revenueWindowText", () => {
+  it("names the period being viewed", () => {
+    expect(revenueWindowText("DAY_7")).toBe("7 ngày gần nhất");
+    expect(revenueWindowText("THIS_MONTH", "2026-11-10")).toBe("Tháng 11/2026 (từ 01/11 đến 10/11)");
+    expect(revenueWindowText("LAST_MONTH", "2026-11-10")).toBe("Tháng 10/2026");
   });
 });
 

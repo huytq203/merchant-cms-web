@@ -22,7 +22,7 @@ export const freezeColumns: ColumnDef<RevenueFreeze>[] = [
   },
   {
     id: "order",
-    header: "Giao dịch",
+    header: "Mã đơn hàng",
     cell: ({ row }) => <span className="font-mono">{row.original.orderCode ?? EMPTY}</span>,
   },
   {

@@ -59,7 +59,7 @@ function Shell({ title, controls, children }: { title: string; controls?: ReactN
     <div className="space-y-5">
       <PageHeader
         title={title}
-        description="Các khoản doanh thu FlexPay đang giữ lại theo từng giao dịch. Phần còn hụt được bù dần từ doanh thu mới; tiền gỡ băng trở về số dư của Sub-merchant."
+        description="Các khoản doanh thu FlexPay đang giữ lại theo từng đơn hàng. Phần còn hụt được bù dần từ doanh thu mới; tiền gỡ băng trở về số dư của Sub-merchant."
         action={controls ? <div className="flex flex-wrap items-end gap-4">{controls}</div> : undefined}
       />
       {children}
