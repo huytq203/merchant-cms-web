@@ -1,12 +1,11 @@
 import { queryOptions } from '@tanstack/react-query';
-import { format, subDays } from 'date-fns';
 import { z } from 'zod';
 import { apiClient } from '@/lib/http/api-client';
+import { shiftVnDate, vnToday } from '@/lib/utils/vn-time';
 import { auditFilterSchema, auditLogSchema, auditPeriodSchema } from './schemas';
 import type { AuditFilter, AuditListResult, AuditLog, AuditPeriod } from './types';
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
-const dateFormat = "yyyy-MM-dd'T'HH:mm:ss";
 const listResultSchema = z.object({ rows: z.array(auditLogSchema), total: z.number().int().min(0) });
 
 const filterParamNames = [
@@ -22,9 +21,14 @@ function toPositiveInteger(value: string | undefined, fallback: number, max = In
   return Number.isInteger(parsed) && parsed > 0 && parsed <= max ? parsed : fallback;
 }
 
-/** Khoảng thời gian của một kỳ có sẵn, tính lại mỗi lần đọc URL để "7 ngày" luôn là 7 ngày tính đến lúc xem. */
+/**
+ * Khoảng thời gian của một kỳ có sẵn, tính lại mỗi lần đọc URL. BE hiểu `occurredFrom/To` là giờ Việt Nam không kèm
+ * múi giờ, còn server Vercel chạy UTC: nếu lấy giờ hiện tại của server thì `occurredTo` chậm 7 tiếng và log mới
+ * nhất bị loại. Vì vậy tính theo NGÀY lịch Việt Nam: từ 00:00 của (hôm nay - (n-1)) đến 23:59:59 hôm nay.
+ */
 export function presetRange(period: Exclude<AuditPeriod, 'custom'>, now = new Date()) {
-  return { occurredFrom: format(subDays(now, presetDays[period]), dateFormat), occurredTo: format(now, dateFormat) };
+  const today = vnToday(now);
+  return { occurredFrom: `${shiftVnDate(today, 1 - presetDays[period])}T00:00:00`, occurredTo: `${today}T23:59:59` };
 }
 
 /**

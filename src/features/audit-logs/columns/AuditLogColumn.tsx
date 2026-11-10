@@ -6,7 +6,7 @@ import { DateTimeCell } from '@/components/page/DateTimeCell';
 import { createIndexColumn } from '@/components/page/IndexColumn';
 import { RowActions } from '@/components/page/RowActions';
 import type { AuditLog } from '../types';
-import { actionLabel, actorName, categoryLabel, entityLabel } from '../utils/audit-mapper';
+import { actionLabel, actorName, categoryLabel, entityHint, entityLabel } from '../utils/audit-mapper';
 
 /** Cột theo mockup mục 6: Thời gian, Nhóm (pill), Đối tượng, Hành động, Người thực hiện. */
 export function auditLogColumns(onView: (row: AuditLog) => void, page: number, pageSize: number): ColumnDef<AuditLog>[] {
@@ -28,9 +28,9 @@ export function auditLogColumns(onView: (row: AuditLog) => void, page: number, p
       cell: ({ row }) => (
         <div className="min-w-0">
           <p>{entityLabel(row.original.entityName ?? '—')}</p>
-          {row.original.reason && (
-            <p className="max-w-xs truncate text-xs text-muted-foreground" title={row.original.reason}>
-              {row.original.reason}
+          {entityHint(row.original) && (
+            <p className="max-w-xs truncate text-xs text-muted-foreground" title={entityHint(row.original) ?? undefined}>
+              {entityHint(row.original)}
             </p>
           )}
         </div>

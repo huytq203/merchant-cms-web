@@ -81,3 +81,13 @@ export function categoryLabel(category: AuditCategory | null | undefined): strin
 export function actorName(log: Pick<AuditLog, 'actorDisplayName' | 'actorLabel'>): string {
   return log.actorDisplayName ?? log.actorLabel;
 }
+
+/**
+ * Dòng phụ cột Đối tượng: lý do nếu BE có gửi (vd "Tạo yêu cầu hoàn tiền MRFE..."), không thì 8 ký tự đầu của
+ * entityId để người xem phân biệt các dòng cùng loại. Nhật ký của FlexPay có thể có reason = null.
+ */
+export function entityHint(log: Pick<AuditLog, 'reason' | 'entityId'>): string | null {
+  const reason = log.reason?.trim();
+  if (reason) return reason;
+  return log.entityId ? log.entityId.slice(0, 8) : null;
+}
