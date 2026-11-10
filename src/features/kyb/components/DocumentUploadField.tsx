@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { FileUpload } from "@/components/ui/file-upload/FileUpload";
 import { DOCUMENT_RULES, type DocumentType } from "../constants/document-rules";
 import { useDocumentUpload } from "../hooks/use-document-upload";
 import type { StoredFile } from "../types";
+import { StoredFileCard } from "./StoredFileCard";
 import { acceptedFormatsLabel, maxSizeLabel } from "../utils/document-validation";
 
 type Props = {
@@ -22,35 +24,11 @@ type Props = {
   onRefreshLinks?: () => void;
 };
 
-function isExpired(file: StoredFile) {
-  return Boolean(file.urlExpiresAt) && new Date(file.urlExpiresAt as string).getTime() <= Date.now();
-}
-
-function ExistingFiles({ files, onRefreshLinks }: { files: StoredFile[]; onRefreshLinks?: () => void }) {
-  return (
-    <ul className="grid gap-1 text-xs text-muted-foreground">
-      {files.map((file) => (
-        <li key={file.id} className="flex flex-wrap items-center gap-2">
-          <span>Đã lưu: {file.filename ?? "tệp đã tải lên"}</span>
-          {file.url && !isExpired(file) && (
-            <a className="text-primary underline" href={file.url} target="_blank" rel="noreferrer">
-              Xem tệp
-            </a>
-          )}
-          {file.url && isExpired(file) && onRefreshLinks && (
-            <Button type="button" variant="link" size="sm" onClick={onRefreshLinks}>
-              Liên kết đã hết hạn, tải lại
-            </Button>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function DocumentUploadField(props: Props) {
   const { type, required, multiple, existing = [], error, disabled, onChange, onRefreshLinks } = props;
   const rule = DOCUMENT_RULES[type];
+  // With a file already saved, the slot shows its card; "Thay tệp" opens the empty upload box instead.
+  const [replacing, setReplacing] = useState(false);
   const upload = useDocumentUpload({ type, multiple, onChange });
   const files = upload.items.map((item) => item.file);
   const handleChange = (next: File[]) => {
@@ -60,6 +38,27 @@ export function DocumentUploadField(props: Props) {
     }
     void upload.add(next.filter((file) => !files.includes(file)));
   };
+  if (existing.length > 0 && files.length === 0 && !replacing && !upload.isUploading) {
+    return (
+      <div className="grid gap-2">
+        <p className="text-sm font-medium text-foreground">{required ? `${rule.label} *` : rule.label}</p>
+        {existing.map((file, index) => (
+          <StoredFileCard
+            key={file.id}
+            file={file}
+            onRefreshLinks={onRefreshLinks}
+            action={
+              index === 0 && !disabled ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setReplacing(true)}>
+                  Thay tệp
+                </Button>
+              ) : undefined
+            }
+          />
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="grid gap-2">
       <FileUpload
@@ -80,8 +79,10 @@ export function DocumentUploadField(props: Props) {
           {acceptedFormatsLabel(type)} · tối đa {maxSizeLabel(type)}
         </p>
       </FileUpload>
-      {files.length === 0 && existing.length > 0 && (
-        <ExistingFiles files={existing} onRefreshLinks={onRefreshLinks} />
+      {existing.length > 0 && files.length === 0 && (
+        <Button type="button" variant="link" size="sm" className="justify-self-start" onClick={() => setReplacing(false)}>
+          Giữ tệp hiện tại
+        </Button>
       )}
     </div>
   );

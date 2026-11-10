@@ -9,6 +9,7 @@ import { kybTimeline } from "../utils/kyb-timeline";
 import { businessTypeLabel } from "../utils/merchant-mapper";
 import { DetailRow } from "./DetailRow";
 import { Notice } from "@/components/page/Notice";
+import { StoredFileCard } from "./StoredFileCard";
 import { MerchantProcessSteps } from "./MerchantProcessSteps";
 
 type Props = {
@@ -17,14 +18,13 @@ type Props = {
   onEdit?: () => void;
 };
 
-function storedDocuments(wallet: EnterpriseWallet): string {
-  const names = [
-    wallet.businessLicense ? "Giấy phép ĐKKD" : null,
-    wallet.idCardFront && wallet.idCardBack ? "CCCD hai mặt" : null,
-    wallet.authorizationLetter ? "Giấy ủy quyền" : null,
-  ];
-  return names.filter(Boolean).join(", ");
-}
+/** The four legal documents of the dossier, in the order of the form; the letter only when one is on file. */
+const DOCUMENT_CARDS = [
+  { key: "businessLicense", label: "Giấy phép ĐKKD" },
+  { key: "idCardFront", label: "CCCD mặt trước" },
+  { key: "idCardBack", label: "CCCD mặt sau" },
+  { key: "authorizationLetter", label: "Giấy uỷ quyền" },
+] as const;
 
 /** A dossier shown read only (under review, verified, or to a session that cannot manage it), with the review progress while pending. */
 export function KybOverview({ wallet, onEdit }: Props) {
@@ -66,10 +66,25 @@ export function KybOverview({ wallet, onEdit }: Props) {
             value={[wallet.managerName, wallet.managerTitle].filter(Boolean).join(", ")}
           />
           <DetailRow label="Địa chỉ trụ sở" value={wallet.headOfficeAddress ?? ""} />
-          <DetailRow label="Giấy tờ đã tải" value={storedDocuments(wallet)} />
           <DetailRow label="Email đăng ký" value={wallet.registeredEmail} />
           <DetailRow label="SĐT nhận thông báo" value={wallet.otpPhone ?? ""} />
         </dl>
+      </div>
+      <div className="grid gap-3">
+        <h3 className="text-sm font-semibold">Hồ sơ pháp lý</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {DOCUMENT_CARDS.map(({ key, label }) => {
+            const file = wallet[key];
+            // The letter is optional: leave its slot out instead of showing an empty one.
+            if (!file && key === "authorizationLetter") return null;
+            return (
+              <div key={key} className="grid gap-1.5">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                {file ? <StoredFileCard file={file} /> : <p className="text-sm text-muted-foreground">Chưa tải lên</p>}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
