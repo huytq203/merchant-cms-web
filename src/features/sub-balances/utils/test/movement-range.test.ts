@@ -12,6 +12,10 @@ describe("movementRangeToDates", () => {
     expect(movementRangeToDates("30d", today)).toEqual({ fromDate: "2026-10-12", toDate: "2026-11-10" });
   });
 
+  it("90 days is today and the 89 days before it", () => {
+    expect(movementRangeToDates("90d", today)).toEqual({ fromDate: "2026-08-13", toDate: "2026-11-10" });
+  });
+
   it("custom range passes the chosen dates and leaves an empty side open", () => {
     expect(movementRangeToDates("custom", today, { from: "2026-11-01", to: "" })).toEqual({ fromDate: "2026-11-01", toDate: undefined });
   });

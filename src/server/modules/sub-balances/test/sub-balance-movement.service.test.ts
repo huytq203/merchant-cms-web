@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
-import { SUB_ID, OP_ORDER, movementPage, orderDetail, orderMovement } from "@/features/sub-balances/test/movement-fixtures";
+import {
+  SUB_ID, OP_ORDER, movementPage, movementTotals, orderDetail, orderMovement, setoffWithdrawalMovement,
+} from "@/features/sub-balances/test/movement-fixtures";
 import { getSubBalanceMovement, listSubBalanceMovements } from "../sub-balance.service";
 
 vi.mock("@/lib/auth/session-cookies", () => ({ readAccessToken: async () => null }));
@@ -26,7 +28,8 @@ afterEach(() => vi.unstubAllEnvs());
 describe("listSubBalanceMovements", () => {
   it("maps the Spring page to rows and total and forwards the filters", async () => {
     const result = await listSubBalanceMovements(SUB_ID, { type: "ORDER", fromDate: "2026-11-04", toDate: "2026-11-10", page: 1, size: 20 });
-    expect(result).toEqual({ success: true, data: { rows: [orderMovement], total: 37 } });
+    // A BE without period totals yet: no summary, the strip stays hidden.
+    expect(result).toEqual({ success: true, data: { rows: [orderMovement], total: 37, summary: null } });
     const query = requests[0]!.searchParams;
     expect([query.get("type"), query.get("fromDate"), query.get("toDate"), query.get("page"), query.get("size")]).toEqual(["ORDER", "2026-11-04", "2026-11-10", "1", "20"]);
   });
@@ -41,6 +44,23 @@ describe("listSubBalanceMovements", () => {
     mswServer.use(http.get(`${base}/api/v1/merchant/sub-balances/:id/movements`, () => HttpResponse.json({ success: false, message: "x" }, { status: 503 })));
     const result = await listSubBalanceMovements(SUB_ID, { type: "ALL", page: 1, size: 20 });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("listSubBalanceMovements period totals", () => {
+  it("passes the period totals and the setoff of a withdrawal row through", async () => {
+    mswServer.use(http.get(`${base}/api/v1/merchant/sub-balances/:id/movements`,
+      () => HttpResponse.json(movementPage([setoffWithdrawalMovement], 1, 0, movementTotals))));
+    const result = await listSubBalanceMovements(SUB_ID, { type: "ALL", page: 1, size: 20 });
+    expect(result.success && result.data.summary).toEqual(movementTotals);
+    expect(result.success && result.data.rows[0]?.setoffAmount).toBe(1_000_000);
+  });
+
+  it("keeps the opening and closing balance when the period is too long to add up", async () => {
+    mswServer.use(http.get(`${base}/api/v1/merchant/sub-balances/:id/movements`, () => HttpResponse.json(movementPage([], 0, 0,
+      { openingBalance: 10, totalIn: null, totalOut: null, closingBalance: 99, totalsComplete: false }))));
+    const result = await listSubBalanceMovements(SUB_ID, { type: "ALL", page: 1, size: 20 });
+    expect(result.success && result.data.summary).toEqual({ openingBalance: 10, totalIn: null, totalOut: null, closingBalance: 99, totalsComplete: false });
   });
 });
 

@@ -7,17 +7,17 @@ import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
 import { shiftVnDate, vnToday } from "@/lib/utils/vn-time";
 import {
-  SUB_ID, freezeMovement, orderDetail, orderMovement, withdrawalMovement,
+  SUB_ID, freezeMovement, movementTotals, orderDetail, orderMovement, setoffWithdrawalMovement, withdrawalMovement,
 } from "../../test/movement-fixtures";
 import { SubBalanceMovementsDialog } from "../SubBalanceMovementsDialog";
 
 const listUrl = `/api/v1/admin/sub-balances/${SUB_ID}/movements`;
 const detailUrl = `${listUrl}/:op`;
 
-type ListOptions = { content?: unknown[]; total?: number; fail?: boolean };
+type ListOptions = { content?: unknown[]; total?: number; fail?: boolean; summary?: unknown };
 
 /** Serves the list and records the query string of every list request. */
-function serve({ content = [orderMovement, withdrawalMovement], total = content.length, fail = false }: ListOptions = {}) {
+function serve({ content = [orderMovement, withdrawalMovement], total = content.length, fail = false, summary = null }: ListOptions = {}) {
   const queries: URLSearchParams[] = [];
   mswServer.use(
     http.get(listUrl, ({ request }) => {
@@ -25,7 +25,7 @@ function serve({ content = [orderMovement, withdrawalMovement], total = content.
       queries.push(url.searchParams);
       if (fail) return HttpResponse.json({ message: "Hệ thống bận" }, { status: 503 });
       const page = Number(url.searchParams.get("page") ?? 1);
-      return HttpResponse.json({ rows: page === 1 ? content : [freezeMovement], total });
+      return HttpResponse.json({ rows: page === 1 ? content : [freezeMovement], total, summary });
     }),
     http.get(detailUrl, () => HttpResponse.json(orderDetail)),
   );
@@ -97,21 +97,80 @@ describe("SubBalanceMovementsDialog", () => {
     await waitFor(() => expect(queries.at(-1)?.get("type")).toBe("REFUND"));
   });
 
-  it("switches the range to 30 days", async () => {
+  it("has no Ký quỹ chip: escrow returns are listed under Tất cả", async () => {
+    serve();
+    await openDialog();
+    await screen.findByRole("button", { name: /Lệnh rút/ });
+    const chips = within(screen.getByRole("radiogroup", { name: "Loại biến động" })).getAllByRole("radio").map((chip) => chip.textContent);
+    expect(chips).toEqual(["Tất cả", "Đơn hàng", "Lệnh rút", "Hoàn tiền", "Đóng băng"]);
+  });
+
+  it("offers 7, 30, 90 days and a custom range, 7 days selected", async () => {
+    serve();
+    await openDialog();
+    await screen.findByRole("button", { name: /Lệnh rút/ });
+    const ranges = within(screen.getByRole("radiogroup", { name: "Khoảng thời gian" })).getAllByRole("radio");
+    expect(ranges.map((chip) => chip.textContent)).toEqual(["7 ngày", "30 ngày", "90 ngày", "Tùy chỉnh"]);
+    expect(screen.getByRole("radio", { name: "7 ngày" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("switches the range to 30 and 90 days", async () => {
     const queries = serve();
     const user = await openDialog();
     await screen.findByRole("button", { name: /Lệnh rút/ });
-    await user.click(screen.getByRole("combobox", { name: "Khoảng thời gian" }));
-    await user.click(await screen.findByRole("option", { name: "30 ngày" }));
+    await user.click(screen.getByRole("radio", { name: "30 ngày" }));
     await waitFor(() => expect(queries.at(-1)?.get("fromDate")).toBe(shiftVnDate(vnToday(), -29)));
+    await user.click(screen.getByRole("radio", { name: "90 ngày" }));
+    await waitFor(() => expect(queries.at(-1)?.get("fromDate")).toBe(shiftVnDate(vnToday(), -89)));
+  });
+
+  it("shows the period totals: opening, in, out and closing balance", async () => {
+    serve({ summary: movementTotals });
+    await openDialog();
+    const strip = await screen.findByRole("group", { name: "Tổng kỳ" });
+    expect(within(strip).getByText("Đầu kỳ")).toBeInTheDocument();
+    expect(within(strip).getByText("Tổng cộng vào")).toBeInTheDocument();
+    expect(within(strip).getByText("+1.791.000 vnđ")).toBeInTheDocument();
+    expect(within(strip).getByText("Tổng trừ ra")).toBeInTheDocument();
+    expect(within(strip).getByText("−1.568.000 vnđ")).toBeInTheDocument();
+    expect(within(strip).getByText("Cuối kỳ")).toBeInTheDocument();
+    expect(within(strip).getByText("223.000 vnđ")).toBeInTheDocument();
+  });
+
+  it("says the totals could not be added up when the period is too long, but keeps opening and closing", async () => {
+    serve({ summary: { openingBalance: 10, totalIn: null, totalOut: null, closingBalance: 99, totalsComplete: false } });
+    await openDialog();
+    const strip = await screen.findByRole("group", { name: "Tổng kỳ" });
+    expect(within(strip).getByText("99 vnđ")).toBeInTheDocument();
+    expect(within(strip).getAllByText("Kỳ quá dài, thu hẹp để xem")).toHaveLength(2);
+  });
+
+  it("hides the totals strip when the BE sends none", async () => {
+    serve();
+    await openDialog();
+    await screen.findByRole("button", { name: /Lệnh rút/ });
+    expect(screen.queryByRole("group", { name: "Tổng kỳ" })).not.toBeInTheDocument();
+  });
+
+  it("says how much of a withdrawal went to the escrow", async () => {
+    serve({ content: [setoffWithdrawalMovement] });
+    await openDialog();
+    const row = await screen.findByRole("button", { name: /Lệnh rút/ });
+    expect(row).toHaveTextContent("trong đó cấn trừ ký quỹ 1.000.000 vnđ");
+  });
+
+  it("labels the order code of an order row as Mã đơn hàng", async () => {
+    serve();
+    await openDialog();
+    const credit = await screen.findByRole("button", { name: /Đơn hàng · quyết toán/ });
+    expect(credit).toHaveTextContent("Mã đơn hàng DH2611090070");
   });
 
   it("uses the dates typed in the custom range", async () => {
     const queries = serve();
     const user = await openDialog();
     await screen.findByRole("button", { name: /Lệnh rút/ });
-    await user.click(screen.getByRole("combobox", { name: "Khoảng thời gian" }));
-    await user.click(await screen.findByRole("option", { name: "Tùy chọn" }));
+    await user.click(screen.getByRole("radio", { name: "Tùy chỉnh" }));
     const from = await screen.findByLabelText("Từ ngày");
     await user.clear(from);
     await user.type(from, "2026-11-01");
@@ -190,12 +249,13 @@ describe("SubBalanceMovementsDialog", () => {
     expect(await screen.findByRole("button", { name: /Lệnh rút/ })).toBeInTheDocument();
   });
 
-  it("keeps the dialog inside the viewport width on small screens", async () => {
+  it("opens as a full-height drawer that fits the viewport width on small screens", async () => {
     serve();
     await openDialog();
     const dialog = await screen.findByRole("dialog");
+    expect(dialog.className).toContain("h-full");
+    expect(dialog.className).toContain("w-full");
     expect(dialog.className).toContain("overflow-x-hidden");
-    expect(dialog.className).toContain("max-w-");
   });
 });
 

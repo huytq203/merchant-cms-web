@@ -1,7 +1,10 @@
 import { shiftVnDate } from "@/lib/utils/vn-time";
 import type { MovementLink } from "../movement-types";
 
-export type MovementRange = "7d" | "30d" | "custom";
+export type MovementRange = "7d" | "30d" | "90d" | "custom";
+
+/** Days before today each preset reaches back: a preset of N days is today plus the N − 1 days before it. */
+const PRESET_OFFSET: Record<Exclude<MovementRange, "custom">, number> = { "7d": -6, "30d": -29, "90d": -89 };
 
 export interface MovementDates {
   fromDate: string | undefined;
@@ -15,7 +18,7 @@ export interface MovementDates {
  */
 export function movementRangeToDates(range: MovementRange, today: string, custom: { from: string; to: string } = { from: "", to: "" }): MovementDates {
   if (range === "custom") return { fromDate: custom.from || undefined, toDate: custom.to || undefined };
-  return { fromDate: shiftVnDate(today, range === "7d" ? -6 : -29), toDate: today };
+  return { fromDate: shiftVnDate(today, PRESET_OFFSET[range]), toDate: today };
 }
 
 /**

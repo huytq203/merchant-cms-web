@@ -40,7 +40,8 @@ describe("sub balance movements list route", () => {
   });
 
   it("rejects bad parameters with 400 and a Vietnamese message", async () => {
-    for (const q of ["?type=OTHER", "?fromDate=10/11/2026", "?size=101", "?page=-1"]) {
+    // ESCROW: the "Ký quỹ" chip is gone (10/11/2026); escrow returns are listed under "Tất cả".
+    for (const q of ["?type=OTHER", "?type=ESCROW", "?fromDate=10/11/2026", "?size=101", "?page=-1"]) {
       const response = await get(q);
       expect(response.status).toBe(400);
       expect((await response.json()).message).toMatch(/không hợp lệ|tối đa/);

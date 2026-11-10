@@ -36,10 +36,16 @@ export const freezeMovement = {
   reference: "DH2611080001",
 };
 
-/** A Spring page as the Merchant Portal BE returns it. */
-export const movementPage = (content: unknown[], totalElements = content.length, number = 0) => ({
+/** A withdrawal row whose order was partly set off against the Master's escrow. */
+export const setoffWithdrawalMovement = { ...withdrawalMovement, reference: "WD2611090001", amount: -1_568_000, setoffAmount: 1_000_000 };
+
+/** Period totals the BE adds next to the page (10/11/2026). */
+export const movementTotals = { openingBalance: 0, totalIn: 1_791_000, totalOut: 1_568_000, closingBalance: 223_000, totalsComplete: true };
+
+/** A Spring page as the Merchant Portal BE returns it, with the period totals when given. */
+export const movementPage = (content: unknown[], totalElements = content.length, number = 0, totals: Record<string, unknown> = {}) => ({
   success: true,
-  data: { content, totalElements, totalPages: Math.max(1, Math.ceil(totalElements / 20)), number, size: 20 },
+  data: { content, totalElements, totalPages: Math.max(1, Math.ceil(totalElements / 20)), number, size: 20, ...totals },
 });
 
 const line = (label: string, over: Record<string, unknown> = {}) => ({

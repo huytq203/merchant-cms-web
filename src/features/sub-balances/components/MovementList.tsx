@@ -10,6 +10,7 @@ import { formatVnDateTime } from "@/lib/utils/vn-time";
 import { movementQueries, type MovementListFilter } from "../movement-queries";
 import type { Movement } from "../movement-types";
 import { amountToneClass, formatSignedAmount } from "../utils/movement-format";
+import { MovementTotals } from "./MovementTotals";
 
 interface Props {
   subMerchantId: string;
@@ -22,8 +23,12 @@ function ListMessage({ children, role }: { children: React.ReactNode; role?: "al
 }
 
 function Row({ movement, onSelect }: { movement: Movement; onSelect: (movement: Movement) => void }) {
-  // The reference is omitted (not shown as "null") when the BE could not resolve a business code.
-  const meta = [movement.reference, formatVnDateTime(movement.occurredAt)].filter(Boolean).join(" · ");
+  // The reference is omitted (not shown as "null") when the BE could not resolve a business code. An order row's
+  // reference is the merchant's own order code, so it is named "Mã đơn hàng" like everywhere else in the Portal.
+  const reference = movement.reference && movement.type === "ORDER" ? `Mã đơn hàng ${movement.reference}` : movement.reference;
+  const meta = [reference, formatVnDateTime(movement.occurredAt)].filter(Boolean).join(" · ");
+  // Part of a withdrawal taken by the Master's escrow: it left the available balance but did not reach the bank.
+  const setoff = movement.setoffAmount ?? 0;
   return (
     <li>
       <button
@@ -34,6 +39,9 @@ function Row({ movement, onSelect }: { movement: Movement; onSelect: (movement: 
         <span className="min-w-0">
           <span className="block font-semibold">{movement.label}</span>
           <span className="block break-words text-sm text-muted-foreground">{meta}</span>
+          {setoff > 0 ? (
+            <span className="block break-words text-sm text-muted-foreground">trong đó cấn trừ ký quỹ {formatAmount(setoff)}</span>
+          ) : null}
         </span>
         <span className="shrink-0 text-right">
           <span className={cn("block font-semibold tabular-nums", amountToneClass(movement.amount))}>{formatSignedAmount(movement.amount)}</span>
@@ -48,6 +56,9 @@ function Row({ movement, onSelect }: { movement: Movement; onSelect: (movement: 
 export function MovementList({ subMerchantId, filter, onSelect }: Props) {
   const query = useInfiniteQuery(movementQueries.list(subMerchantId, filter));
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
+  // Period totals come with every page and do not depend on paging: read them from the first page.
+  const summary = query.data?.pages[0]?.summary ?? null;
+  const totals = summary ? <div className="mb-3"><MovementTotals summary={summary} /></div> : null;
 
   if (query.isPending) {
     return (
@@ -66,9 +77,17 @@ export function MovementList({ subMerchantId, filter, onSelect }: Props) {
       </ListMessage>
     );
   }
-  if (rows.length === 0) return <ListMessage>Không có biến động trong khoảng thời gian này.</ListMessage>;
+  if (rows.length === 0) {
+    return (
+      <div>
+        {totals}
+        <ListMessage>Không có biến động trong khoảng thời gian này.</ListMessage>
+      </div>
+    );
+  }
   return (
     <div>
+      {totals}
       <ul className="divide-y divide-border">
         {rows.map((movement) => <Row key={movement.id} movement={movement} onSelect={onSelect} />)}
       </ul>
