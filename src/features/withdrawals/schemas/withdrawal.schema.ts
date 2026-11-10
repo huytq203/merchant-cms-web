@@ -31,6 +31,12 @@ const withdrawalRecordSchema = z.object({
   requestType: withdrawalRequestTypeSchema,
   amount: z.number().int().nonnegative(),
   fee: z.number().int().nonnegative().nullish(),
+  /** Part of the amount set off against the Master's escrow (inside `amount`); missing from an older BE = 0. */
+  setoffAmount: z.number().int().nonnegative().nullish(),
+  /** What the bank pays out (BE `receivedAmount`): DEDUCT = amount − setoff − fee, ADD_ON = amount − setoff. */
+  receivedAmount: z.number().int().nullish(),
+  /** DEDUCT: fee inside the amount (every Sub request); ADD_ON: fee charged on top (old requests, column default). */
+  payoutFeeMode: z.string().nullish(),
   currency: z.string(),
   bankCode: z.string(),
   bankAccountNumber: z.string(),
@@ -50,6 +56,10 @@ export const withdrawalResponseSchema = withdrawalRecordSchema.transform((record
   requestType: record.requestType,
   amount: record.amount,
   fee: record.fee ?? null,
+  setoffAmount: record.setoffAmount ?? 0,
+  netReceived: record.receivedAmount ?? null,
+  // Unknown or missing mode reads as ADD_ON, like BE (MerchantWithdrawalRequestMapper.receivedAmount) and the DB default.
+  payoutFeeMode: record.payoutFeeMode === "DEDUCT" ? ("DEDUCT" as const) : ("ADD_ON" as const),
   currency: record.currency,
   bankCode: record.bankCode,
   bankAccountMasked: record.bankAccountNumber,

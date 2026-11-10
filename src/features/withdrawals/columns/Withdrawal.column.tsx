@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/page/StatusBadge";
 import { EMPTY_VALUE, REQUEST_TYPE_LABELS } from "../constants/Withdrawal.constants";
 import { WithdrawalStatusBadge } from "../components/WithdrawalStatusBadge";
 import type { Withdrawal } from "../types/types";
-import { withdrawalTitle, withdrawalTotalDebit } from "../utils/withdrawal-mapper";
+import { withdrawalBreakdown, withdrawalTitle } from "../utils/withdrawal-mapper";
 
 export type WithdrawalColumnActions = {
   onView: (withdrawal: Withdrawal) => void;
@@ -52,16 +52,31 @@ export function getWithdrawalColumns(actions: WithdrawalColumnActions, page: num
       cell: ({ row }) => <span className="font-mono font-semibold tabular-nums">{formatAmount(row.original.amount)}</span>,
     },
     {
+      id: "setoff",
+      header: "Cấn trừ ký quỹ",
+      meta: { align: "right" },
+      cell: ({ row }) => <span className="font-mono tabular-nums">{formatAmount(row.original.setoffAmount)}</span>,
+    },
+    {
       id: "fee",
       header: "Phí rút",
       meta: { align: "right" },
       cell: ({ row }) => <span className="font-mono tabular-nums text-danger">{money(row.original.fee)}</span>,
     },
     {
-      id: "totalDebit",
-      header: "Tổng trừ ví",
+      id: "net",
+      header: "Thực nhận",
       meta: { align: "right" },
-      cell: ({ row }) => <span className="font-mono tabular-nums">{money(withdrawalTotalDebit(row.original))}</span>,
+      cell: ({ row }) => {
+        const { net, totalDebit } = withdrawalBreakdown(row.original);
+        return (
+          <div className="space-y-0.5">
+            <span className="font-mono font-semibold tabular-nums">{money(net)}</span>
+            {/* Old ADD_ON request only: its fee was charged on top of the amount, so say what left the wallet. */}
+            {totalDebit !== null ? <p className="text-xs text-muted-foreground">Tổng trừ ví {formatAmount(totalDebit)}</p> : null}
+          </div>
+        );
+      },
     },
     { id: "bank", header: "Tài khoản nhận", cell: ({ row }) => <BankCell withdrawal={row.original} /> },
     { id: "createdAt", header: "Ngày yêu cầu", cell: ({ row }) => <DateTimeCell value={row.original.createdAt} /> },

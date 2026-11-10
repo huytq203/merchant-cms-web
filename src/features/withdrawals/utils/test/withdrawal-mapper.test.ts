@@ -3,8 +3,8 @@ import {
   isAwaitingApproval,
   isSubMerchantAccount,
   toWithdrawalCreateRequest,
+  withdrawalBreakdown,
   withdrawalTitle,
-  withdrawalTotalDebit,
 } from "../withdrawal-mapper";
 
 const input = {
@@ -56,9 +56,23 @@ describe("withdrawal status helpers", () => {
     expect(isAwaitingApproval("COMPLETED")).toBe(false);
   });
 
-  it("adds the fee on top of the amount because the BE reserves amount plus fee", () => {
-    expect(withdrawalTotalDebit({ amount: 5_000_000, fee: 5_500 })).toBe(5_005_500);
-    expect(withdrawalTotalDebit({ amount: 5_000_000, fee: null })).toBeNull();
+});
+
+describe("withdrawalBreakdown", () => {
+  const sub = { amount: 1_568_000, setoffAmount: 1_000_000, fee: 5_680, netReceived: 562_320, payoutFeeMode: "DEDUCT" as const };
+
+  it("takes the setoff and the fee out of a Sub request (FM26I4MEO): no fee on top, no wallet total", () => {
+    expect(withdrawalBreakdown(sub)).toEqual({ setoff: 1_000_000, fee: 5_680, net: 562_320, totalDebit: null });
+  });
+
+  it("works the net out when the BE does not send it", () => {
+    expect(withdrawalBreakdown({ ...sub, netReceived: null }).net).toBe(562_320);
+    expect(withdrawalBreakdown({ ...sub, netReceived: null, fee: null }).net).toBeNull();
+  });
+
+  it("keeps the fee on top for an old ADD_ON request, whose wallet was charged amount plus fee", () => {
+    expect(withdrawalBreakdown({ amount: 5_000_000, setoffAmount: 0, fee: 5_500, netReceived: null, payoutFeeMode: "ADD_ON" }))
+      .toEqual({ setoff: 0, fee: 5_500, net: 5_000_000, totalDebit: 5_005_500 });
   });
 });
 

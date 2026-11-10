@@ -8,9 +8,34 @@ export function isAwaitingApproval(status: WithdrawalStatus): boolean {
   return status === "PENDING";
 }
 
-/** BE reserves `amount + fee` from the wallet (grossAmount), so the fee is added, not deducted. */
-export function withdrawalTotalDebit(withdrawal: Pick<Withdrawal, "amount" | "fee">): number | null {
-  return withdrawal.fee === null ? null : withdrawal.amount + withdrawal.fee;
+export type WithdrawalBreakdown = {
+  /** Escrow setoff, inside the amount. */
+  setoff: number;
+  fee: number | null;
+  /** What reaches the bank account; null while the fee is unknown and BE sent no net. */
+  net: number | null;
+  /** Only for an old ADD_ON request, whose wallet was charged amount + fee; null for every Sub request. */
+  totalDebit: number | null;
+};
+
+/**
+ * How a request's amount splits. Every Sub request is DEDUCT: setoff and fee come OUT of the amount (the fee is worked
+ * out on what is left after the setoff), so net = amount − setoff − fee and nothing is added on top — showing
+ * "amount + fee" as a wallet total was wrong for them (FM26I4MEO, 11/11/2026). Only an old ADD_ON request had the fee
+ * charged on top, so only it keeps a wallet total. BE's own net (`receivedAmount`) wins when sent.
+ */
+export function withdrawalBreakdown(
+  withdrawal: Pick<Withdrawal, "amount" | "fee" | "setoffAmount" | "netReceived" | "payoutFeeMode">,
+): WithdrawalBreakdown {
+  const { amount, fee, setoffAmount: setoff, payoutFeeMode } = withdrawal;
+  const addOn = payoutFeeMode === "ADD_ON";
+  const computed = addOn ? amount - setoff : fee === null ? null : amount - setoff - fee;
+  return {
+    setoff,
+    fee,
+    net: withdrawal.netReceived ?? computed,
+    totalDebit: addOn && fee !== null ? amount + fee : null,
+  };
 }
 
 /** BE reads merchant, bank and account holder from the stored account, so only these fields leave the browser. */

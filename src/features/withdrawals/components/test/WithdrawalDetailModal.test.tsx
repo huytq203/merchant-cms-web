@@ -27,6 +27,9 @@ const makeWithdrawal = (bankRefId: string | null): Withdrawal => ({
   reason: null,
   createdAt: "2026-01-13T09:30:00",
   updatedAt: null,
+  setoffAmount: 0,
+  netReceived: 4_994_500,
+  payoutFeeMode: "DEDUCT",
 });
 
 function renderModal(withdrawal: Withdrawal) {
@@ -41,6 +44,24 @@ function renderModal(withdrawal: Withdrawal) {
 }
 
 afterEach(cleanup);
+
+describe("WithdrawalDetailModal — số tiền", () => {
+  it("lệnh của Sub: phí và cấn trừ nằm trong số rút, hiện thực nhận, không có Tổng trừ ví", async () => {
+    renderModal({ ...makeWithdrawal(null), amount: 1_568_000, setoffAmount: 1_000_000, fee: 5_680, netReceived: 562_320 });
+    expect(await screen.findByText(/Cấn trừ ký quỹ/)).toBeInTheDocument();
+    expect(screen.getByText("1.000.000 vnđ")).toBeInTheDocument();
+    expect(screen.getByText("5.680 vnđ")).toBeInTheDocument();
+    expect(screen.getByText("562.320 vnđ")).toBeInTheDocument();
+    expect(screen.queryByText(/Tổng trừ ví/)).not.toBeInTheDocument();
+    expect(screen.queryByText("1.573.680 vnđ")).not.toBeInTheDocument();
+  });
+
+  it("lệnh cũ ADD_ON: phí cộng thêm nên vẫn hiện Tổng trừ ví", async () => {
+    renderModal({ ...makeWithdrawal(null), payoutFeeMode: "ADD_ON", netReceived: 5_000_000 });
+    expect(await screen.findByText(/Tổng trừ ví/)).toBeInTheDocument();
+    expect(screen.getByText("5.005.500 vnđ")).toBeInTheDocument();
+  });
+});
 
 describe("WithdrawalDetailModal — mã tham chiếu ngân hàng", () => {
   it("có mã thì hiện dòng kèm mã", async () => {

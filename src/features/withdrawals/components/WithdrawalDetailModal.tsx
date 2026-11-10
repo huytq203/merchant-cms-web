@@ -9,7 +9,7 @@ import { EMPTY_VALUE, REQUEST_TYPE_LABELS } from "../constants/Withdrawal.consta
 import { useWithdrawalDetail } from "../hooks/use-withdrawal-detail";
 import type { Withdrawal } from "../types/types";
 import { WITHDRAWAL_STEPS, withdrawalNote, withdrawalStepStates } from "../utils/withdrawal-timeline";
-import { withdrawalTotalDebit } from "../utils/withdrawal-mapper";
+import { withdrawalBreakdown } from "../utils/withdrawal-mapper";
 import { WithdrawalStatusBadge } from "./WithdrawalStatusBadge";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; listed: Withdrawal | null };
@@ -18,13 +18,17 @@ const money = (value: number | null) => (value === null ? EMPTY_VALUE : formatAm
 
 function WithdrawalSections({ withdrawal }: { withdrawal: Withdrawal }) {
   const note = withdrawalNote(withdrawal.status);
+  const { setoff, fee, net, totalDebit } = withdrawalBreakdown(withdrawal);
   return (
     <div className="space-y-4">
       <div className="space-y-1 rounded-xl bg-secondary p-4">
         <p className="font-mono text-2xl font-bold tabular-nums text-brand-ink">{formatAmount(withdrawal.amount)}</p>
+        {/* Sub request: setoff and fee are inside the amount. Old ADD_ON request: fee on top, so the wallet total is shown. */}
         <p className="text-sm text-muted-foreground">
-          Phí <b className="font-mono text-foreground">{money(withdrawal.fee)}</b> · Tổng trừ ví{" "}
-          <b className="font-mono text-foreground">{money(withdrawalTotalDebit(withdrawal))}</b>
+          {setoff > 0 ? <>Cấn trừ ký quỹ <b className="font-mono text-foreground">{formatAmount(setoff)}</b> · </> : null}
+          Phí <b className="font-mono text-foreground">{money(fee)}</b> · Thực nhận{" "}
+          <b className="font-mono text-foreground">{money(net)}</b>
+          {totalDebit !== null ? <> · Tổng trừ ví <b className="font-mono text-foreground">{formatAmount(totalDebit)}</b></> : null}
         </p>
       </div>
       <StepProgress

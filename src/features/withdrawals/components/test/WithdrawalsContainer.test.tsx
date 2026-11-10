@@ -46,6 +46,9 @@ const makeWithdrawal = (overrides: Partial<Withdrawal> = {}): Withdrawal => ({
   reason: "Rút doanh thu",
   createdAt: "2026-01-13T09:30:00",
   updatedAt: null,
+  setoffAmount: 0,
+  netReceived: 4_994_500,
+  payoutFeeMode: "DEDUCT",
   ...overrides,
 });
 const pending = makeWithdrawal();
@@ -164,6 +167,27 @@ describe("withdrawals container states", () => {
     renderContainer();
     expect(await screen.findByText("WD2601")).toBeInTheDocument();
     expect(screen.getByText("xxxx1789", { exact: false })).toBeInTheDocument();
+  });
+
+  it("lists amount, escrow setoff, fee and net received; the fee is not added on top for a Sub request", async () => {
+    listReturns([makeWithdrawal({ amount: 1_568_000, setoffAmount: 1_000_000, fee: 5_680, netReceived: 562_320 })]);
+    renderContainer();
+    const row = (await screen.findByText("WD2601")).closest("tr") as HTMLElement;
+    const headers = screen.getAllByRole("columnheader").map((cell) => cell.textContent);
+    expect(headers).toEqual(expect.arrayContaining(["Số tiền rút", "Cấn trừ ký quỹ", "Phí rút", "Thực nhận"]));
+    expect(headers).not.toContain("Tổng trừ ví");
+    expect(within(row).getByText("1.568.000 vnđ")).toBeInTheDocument();
+    expect(within(row).getByText("1.000.000 vnđ")).toBeInTheDocument();
+    expect(within(row).getByText("5.680 vnđ")).toBeInTheDocument();
+    expect(within(row).getByText("562.320 vnđ")).toBeInTheDocument();
+    expect(within(row).queryByText("1.573.680 vnđ")).not.toBeInTheDocument();
+  });
+
+  it("says the fee was charged on top for an old ADD_ON request", async () => {
+    listReturns([makeWithdrawal({ payoutFeeMode: "ADD_ON", netReceived: 5_000_000 })]);
+    renderContainer();
+    const row = (await screen.findByText("WD2601")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Tổng trừ ví 5.005.500 vnđ")).toBeInTheDocument();
   });
 
   it("labels the requests the system made as automatic withdrawals", async () => {
