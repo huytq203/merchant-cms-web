@@ -24,8 +24,10 @@ describe('audit schemas', () => {
     expect(parsed).not.toHaveProperty('oldData');
   });
 
-  it('rejects an unknown actor type', () => {
-    expect(auditLogSchema.safeParse({ ...entry, actorType: 'USER' }).success).toBe(false);
+  it('reads an unknown actor type or category as FlexPay / no group instead of failing the whole page', () => {
+    const parsed = auditLogSchema.parse({ ...entry, actorType: 'ADMIN', category: 'WALLET' });
+    expect(parsed.actorType).toBe('FLEXPAY');
+    expect(parsed.category).toBeNull();
   });
 
   it('accepts a FlexPay row with its category and display name (BE 10/11/2026)', () => {

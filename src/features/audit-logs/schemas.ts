@@ -23,12 +23,16 @@ export const auditLogSchema = z.object({
   id: z.uuid(),
   entityName: z.string().nullable(),
   entityId: z.uuid().nullable(),
-  /** Thiếu ở BE cũ; null khi entity chưa có nhóm. */
-  category: auditCategorySchema.nullish(),
+  /** Thiếu ở BE cũ; null khi entity chưa có nhóm; nhóm lạ (BE thêm sau) thành null thay vì làm vỡ cả trang. */
+  category: auditCategorySchema.nullish().catch(null),
   action: auditActionSchema,
   reason: z.string().nullable(),
   occurredAt: z.string(),
-  actorType: auditActorTypeSchema,
+  /**
+   * Giá trị lạ (vd. "ADMIN" của BE cũ) coi là FLEXPAY: FE có thể lên trước BE, một dòng lạ không được làm vỡ cả
+   * danh sách, và FLEXPAY là cách hiển thị an toàn nhất (không bao giờ lộ là ai).
+   */
+  actorType: auditActorTypeSchema.catch('FLEXPAY'),
   actorLabel: z.string(),
   /** Tên hiển thị mới; BE cũ chỉ có actorLabel. */
   actorDisplayName: z.string().optional(),
