@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button/Button";
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
 import { Input } from "@/components/ui";
 import { Table } from "@/components/ui/table/Table";
-import { transactionQueries } from "@/features/transactions/transaction-queries";
-import type { Transaction } from "@/features/transactions/types";
+import { orderQueries } from "@/features/orders/order-queries";
+import type { Order } from "@/features/orders/types/types";
 import { formatAmount } from "@/lib/utils/helper";
 import type { RefundOrder } from "./RefundCreateDialog";
 
@@ -20,17 +20,15 @@ interface Props {
   onClose: () => void;
 }
 
-const codeOf = (row: Transaction) => row.transactionCode ?? row.orderCode;
-
-function columns(onPick: (row: Transaction) => void): ColumnDef<Transaction>[] {
+function columns(onPick: (row: Order) => void): ColumnDef<Order>[] {
   return [
     {
       id: "code",
-      header: "Giao dịch",
+      header: "Đơn hàng",
       cell: ({ row }) => (
         <div>
-          <p className="font-mono text-sm font-semibold">{codeOf(row.original)}</p>
-          <p className="font-mono text-xs text-muted-foreground">{row.original.orderCode}</p>
+          <p className="font-mono text-sm font-semibold">{row.original.orderCode}</p>
+          {row.original.transactionCode ? <p className="font-mono text-xs text-muted-foreground">{row.original.transactionCode}</p> : null}
         </div>
       ),
     },
@@ -46,7 +44,7 @@ function columns(onPick: (row: Transaction) => void): ColumnDef<Transaction>[] {
       header: "",
       meta: { align: "right" },
       cell: ({ row }) => (
-        <Button type="button" variant="outline" size="sm" aria-label={`Chọn giao dịch ${codeOf(row.original)}`} onClick={() => onPick(row.original)}>
+        <Button type="button" variant="outline" size="sm" aria-label={`Chọn đơn hàng ${row.original.orderCode}`} onClick={() => onPick(row.original)}>
           Chọn
         </Button>
       ),
@@ -55,26 +53,26 @@ function columns(onPick: (row: Transaction) => void): ColumnDef<Transaction>[] {
 }
 
 /**
- * First step of a refund started from the refund page: pick one of the session's successful transactions
- * (only a paid order can be refunded). Reads the transaction list, so it needs VIEW_TRANSACTION; how much
- * may still be refunded is checked by the BE when the request is made.
+ * Bước đầu của hoàn tiền mở từ trang hoàn tiền: chọn một đơn hàng đã thanh toán thành công của phiên
+ * (chỉ đơn đã thanh toán mới hoàn được). Đọc danh sách đơn hàng nên cần VIEW_ORDER; số tiền còn hoàn được
+ * do BE kiểm khi tạo yêu cầu.
  */
 export function RefundOrderPicker({ onPick, onClose }: Props) {
   const [draft, setDraft] = useState("");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
   const list = useQuery(
-    transactionQueries.list({ page, pageSize: PAGE_SIZE, status: "SUCCESS", ...(keyword ? { keyword } : {}) }),
+    orderQueries.list({ page, pageSize: PAGE_SIZE, status: "SUCCESS", ...(keyword ? { orderCode: keyword } : {}) }),
   );
-  const pick = (row: Transaction) =>
+  const pick = (row: Order) =>
     onPick({ id: row.id, orderCode: row.orderCode, amount: row.amount, subMerchantName: row.subMerchantName });
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>Chọn giao dịch cần hoàn tiền</DialogTitle>
-          <DialogDescription>Chỉ giao dịch thanh toán thành công mới hoàn được.</DialogDescription>
+          <DialogTitle>Chọn đơn hàng cần hoàn tiền</DialogTitle>
+          <DialogDescription>Chỉ đơn hàng đã thanh toán thành công mới hoàn được.</DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
           <form
@@ -86,13 +84,13 @@ export function RefundOrderPicker({ onPick, onClose }: Props) {
             }}
           >
             <div className="flex-1">
-              <Input label="Tìm giao dịch" placeholder="Mã giao dịch, mã đơn, tên Sub-merchant" value={draft} onChange={(event) => setDraft(event.target.value)} />
+              <Input label="Tìm đơn hàng" placeholder="Mã đơn hàng" value={draft} onChange={(event) => setDraft(event.target.value)} />
             </div>
             <Button type="submit" variant="outline">Tìm</Button>
           </form>
-          {list.isPending ? <ResultState state="loading" loadingLabel="Đang tải giao dịch" /> : null}
+          {list.isPending ? <ResultState state="loading" loadingLabel="Đang tải đơn hàng" /> : null}
           {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}
-          {list.data?.rows.length === 0 ? <ResultState state="empty" emptyMessage="Không có giao dịch thành công nào phù hợp." /> : null}
+          {list.data?.rows.length === 0 ? <ResultState state="empty" emptyMessage="Không có đơn hàng thanh toán thành công nào phù hợp." /> : null}
           {list.data && list.data.rows.length > 0 ? (
             <Table
               data={list.data.rows}

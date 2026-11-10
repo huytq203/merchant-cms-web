@@ -46,6 +46,15 @@ describe("filterRoutesByAccess", () => {
     expect(visible).not.toContain("Danh sách tài khoản ngân hàng");
   });
 
+  it("no longer has the transaction list screen, even for a session with VIEW_TRANSACTION", () => {
+    const visible = titles(
+      filterRoutesByAccess(routesConfig, { permissions: ["VIEW_TRANSACTION", "VIEW_ORDER"], hasMerchant: true }),
+    );
+    expect(visible).toContain("Danh sách đơn hàng");
+    expect(visible).not.toContain("Danh sách giao dịch");
+    expect(JSON.stringify(routesConfig.flatMap((section) => section.items.map((item) => item.href)))).not.toContain("/transaction");
+  });
+
   it("gates Terminal and bank accounts by their own read permissions, not by MANAGE_SUB_MERCHANT", () => {
     const subOnly = titles(filterRoutesByAccess(routesConfig, { permissions: ["MANAGE_SUB_MERCHANT"], hasMerchant: true }));
     expect(subOnly).toContain("Danh sách Sub-merchant");

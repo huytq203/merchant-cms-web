@@ -7,7 +7,6 @@ import {
   Users,
   Store,
   MonitorSmartphone,
-  ArrowLeftRight,
   ShoppingBag,
   RotateCcw,
   MessageSquareWarning,
@@ -156,13 +155,6 @@ export const routesConfig: SidebarSection[] = [
     title: "Quản lý giao dịch Merchant",
     collapsible: false,
     items: [
-      {
-        title: "Danh sách giao dịch",
-        permission: "VIEW_TRANSACTION",
-        href: "/transaction",
-        requiresMerchant: true,
-        icon: <ArrowLeftRight className="w-4 h-4" />,
-      },
       {
         title: "Danh sách đơn hàng",
         permission: "VIEW_ORDER",

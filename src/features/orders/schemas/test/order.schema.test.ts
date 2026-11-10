@@ -24,11 +24,19 @@ const sample = {
   qrCodeImage: null,
   transactionCode: null,
   feeAmount: null,
+  paidAt: "2026-10-05T10:05:00",
 };
 
 describe("order contract", () => {
   it("parses every field of the merchant portal order", () => {
     expect(orderResponseSchema.parse(sample)).toMatchObject(sample);
+  });
+
+  it("accepts a missing or null paidAt (unpaid order or older BE)", () => {
+    const withoutPaidAt: Partial<typeof sample> = { ...sample };
+    delete withoutPaidAt.paidAt;
+    expect(orderResponseSchema.parse(withoutPaidAt).paidAt).toBeUndefined();
+    expect(orderResponseSchema.parse({ ...sample, paidAt: null }).paidAt).toBeNull();
   });
 
   it("does not expose accounting fields even if BE sends them", () => {

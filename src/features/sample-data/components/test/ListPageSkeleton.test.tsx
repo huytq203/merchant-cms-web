@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import ComplaintLoading from "@/app/(cms)/complaint/loading";
 import RefundLoading from "@/app/(cms)/(transaction)/refund/loading";
-import TransactionLoading from "@/app/(cms)/(transaction)/transaction/loading";
 import DashboardLoading from "@/app/(cms)/dashboard/loading";
 import { ListPageSkeleton } from "../ListPageSkeleton";
 
@@ -43,7 +42,6 @@ describe("route loading skeletons", () => {
     };
     expect(rows(<ComplaintLoading />)).toBe(1);
     expect(rows(<RefundLoading />)).toBe(2);
-    expect(rows(<TransactionLoading />)).toBe(2);
   });
 
   it("dashboard shows a busy title, stat cards, charts and two recent lists", () => {

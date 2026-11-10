@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Ban, Eye, QrCode } from "lucide-react";
+import { Ban, Eye, QrCode, Undo2 } from "lucide-react";
 import { DateTimeCell } from "@/components/page/DateTimeCell";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
@@ -14,6 +14,8 @@ export type OrderColumnActions = {
   onViewQr: (order: Order) => void;
   /** Present only for a session with CANCEL_ORDER. */
   onCancel?: (order: Order) => void;
+  /** Present only for a session with CREATE_REFUND; the row shows it for a paid (SUCCESS) order. */
+  onRefund?: (order: Order) => void;
 };
 
 const statusTone: Record<Order["status"], StatusTone> = {
@@ -51,6 +53,8 @@ function OrderRowActions({ order, actions }: { order: Order; actions: OrderColum
   return <RowActions subject={`đơn ${order.orderCode}`} actions={[
     { label: "Xem chi tiết", icon: <Eye size={16} />, onClick: () => actions.onView(order) },
     { label: "Xem mã QR", icon: <QrCode size={16} />, visible: showQr, onClick: () => actions.onViewQr(order) },
+    // Chỉ đơn đã thanh toán thành công mới hoàn được; quyền CREATE_REFUND quyết định có truyền onRefund hay không.
+    { label: "Hoàn tiền", icon: <Undo2 size={16} />, visible: Boolean(actions.onRefund) && order.status === "SUCCESS", onClick: () => actions.onRefund?.(order) },
     { label: "Hủy", icon: <Ban size={16} />, visible: Boolean(actions.onCancel) && canCancelOrder(order.status), onClick: () => actions.onCancel?.(order) },
   ]} />;
 }
@@ -80,6 +84,7 @@ export function getOrderColumns(actions: OrderColumnActions, page: number, pageS
       cell: ({ row }) => <SubMerchantCell order={row.original} />,
     },
     { id: "createdAt", header: "Ngày tạo", cell: ({ row }) => <DateTimeCell value={row.original.createdAt} /> },
+    { id: "paidAt", header: "Thời gian thanh toán", cell: ({ row }) => (row.original.paidAt ? <DateTimeCell value={row.original.paidAt} /> : "—") },
     { id: "expiredAt", header: "Hết hạn", cell: ({ row }) => <DateTimeCell value={row.original.expiredAt} /> },
     { id: "status", header: "Trạng thái", cell: ({ row }) => <OrderStatusBadge status={row.original.status} /> },
     {

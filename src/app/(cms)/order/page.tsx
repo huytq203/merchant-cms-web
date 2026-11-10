@@ -28,6 +28,7 @@ export default async function OrdersPage({ searchParams }: Props) {
     canCancel: hasPermission(user.permissions, "CANCEL_ORDER"),
     canRefund: hasPermission(user.permissions, "CREATE_REFUND"),
     canViewRefunds: hasPermission(user.permissions, "VIEW_REFUND"),
+    canDispute: hasPermission(user.permissions, "CREATE_DISPUTE"),
   };
   return (
     <HydrationBoundary state={state}>

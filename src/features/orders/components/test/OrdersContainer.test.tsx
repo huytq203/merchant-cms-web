@@ -15,7 +15,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const base = "/api/v1/admin/orders";
 const merchantId = "22222222-2222-4222-8222-222222222222";
 const filter: OrderListFilter = { page: 1, pageSize: 10 };
-const abilities = { canCreate: true, canCancel: true, canRefund: true, canViewRefunds: true };
+const abilities = { canCreate: true, canCancel: true, canRefund: true, canViewRefunds: true, canDispute: true };
 const makeOrder = (overrides: Partial<Order>): Order => ({
   id: "33333333-3333-4333-8333-333333333333",
   merchantId,
@@ -324,6 +324,68 @@ describe("order detail", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
     expect(await screen.findByTitle(/Mã QR đơn INV-1/)).toBeInTheDocument();
     expect(screen.getByText(/Mã QR còn hiệu lực/)).toBeInTheDocument();
+  });
+});
+
+describe("refund and dispute entries", () => {
+  const paid = makeOrder({ status: "SUCCESS", transactionCode: "FM26NEFQ9", paidAt: "2026-11-02T14:17:54", feeAmount: 30000, netAmount: 120000 });
+  const openDetail = async () => {
+    mswServer.use(http.get(`${base}/${paid.id}`, () => HttpResponse.json(paid)));
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+  };
+
+  it("offers Hoàn tiền on the row of a paid order and opens the refund form", async () => {
+    listReturns([paid]);
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Hoàn tiền đơn INV-1/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Tạo yêu cầu hoàn tiền" });
+    expect(dialog).toHaveTextContent("Giao dịch INV-1");
+  });
+
+  it("hides the row refund for an unpaid order or without CREATE_REFUND", async () => {
+    renderContainer();
+    await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ });
+    expect(screen.queryByRole("button", { name: /Hoàn tiền đơn INV-1/ })).not.toBeInTheDocument();
+    cleanup();
+    listReturns([paid]);
+    renderContainer({ abilities: { ...abilities, canRefund: false } });
+    await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ });
+    expect(screen.queryByRole("button", { name: /Hoàn tiền đơn INV-1/ })).not.toBeInTheDocument();
+  });
+
+  it("shows the payment time, fee and net amount, with a dash when not paid", async () => {
+    listReturns([paid, makeOrder({ id: "44444444-4444-4444-8444-444444444444", orderCode: "INV-2" })]);
+    renderContainer();
+    expect(await screen.findByText("Thời gian thanh toán")).toBeInTheDocument();
+    await openDetail();
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Thời gian thanh toán")).toBeInTheDocument();
+    expect(dialog).toHaveTextContent("30.000");
+    expect(dialog).toHaveTextContent("120.000");
+  });
+
+  it("shows Tra soát in the detail only with CREATE_DISPUTE and a transaction code", async () => {
+    listReturns([paid]);
+    renderContainer();
+    await openDetail();
+    await userEvent.click(await screen.findByRole("button", { name: "Tra soát" }));
+    expect(await screen.findByRole("dialog", { name: "Khởi tạo yêu cầu Tra soát" })).toBeInTheDocument();
+  });
+
+  it("hides Tra soát without CREATE_DISPUTE or when the order has no transaction code", async () => {
+    listReturns([paid]);
+    renderContainer({ abilities: { ...abilities, canDispute: false } });
+    await openDetail();
+    await screen.findByRole("dialog");
+    expect(screen.queryByRole("button", { name: "Tra soát" })).not.toBeInTheDocument();
+    cleanup();
+    const noCode = { ...paid, transactionCode: null };
+    listReturns([noCode]);
+    mswServer.use(http.get(`${base}/${noCode.id}`, () => HttpResponse.json(noCode)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết đơn INV-1/ }));
+    await screen.findByRole("dialog");
+    expect(screen.queryByRole("button", { name: "Tra soát" })).not.toBeInTheDocument();
   });
 });
 

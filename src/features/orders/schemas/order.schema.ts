@@ -43,6 +43,8 @@ export const orderResponseSchema = z.object({
   qrCodeImage: z.string().nullish(),
   transactionCode: z.string().nullish(),
   feeAmount: z.number().int().nullish(),
+  /** Thời gian khách thanh toán thành công (giờ VN, không múi giờ); null khi chưa thanh toán. */
+  paidAt: z.string().nullish(),
 });
 
 export const orderFormSchema = z.object({

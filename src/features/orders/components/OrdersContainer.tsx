@@ -21,6 +21,7 @@ import { OrderCreateDialog } from "./OrderCreateDialog";
 import { OrderCancelDialog } from "./OrderCancelDialog";
 import { OrderTable } from "./OrderTable";
 import { RefundCreateDialog, type RefundOrder } from "@/features/revenue-refunds/components/RefundCreateDialog";
+import { ComplaintCreateDialog } from "@/features/complaints/components/ComplaintCreateDialog";
 import type { Order } from "../types/types";
 
 const orderFilterKey = (filter: OrderListFilter) =>
@@ -28,8 +29,8 @@ const orderFilterKey = (filter: OrderListFilter) =>
 
 type Props = {
   filter: OrderListFilter;
-  /** canCancel: CANCEL_ORDER; canRefund: CREATE_REFUND; canViewRefunds: VIEW_REFUND. */
-  abilities: { canCreate: boolean; canCancel: boolean; canRefund: boolean; canViewRefunds: boolean };
+  /** canCancel: CANCEL_ORDER; canRefund: CREATE_REFUND; canViewRefunds: VIEW_REFUND; canDispute: CREATE_DISPUTE. */
+  abilities: { canCreate: boolean; canCancel: boolean; canRefund: boolean; canViewRefunds: boolean; canDispute: boolean };
 };
 
 export function OrdersContainer({ filter, abilities }: Props) {
@@ -39,6 +40,8 @@ export function OrdersContainer({ filter, abilities }: Props) {
   const list = useQuery(orderQueries.list(filter));
   const { activeDialog, target } = dialogs;
   const [refundOrder, setRefundOrder] = useState<RefundOrder | null>(null);
+  // "Tra soát" mở từ chi tiết đơn: dialog giữ mã giao dịch của đơn đang xem.
+  const [disputeOpen, setDisputeOpen] = useState(false);
   const [cancelFromDetail, setCancelFromDetail] = useState(false);
   const startCancel = (order: Order, fromDetail: boolean) => {
     actions.cancel.reset();
@@ -101,6 +104,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onView={(order) => dialogs.openFor("detail", order)}
             onViewQr={(order) => dialogs.openFor("qr", order)}
             onCancel={abilities.canCancel ? (order) => startCancel(order, false) : undefined}
+            onRefund={abilities.canRefund ? startRefund : undefined}
           />
         ) : null}
       </ResultCard>
@@ -124,8 +128,17 @@ export function OrdersContainer({ filter, abilities }: Props) {
         onOpenChange={(open) => !open && actions.closeDialog()}
         refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
         cancel={{ canCancel: abilities.canCancel, onStart: (order) => startCancel(order, true) }}
+        dispute={{ canCreate: abilities.canDispute, onStart: () => setDisputeOpen(true) }}
         {...qrDialog}
       />
+      {abilities.canDispute ? (
+        <ComplaintCreateDialog
+          title="Khởi tạo yêu cầu Tra soát"
+          transactionCode={(fresh.data ?? target)?.transactionCode}
+          open={disputeOpen}
+          onOpenChange={setDisputeOpen}
+        />
+      ) : null}
       <OrderCancelDialog
         order={activeDialog === "cancel" ? (fresh.data ?? target) : null}
         onClose={closeCancel}
