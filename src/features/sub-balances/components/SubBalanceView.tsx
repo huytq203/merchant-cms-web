@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button/Button";
 import { Card } from "@/components/ui/card/Card";
 import { formatAmount } from "@/lib/utils/helper";
 import { formatVnDateTime } from "@/lib/utils/vn-time";
+import { SubBalanceMovementsDialog } from "./SubBalanceMovementsDialog";
 import type { BalanceBucket, SubBalanceReport } from "../types";
 
 interface Props {
@@ -49,6 +50,13 @@ export function SubBalanceView({ report, canWithdraw }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <RefreshButton />
+          {/* The page already requires VIEW_BALANCE, which is the permission the movements endpoints check. */}
+          <SubBalanceMovementsDialog
+            subMerchantId={report.subMerchantId}
+            subCode={report.subCode}
+            subName={report.subName}
+            availableBalance={report.availableBalance}
+          />
           {canWithdraw ? (
             <Button variant="solid" nativeButton={false} render={<Link href="/withdrawal" role="link" />}>
               Tạo lệnh rút
