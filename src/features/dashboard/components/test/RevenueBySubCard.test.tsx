@@ -59,33 +59,50 @@ describe("RevenueBySubCard", () => {
     expect(rows[1]).toHaveTextContent("30.000");
     expect(rows[1]).toHaveTextContent("1.470.000");
     expect(rows[2]).toHaveTextContent("Halo Cầu Giấy");
-    expect(screen.getByText("Tổng cộng")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Tổng kỳ" })).toHaveTextContent("2.200.000");
     expect(screen.getByRole("img", { name: /Doanh thu gộp theo ngày/ })).toBeInTheDocument();
     expect(requests[0]!.searchParams.get("preset")).toBe("DAY_7");
     expect(requests[0]!.searchParams.has("subMerchantId")).toBe(false);
   });
 
-  it("offers 7, 15 and 30 days by day and picks the preset sent to the route", async () => {
+  it("picks the period from one row of choices, including this and last month, and sends that preset", async () => {
     answer([point({})]);
     renderCard();
     await screen.findByRole("table");
 
+    // Không còn cặp "Theo ngày / Theo tháng": mọi kỳ nằm trong một nhóm nút.
+    expect(screen.queryByRole("button", { name: "Theo tháng" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "30 ngày" }));
-
     await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("DAY_30"));
-  });
-
-  it("by month shows this month by default and can switch to last month", async () => {
-    answer([point({})]);
-    renderCard();
-    await screen.findByRole("table");
-
-    await userEvent.click(screen.getByRole("button", { name: "Theo tháng" }));
-    await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("THIS_MONTH"));
 
     await userEvent.click(screen.getByRole("button", { name: "Tháng trước" }));
     await waitFor(() => expect(requests.at(-1)!.searchParams.get("preset")).toBe("LAST_MONTH"));
     expect(screen.getByText(/^Tháng \d{2}\/\d{4}, theo ngày thanh toán/)).toBeInTheDocument();
+  });
+
+  it("charts net or transaction count without asking the server again", async () => {
+    answer([point({})]);
+    renderCard();
+    await screen.findByRole("table");
+    const asked = requests.length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Thực nhận" }));
+    expect(screen.getByRole("img", { name: /Thực nhận theo ngày/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Số giao dịch" }));
+    expect(screen.getByRole("img", { name: /Số giao dịch theo ngày/ })).toBeInTheDocument();
+    expect(requests.length).toBe(asked);
+  });
+
+  it("sums the period in summary tiles above the chart", async () => {
+    answer([point({}), point({ subMerchantId: "1311ae27-4ecb-447d-8c78-f3eb1307684c", subMerchantCode: "MC000001-S002", subMerchantName: "nhinty12", transactionCount: 2, grossAmount: 700_000, feeAmount: 14_000, netAmount: 686_000 })]);
+    renderCard();
+    await screen.findByRole("table");
+
+    const tiles = screen.getByRole("list", { name: "Tổng kỳ" });
+    expect(within(tiles).getByText("Doanh thu gộp").parentElement).toHaveTextContent("2.200.000");
+    expect(within(tiles).getByText("Phí").parentElement).toHaveTextContent("44.000");
+    expect(within(tiles).getByText("Thực nhận").parentElement).toHaveTextContent("2.156.000");
+    expect(within(tiles).getByText("Số giao dịch").parentElement).toHaveTextContent("3");
   });
 
   it("says when there is no payment yet and shows the BE error with a retry", async () => {

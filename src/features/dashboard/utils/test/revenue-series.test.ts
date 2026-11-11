@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RevenuePoint } from "../../schemas/revenue.schema";
-import { buildRevenueChart, periodLabel, revenueRange, revenueWindowText, totalsBySub } from "../revenue-series";
+import { buildRevenueChart, compactAmount, periodLabel, revenueRange, revenueWindowText, totalsBySub } from "../revenue-series";
 
 const point = (overrides: Partial<RevenuePoint>): RevenuePoint => ({
   subMerchantId: "5dcda5e6-afd1-4201-a02f-7187164f0f86",
@@ -66,9 +66,39 @@ describe("buildRevenueChart", () => {
     );
     expect(chart.series.map((series) => series.name)).toEqual(["Halo Láng", "Halo Cầu Giấy"]);
     expect(chart.rows).toEqual([
-      { label: "01/11", [chart.series[0]!.key]: 0, [chart.series[1]!.key]: 0 },
-      { label: "02/11", [chart.series[0]!.key]: 1_500_000, [chart.series[1]!.key]: 700_000 },
+      { label: "01/11", period: "2026-11-01", total: 0, [chart.series[0]!.key]: 0, [chart.series[1]!.key]: 0 },
+      { label: "02/11", period: "2026-11-02", total: 2_200_000, [chart.series[0]!.key]: 1_500_000, [chart.series[1]!.key]: 700_000 },
     ]);
+  });
+
+  it("stacks every Sub of a day into one column whose total is the sum, for the chosen metric", () => {
+    const points = [
+      point({ period: "2026-11-11", transactionCount: 3, grossAmount: 450_000, netAmount: 441_000 }),
+      point({ subMerchantId: KIOSK, subMerchantCode: "MC000001-S002", subMerchantName: "nhinty12", period: "2026-11-11", transactionCount: 1, grossAmount: 2_000_000, netAmount: 1_960_000 }),
+    ];
+    const net = buildRevenueChart(points, ["2026-11-11"], "DAY", "NET");
+    expect(net.rows[0]!.total).toBe(2_401_000);
+    const count = buildRevenueChart(points, ["2026-11-11"], "DAY", "COUNT");
+    expect(count.rows[0]!.total).toBe(4);
+    expect(count.rows[0]![count.series[0]!.key]).toBe(3);
+  });
+
+  it("keeps each Sub on the same colour by ordering series by Sub code, not by arrival", () => {
+    const later = point({ subMerchantId: KIOSK, subMerchantCode: "MC000001-S002", subMerchantName: "nhinty12" });
+    const chart = buildRevenueChart([later, point({})], ["2026-11-02"], "DAY");
+    expect(chart.series.map((series) => series.name)).toEqual(["Halo Láng", "nhinty12"]);
+    expect(chart.series[0]!.color).toBe("var(--chart-1)");
+  });
+});
+
+describe("compactAmount", () => {
+  it("shortens axis amounts to k / tr / tỷ in Vietnamese notation", () => {
+    expect(compactAmount(0)).toBe("0");
+    expect(compactAmount(950)).toBe("950");
+    expect(compactAmount(90_000)).toBe("90k");
+    expect(compactAmount(1_500_000)).toBe("1,5tr");
+    expect(compactAmount(2_000_000)).toBe("2tr");
+    expect(compactAmount(1_250_000_000)).toBe("1,3 tỷ");
   });
 });
 

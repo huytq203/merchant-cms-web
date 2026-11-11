@@ -2,7 +2,7 @@
 import * as React from 'react';
 import {
     LineChart, Line,
-    BarChart, Bar,
+    BarChart, Bar, LabelList,
     AreaChart, Area,
     PieChart, Pie, Cell,
     RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -49,6 +49,39 @@ export const ChartTooltip = ({ active, payload, label }: TooltipContentProps) =>
             ))}
         </div>
     );
+};
+
+// ─── Tooltip cho cột chồng: bỏ dòng 0, định dạng số và thêm dòng tổng ─────────
+type StackTooltipOptions = { format: (value: number) => string; totalLabel?: string; hideZero?: boolean };
+
+const makeStackTooltip = ({ format, totalLabel, hideZero }: StackTooltipOptions) => {
+    const StackTooltip = ({ active, payload, label }: TooltipContentProps) => {
+        if (!active || !payload?.length) return null;
+        // Recharts lists stacked series bottom-up; reverse so the tooltip reads in the same order as the column.
+        const entries = [...payload].reverse().filter((e) => !hideZero || Number(e.value) !== 0);
+        const total = payload.reduce((sum, e) => sum + (typeof e.value === 'number' ? e.value : 0), 0);
+        return (
+            <div className="rounded-lg border border-border bg-background p-3 shadow-[rgba(0,0,0,0.1)_0px_4px_20px] text-sm min-w-[190px]">
+                {label != null && (
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+                )}
+                {entries.map((e) => (
+                    <div key={String(e.dataKey)} className="flex items-center gap-2 py-0.5">
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: e.color }} />
+                        <span className="text-muted-foreground">{e.name}</span>
+                        <span className="ml-auto pl-3 font-semibold tabular-nums text-foreground">{format(Number(e.value))}</span>
+                    </div>
+                ))}
+                {totalLabel && (
+                    <div className="mt-1 flex items-center gap-2 border-t border-border pt-1 font-semibold">
+                        <span>{totalLabel}</span>
+                        <span className="ml-auto pl-3 tabular-nums">{format(total)}</span>
+                    </div>
+                )}
+            </div>
+        );
+    };
+    return StackTooltip;
 };
 
 // ─── ChartLine ────────────────────────────────────────────────────────────────
@@ -102,32 +135,51 @@ export interface ChartBarProps {
     layout?: 'horizontal' | 'vertical';
     defaultIndex?: TooltipIndex;
     onClick?: (payload: ChartClickEvent, event: React.MouseEvent) => void;
+    /** Short form of value-axis ticks and of `totalKey` labels (e.g. 1,5tr). */
+    axisFormatter?: (value: number) => string;
+    /** Full form of values in the tooltip (e.g. 1.500.000 vnđ); turns on the stacked tooltip with zero rows hidden. */
+    tooltipFormatter?: (value: number) => string;
+    /** Stacked only: row key whose value is printed above each column and as the tooltip's total line. */
+    totalKey?: string;
+    /** Tooltip caption of the total line; defaults to "Tổng". */
+    totalLabel?: string;
 }
 
 export const ChartBar: React.FC<ChartBarProps> = ({
     data, xKey, series, height = 280, stacked, allowDecimals = true, layout = 'horizontal', defaultIndex, onClick,
-}) => (
+    axisFormatter, tooltipFormatter, totalKey, totalLabel = 'Tổng',
+}) => {
+    const tooltip = React.useMemo(
+        () => (tooltipFormatter
+            ? makeStackTooltip({ format: tooltipFormatter, totalLabel: stacked && totalKey ? totalLabel : undefined, hideZero: stacked })
+            : ChartTooltip),
+        [tooltipFormatter, stacked, totalKey, totalLabel],
+    );
+    const tick = axisFormatter ? (value: unknown) => axisFormatter(Number(value)) : undefined;
+    const topIndex = series.length - 1;
+    return (
     <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} layout={layout} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="35%">
+        <BarChart data={data} layout={layout} margin={{ top: totalKey ? 22 : 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="35%">
             {layout === 'horizontal' ? (
                 <>
                     <XAxis dataKey={xKey} tick={CHART_AX} axisLine={false} tickLine={false} />
-                    <YAxis tick={CHART_AX} axisLine={false} tickLine={false} width={64} allowDecimals={allowDecimals} />
+                    <YAxis tick={CHART_AX} axisLine={false} tickLine={false} width={64} allowDecimals={allowDecimals} tickFormatter={tick} />
                 </>
             ) : (
                 <>
-                    <XAxis type="number" tick={CHART_AX} axisLine={false} tickLine={false} />
+                    <XAxis type="number" tick={CHART_AX} axisLine={false} tickLine={false} tickFormatter={tick} />
                     <YAxis dataKey={xKey} type="category" tick={CHART_AX} axisLine={false} tickLine={false} width={80} />
                 </>
             )}
             <CartesianGrid {...CHART_GRD} vertical={layout === 'vertical'} horizontal={layout === 'horizontal'} />
-            <Tooltip content={ChartTooltip} cursor={{ fill: 'var(--muted)', opacity: 0.6 }} defaultIndex={defaultIndex} />
+            <Tooltip content={tooltip} cursor={{ fill: 'var(--muted)', opacity: 0.6 }} defaultIndex={defaultIndex} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             {series.map((s, i) => (
                 // Bar.onClick giống Pie.onClick — recharts truyền toàn bộ row data trực tiếp
                 <Bar key={s.key} dataKey={s.key} name={s.name ?? s.key}
                     fill={s.color ?? CHART_COLORS[i % CHART_COLORS.length]}
-                    radius={layout === 'horizontal' ? [4, 4, 0, 0] : [0, 4, 4, 0]}
+                    // Stacked: only the top segment is rounded, so a column reads as one bar split by series.
+                    radius={stacked && i !== topIndex ? 0 : layout === 'horizontal' ? [4, 4, 0, 0] : [0, 4, 4, 0]}
                     stackId={stacked ? 'stack' : undefined}
                     cursor={onClick ? 'pointer' : undefined}
                     onClick={onClick
@@ -135,11 +187,23 @@ export const ChartBar: React.FC<ChartBarProps> = ({
                             const row = barData as unknown as Record<string, unknown>;
                             onClick({ activeLabel: row[xKey] as string | number, activeIndex: index, dataKey: s.key, payload: row }, e as React.MouseEvent);
                         }
-                        : undefined} />
+                        : undefined}>
+                    {/* A zero top segment still sits at the top of the stack, so labelling the top series always lands
+                        above the column; empty columns get no label. */}
+                    {stacked && totalKey && i === topIndex && (
+                        <LabelList
+                            dataKey={totalKey}
+                            position={layout === 'horizontal' ? 'top' : 'right'}
+                            className="fill-foreground text-[11px] font-semibold"
+                            formatter={(value: unknown) => (Number(value) ? (axisFormatter ?? String)(Number(value)) : '')}
+                        />
+                    )}
+                </Bar>
             ))}
         </BarChart>
     </ResponsiveContainer>
-);
+    );
+};
 
 // ─── ChartArea ────────────────────────────────────────────────────────────────
 export interface ChartAreaProps {

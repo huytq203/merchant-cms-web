@@ -53,21 +53,54 @@ export function periodLabel(period: string, granularity: RevenueGranularity): st
 
 const subName = (point: RevenuePoint) => point.subMerchantName ?? point.subMerchantCode ?? point.subMerchantId;
 
+/** What the chart stacks: gross paid by customers, net recognised to the Sub, or the number of payments. */
+export type RevenueMetric = "GROSS" | "NET" | "COUNT";
+
+const metricValue = (point: RevenuePoint, metric: RevenueMetric) =>
+  metric === "COUNT" ? point.transactionCount : metric === "NET" ? point.netAmount : point.grossAmount;
+
 /**
- * One row per period, zero where a Sub had no payment (the BE only returns periods with payments), and one
- * stacked series of gross amount per Sub, in the order the Subs first appear.
+ * One row per period, zero where a Sub had no payment (the BE only returns periods with payments), one stacked
+ * series per Sub and the column `total` printed above each stack. Every Sub of a day lands in the same column, so a
+ * day reads as one bar split by Sub (yêu cầu 11/11/2026). Series are ordered by Sub code so a Sub keeps its colour
+ * whichever Sub happens to be paid first in the period.
  */
-export function buildRevenueChart(points: RevenuePoint[], periods: string[], granularity: RevenueGranularity) {
-  const subs = [...new Map(points.map((point) => [point.subMerchantId, subName(point)])).entries()];
-  const series = subs.map(([id, name], index) => ({ key: `sub_${index}`, name, color: SUB_COLORS[index % SUB_COLORS.length] as string, id }));
+export function buildRevenueChart(
+  points: RevenuePoint[],
+  periods: string[],
+  granularity: RevenueGranularity,
+  metric: RevenueMetric = "GROSS",
+) {
+  const subs = [...new Map(points.map((point) => [point.subMerchantId, point])).values()].sort((a, b) =>
+    (a.subMerchantCode ?? subName(a)).localeCompare(b.subMerchantCode ?? subName(b)),
+  );
+  const series = subs.map((sub, index) => ({
+    key: `sub_${index}`,
+    name: subName(sub),
+    color: SUB_COLORS[index % SUB_COLORS.length] as string,
+    id: sub.subMerchantId,
+  }));
   const rows = periods.map((period) => {
-    const row: Record<string, string | number> = { label: periodLabel(period, granularity) };
+    const row: Record<string, string | number> = { label: periodLabel(period, granularity), period, total: 0 };
     for (const item of series) {
-      row[item.key] = points.find((point) => point.period === period && point.subMerchantId === item.id)?.grossAmount ?? 0;
+      const found = points.find((point) => point.period === period && point.subMerchantId === item.id);
+      const value = found ? metricValue(found, metric) : 0;
+      row[item.key] = value;
+      row.total = (row.total as number) + value;
     }
     return row;
   });
   return { rows, series: series.map(({ key, name, color }) => ({ key, name, color })) };
+}
+
+/** Short axis/label amount in Vietnamese notation: 90k, 1,5tr, 1,3 tỷ (đủ đọc nhanh, số đủ nằm ở tooltip/bảng). */
+export function compactAmount(value: number): string {
+  const short = (divided: number) => divided.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
+  const size = Math.abs(value);
+  if (size >= 1_000_000_000) return `${short(value / 1_000_000_000)} tỷ`;
+  if (size >= 1_000_000) return `${short(value / 1_000_000)}tr`;
+  if (size >= 1_000) return `${short(value / 1_000)}k`;
+  return String(value);
 }
 
 export type RevenueTotals = { transactionCount: number; grossAmount: number; feeAmount: number; netAmount: number };
