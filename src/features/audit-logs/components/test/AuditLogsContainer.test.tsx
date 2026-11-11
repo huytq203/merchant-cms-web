@@ -171,6 +171,31 @@ describe("audit log screen", () => {
     expect(within(table).getByText("FlexPay")).toBeInTheDocument();
   });
 
+  it("shows the readable object name and what changed, in the table and the detail", async () => {
+    const readable = {
+      ...row, entityName: "MerchantUser", category: "USER", action: "UPDATE", reason: null,
+      actorType: "FLEXPAY", actorLabel: "FlexPay", actorDisplayName: "FlexPay",
+      entityDisplayName: "Nguyễn Văn A",
+      changeSummary: "Trạng thái: Đang hoạt động → Đang khóa; Nhóm quyền: Kế toán → Quản lý",
+    };
+    mswServer.use(
+      http.get(base, () => HttpResponse.json({ rows: [readable], total: 1 })),
+      http.get(`${base}/${row.id}`, () => HttpResponse.json(readable)),
+    );
+    renderContainer();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "Nội dung" })).toBeInTheDocument();
+    expect(within(table).getByText("Nguyễn Văn A")).toBeInTheDocument();
+    expect(within(table).getByText(readable.changeSummary)).toBeInTheDocument();
+    expect(within(table).queryByText("e13ff927")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: viewLabel }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Nguyễn Văn A")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Trạng thái: Đang hoạt động → Đang khóa")).toBeInTheDocument();
+    expect(within(dialog).getByText("Nhóm quyền: Kế toán → Quản lý")).toBeInTheDocument();
+  });
+
   it("clears the filter without refilling the date range", async () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("button", { name: "Xóa lọc" }));

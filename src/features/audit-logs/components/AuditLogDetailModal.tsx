@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog/Dialog';
 import { auditLogQueries } from '../audit-log-queries';
 import type { AuditLog } from '../types';
-import { actionLabel, actorName, categoryLabel, entityLabel } from '../utils/audit-mapper';
+import { actionLabel, actorName, categoryLabel, changeLines, entityLabel } from '../utils/audit-mapper';
 
 interface Props {
   row: AuditLog | null;
@@ -48,10 +48,22 @@ export function AuditLogDetailModal({ row, onClose }: Props) {
               <Field label="Người thực hiện">{actorName(value)}</Field>
               <Field label="Hành động">{actionLabel(value.action)}</Field>
               <Field label="Nhóm">{categoryLabel(value.category)}</Field>
-              <Field label="Đối tượng">{entityLabel(value.entityName ?? '—')}</Field>
+              <Field label="Đối tượng">
+                {entityLabel(value.entityName ?? '—')}
+                {value.entityDisplayName && <span className="block text-muted-foreground">{value.entityDisplayName}</span>}
+              </Field>
               <Field label="Thời gian">{format(new Date(value.occurredAt), 'dd/MM/yyyy HH:mm:ss')}</Field>
               <Field label="Lý do">{value.reason ?? '—'}</Field>
             </dl>
+            {/* Nội dung thay đổi (11/11/2026): mỗi trường một dòng; BE đã che SĐT/email/số TK. */}
+            {changeLines(value.changeSummary).length > 0 && (
+              <div className="text-sm">
+                <p className="text-muted-foreground">Nội dung thay đổi</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {changeLines(value.changeSummary).map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

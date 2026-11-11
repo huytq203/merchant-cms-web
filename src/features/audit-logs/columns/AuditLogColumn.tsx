@@ -6,9 +6,12 @@ import { DateTimeCell } from '@/components/page/DateTimeCell';
 import { createIndexColumn } from '@/components/page/IndexColumn';
 import { RowActions } from '@/components/page/RowActions';
 import type { AuditLog } from '../types';
-import { actionLabel, actorName, categoryLabel, entityHint, entityLabel } from '../utils/audit-mapper';
+import { actionLabel, actorName, categoryLabel, changeText, entityHint, entityLabel } from '../utils/audit-mapper';
 
-/** Cột theo mockup mục 6: Thời gian, Nhóm (pill), Đối tượng, Hành động, Người thực hiện. */
+/**
+ * Cột theo mockup mục 6: Thời gian, Nhóm (pill), Đối tượng, Hành động, Nội dung, Người thực hiện.
+ * Nội dung (11/11/2026) là tóm tắt thay đổi BE dựng sẵn, để bảng không còn chỉ "Người dùng b0ef6e6e · Cập nhật".
+ */
 export function auditLogColumns(onView: (row: AuditLog) => void, page: number, pageSize: number): ColumnDef<AuditLog>[] {
   return [
     createIndexColumn<AuditLog>({ page, pageSize }),
@@ -40,6 +43,18 @@ export function auditLogColumns(onView: (row: AuditLog) => void, page: number, p
       accessorKey: 'action',
       header: 'Hành động',
       cell: ({ row }) => actionLabel(row.original.action),
+    },
+    {
+      id: 'change',
+      header: 'Nội dung',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const text = changeText(row.original);
+        // Tối đa 2 dòng trong bảng; đủ nội dung ở tooltip và màn chi tiết.
+        return text
+          ? <p className="line-clamp-2 max-w-sm text-sm" title={text}>{text}</p>
+          : <span className="text-muted-foreground">—</span>;
+      },
     },
     {
       id: 'actor',

@@ -38,6 +38,18 @@ describe('audit schemas', () => {
     expect(parsed.category).toBe('SUB_MERCHANT');
   });
 
+  it('reads the readable name and change summary (BE 11/11/2026), and an older BE without them', () => {
+    const parsed = auditLogSchema.parse({
+      ...entry, entityDisplayName: 'Cửa hàng A (SUB001)', changeSummary: 'Trạng thái: Đang hoạt động → Ngừng hoạt động',
+    });
+    expect(parsed.entityDisplayName).toBe('Cửa hàng A (SUB001)');
+    expect(parsed.changeSummary).toBe('Trạng thái: Đang hoạt động → Ngừng hoạt động');
+    const old = auditLogSchema.parse(entry);
+    expect(old.entityDisplayName).toBeUndefined();
+    expect(old.changeSummary).toBeUndefined();
+    expect(auditLogSchema.parse({ ...entry, entityDisplayName: null, changeSummary: null }).changeSummary).toBeNull();
+  });
+
   it('accepts the new filters and rejects unknown values', () => {
     expect(auditFilterSchema.safeParse({ category: 'REFUND', actorType: 'SYSTEM', period: '30d' }).success).toBe(true);
     expect(auditFilterSchema.safeParse({ category: 'WALLET' }).success).toBe(false);

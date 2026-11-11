@@ -83,11 +83,30 @@ export function actorName(log: Pick<AuditLog, 'actorDisplayName' | 'actorLabel'>
 }
 
 /**
- * Dòng phụ cột Đối tượng: lý do nếu BE có gửi (vd "Tạo yêu cầu hoàn tiền MRFE..."), không thì 8 ký tự đầu của
- * entityId để người xem phân biệt các dòng cùng loại. Nhật ký của FlexPay có thể có reason = null.
+ * Dòng phụ cột Đối tượng: tên đọc được BE dựng sẵn (11/11/2026); BE cũ không có thì lý do (vd "Tạo yêu cầu hoàn tiền
+ * MRFE..."), không nữa thì 8 ký tự đầu của entityId để người xem phân biệt các dòng cùng loại.
  */
-export function entityHint(log: Pick<AuditLog, 'reason' | 'entityId'>): string | null {
+export function entityHint(log: Pick<AuditLog, 'reason' | 'entityId'> & Partial<Pick<AuditLog, 'entityDisplayName'>>): string | null {
+  const name = log.entityDisplayName?.trim();
+  if (name) return name;
   const reason = log.reason?.trim();
   if (reason) return reason;
   return log.entityId ? log.entityId.slice(0, 8) : null;
+}
+
+/**
+ * Nội dung một dòng nhật ký: tóm tắt thay đổi của BE; không có thì lý do (BE chỉ trả lý do cho thao tác của merchant
+ * và hệ thống, lý do của FlexPay luôn null); không có gì thì null để ô hiện "—".
+ */
+export function changeText(log: Pick<AuditLog, 'reason'> & Partial<Pick<AuditLog, 'changeSummary'>>): string | null {
+  const summary = log.changeSummary?.trim();
+  if (summary) return summary;
+  const reason = log.reason?.trim();
+  return reason || null;
+}
+
+/** Tách tóm tắt thành từng trường để màn chi tiết hiện mỗi thay đổi một dòng (BE nối bằng "; "). */
+export function changeLines(summary: string | null | undefined): string[] {
+  if (!summary) return [];
+  return summary.split('; ').map((line) => line.trim()).filter(Boolean);
 }

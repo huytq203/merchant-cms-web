@@ -36,6 +36,16 @@ export const auditLogSchema = z.object({
   actorLabel: z.string(),
   /** Tên hiển thị mới; BE cũ chỉ có actorLabel. */
   actorDisplayName: z.string().optional(),
+  /**
+   * Tên đối tượng đọc được do BE dựng từ snapshot (11/11/2026), vd "Nguyễn Văn A", "VCB ****0001 – HALOTECH".
+   * Thiếu ở BE cũ, null khi BE không dựng được.
+   */
+  entityDisplayName: z.string().nullish(),
+  /**
+   * Tóm tắt thay đổi tiếng Việt do BE dựng (11/11/2026), các trường cách nhau bằng "; ", vd
+   * "Trạng thái: Đang hoạt động → Đang khóa". BE đã che SĐT/email/số TK; FE hiện nguyên văn.
+   */
+  changeSummary: z.string().nullish(),
 });
 
 export const auditFilterSchema = z.object({
