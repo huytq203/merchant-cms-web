@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox/Checkbox";
 import type { useAssignableGroups } from "../user-queries";
 import { cn } from "@/lib/utils/cn";
 import type { UserForm } from "../hooks/use-user-form";
+import { groupLevelLabel, MIXED_LEVEL_MESSAGE } from "../utils/group-scope-level";
 
 interface Props {
   form: UserForm;
@@ -38,6 +39,7 @@ export function UserGroupPicker({ form, groups, locked }: Props) {
       >
         {groups.data?.map((group) => {
           const checked = selected.includes(group.id);
+          const level = groupLevelLabel(group.scopeLevel);
           return (
             <div
               key={group.id}
@@ -52,12 +54,18 @@ export function UserGroupPicker({ form, groups, locked }: Props) {
                 disabled={locked}
                 onCheckedChange={(next) => form.toggle("groupIds", group.id, next === true)}
               />
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{group.permissions.length} quyền</span>
+              <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-muted-foreground">
+                {level ? <span className="rounded-md bg-page px-1.5 py-0.5 font-medium text-brand-ink">{level}</span> : null}
+                <span>{group.permissions.length} quyền</span>
+              </span>
             </div>
           );
         })}
       </fieldset>
       <GroupMessage groups={groups} />
+      {form.scopeLevel === "MIXED" && !error ? (
+        <p role="alert" className="text-xs font-medium text-danger">{MIXED_LEVEL_MESSAGE}</p>
+      ) : null}
       {error ? <p id="user-groups-error" role="alert" className="text-xs font-medium text-danger">{error}</p> : null}
     </DetailSection>
   );

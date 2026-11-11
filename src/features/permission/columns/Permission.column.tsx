@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
-import { canEditGroup } from "../utils/permission-group-mapper";
+import { canEditGroup, scopeLevelLabel } from "../utils/permission-group-mapper";
 import type { PermissionGroup } from "../schemas/permission-group.schema";
 
 interface Actions {
@@ -43,9 +43,14 @@ export function buildPermissionColumns(
       cell: ({ row }) => row.original.description || "Không có mô tả",
     },
     {
-      id: "scope",
-      header: "Cấp quản lý",
+      id: "origin",
+      header: "Loại nhóm",
       cell: ({ row }) => (row.original.system ? "Hệ thống" : "Merchant"),
+    },
+    {
+      id: "scopeLevel",
+      header: "Cấp quản lý",
+      cell: ({ row }) => scopeLevelLabel(row.original.scopeLevel),
     },
     {
       id: "permissionCount",

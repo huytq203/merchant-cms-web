@@ -1,4 +1,4 @@
-import type { PermissionCatalogItem, PermissionGroupFormValues } from "../schemas/permission-group.schema";
+import type { GroupScopeLevel, PermissionCatalogItem, PermissionGroupFormValues } from "../schemas/permission-group.schema";
 
 const categoryLabels: Record<string, string> = {
   TRANSACTION: "Giao dịch",
@@ -36,7 +36,13 @@ export function toGroupRequest(values: PermissionGroupFormValues, merchantId: st
     name: values.name.trim(),
     description: values.description.trim() || undefined,
     permissions: values.permissions,
+    scopeLevel: values.scopeLevel,
   };
+}
+
+/** Nhãn cấp quản lý; nhóm chưa có cấp (BE trước V99) được BE coi là cấp Master. */
+export function scopeLevelLabel(level: GroupScopeLevel | undefined): string {
+  return level === "SUB" ? "Cấp Sub" : "Cấp Master";
 }
 
 export function canEditGroup(group: { system: boolean }): boolean {

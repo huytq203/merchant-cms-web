@@ -6,6 +6,7 @@ import { Badge, DetailModal, DetailSection } from '@/components/modal/DetailModa
 import { usePreservedValue } from '@/lib/hooks/use-preserved-value';
 import type { PermissionCatalogItem, PermissionGroup } from '../schemas/permission-group.schema';
 import { formatGroupDate, getInitials } from '../utils/permission-coverage';
+import { scopeLevelLabel } from '../utils/permission-group-mapper';
 import { PermissionGroupPermissions } from './PermissionGroupPermissions';
 import { PermissionGroupUsersSection } from './PermissionGroupUsers';
 
@@ -25,6 +26,9 @@ function GroupSections({ group, catalog }: { group: PermissionGroup; catalog: Pr
       <DetailSection title="Tổng quan" icon={<Info className="h-4 w-4" />}>
         <p className={group.description ? 'text-sm text-muted-foreground' : 'text-sm text-muted-foreground/70'}>
           {group.description || 'Chưa có mô tả'}
+        </p>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Cấp quản lý: <span className="font-medium text-foreground">{scopeLevelLabel(group.scopeLevel)}</span>
         </p>
       </DetailSection>
       <DetailSection title="Quyền trong nhóm" icon={<ShieldCheck className="h-4 w-4" />} aside={grantedLabel}>

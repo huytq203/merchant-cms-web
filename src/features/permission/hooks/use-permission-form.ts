@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ZodIssue } from 'zod';
 import {
   permissionGroupFormSchema,
+  type GroupScopeLevel,
   type PermissionGroup,
   type PermissionGroupFormValues,
 } from '../schemas/permission-group.schema';
@@ -29,6 +30,8 @@ export function usePermissionForm(
 ) {
   const [name, setName] = useState(group?.name ?? '');
   const [description, setDescription] = useState(group?.description ?? '');
+  // Nhóm mới mặc định cấp Master, đúng giá trị BE gán cho nhóm không gửi cấp.
+  const [scopeLevel, setScopeLevel] = useState<GroupScopeLevel>(group?.scopeLevel ?? 'MASTER');
   const [attempted, setAttempted] = useState(false);
   const permissions = useSelectedPermissions(group?.permissions ?? []);
 
@@ -38,6 +41,7 @@ export function usePermissionForm(
     name,
     description,
     permissions: permissions.selected,
+    scopeLevel,
   });
   const validation = attempted && !result.success ? toFieldErrors(result.error.issues) : {};
 
@@ -46,7 +50,7 @@ export function usePermissionForm(
     if (result.success) onSubmit(result.data);
   };
 
-  return { code, name, description, validation, setName, setDescription, submit, ...permissions };
+  return { code, name, description, scopeLevel, validation, setName, setDescription, setScopeLevel, submit, ...permissions };
 }
 
 export type PermissionFormState = ReturnType<typeof usePermissionForm>;

@@ -93,7 +93,7 @@ describe('permission group container', () => {
     await userEvent.type(within(dialog).getByRole('textbox', { name: /Mô tả/ }), 'Quản lý thu ngân');
     await userEvent.click(within(dialog).getByRole('checkbox', { name: PERMISSION_LABELS.VIEW_ORDER }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Lưu nhóm quyền' }));
-    await waitFor(() => expect(body).toEqual({ code: 'THU_NGAN', name: 'Thu ngân', description: 'Quản lý thu ngân', permissions: ['VIEW_ORDER'] }));
+    await waitFor(() => expect(body).toEqual({ code: 'THU_NGAN', name: 'Thu ngân', description: 'Quản lý thu ngân', permissions: ['VIEW_ORDER'], scopeLevel: 'MASTER' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(await screen.findByText('Thu ngân')).toBeInTheDocument();
   });

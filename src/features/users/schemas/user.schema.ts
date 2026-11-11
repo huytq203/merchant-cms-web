@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { groupScopeLevelSchema } from "@/features/permission/schemas/permission-group.schema";
 
 export const merchantUserStatusSchema = z.enum(["PENDING", "ACTIVE", "LOCKED"]);
 export const scopeProposalStatusSchema = z.enum(["PENDING_APPROVAL", "APPROVED", "REJECTED"]);
@@ -57,6 +58,8 @@ export const assignableGroupSchema = z.object({
   description: z.string().nullish(),
   system: z.boolean(),
   permissions: z.array(z.string()),
+  /** Cấp quản lý của nhóm; vắng mặt khi BE chưa có V99 thì màn tạo người dùng giữ cách chọn phạm vi cũ. */
+  scopeLevel: groupScopeLevelSchema.optional(),
 });
 
 /** Body of PUT .../merchants and .../sub-merchants: the full target list of one scope axis. */

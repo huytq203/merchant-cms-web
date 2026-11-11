@@ -40,8 +40,8 @@ function SelfEditBanner() {
 }
 
 function UserFormModal({ onOpenChange, merchantId, merchantIds, merchants = [], actorId, user, isSubmitting, emailError, error, onSubmit }: Omit<Props, "open">) {
-  const form = useUserForm(user, merchantId, onSubmit);
   const groups = useAssignableGroups();
+  const form = useUserForm(user, merchantId, onSubmit, groups.data ?? []);
   const isSelf = Boolean(user && actorId && user.id === actorId);
 
   return (

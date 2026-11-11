@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canEditGroup, groupPermissionsByCategory, toGroupRequest } from "../permission-group-mapper";
 
-const values = { code: "GROUP_1", name: "Nhóm", description: "", permissions: ["VIEW_ORDER"] };
+const values = { code: "GROUP_1", name: "Nhóm", description: "", permissions: ["VIEW_ORDER"], scopeLevel: "MASTER" as const };
 
 describe("permission group mapper", () => {
   it("keeps category order and puts unknown category into Khác", () => {

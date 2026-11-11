@@ -44,7 +44,40 @@ function SubMerchantList({ form }: { form: UserForm }) {
   );
 }
 
+/** Câu giải thích phạm vi khi cấp của nhóm đã quyết định thay người tạo. */
+function LevelNote({ level }: { level: UserForm["scopeLevel"] }) {
+  if (level === "MASTER") {
+    return <p className="text-sm text-muted-foreground">Nhóm quyền cấp Master: người dùng quản lý toàn bộ Merchant, không cần chọn sub-merchant.</p>;
+  }
+  if (level === "SUB") {
+    return <p className="text-sm text-muted-foreground">Nhóm quyền cấp Sub: chọn các sub-merchant người dùng được quản lý.</p>;
+  }
+  if (level === "PENDING") {
+    return <p className="text-sm text-muted-foreground">Chọn nhóm quyền trước, phạm vi sẽ theo cấp quản lý của nhóm.</p>;
+  }
+  return <p className="text-sm text-danger">Hãy bỏ bớt nhóm để chỉ còn một cấp quản lý.</p>;
+}
+
+/** Cách chọn cũ (toàn bộ hoặc chọn sub-merchant), chỉ dùng khi BE chưa trả cấp của nhóm. */
+function LegacyScopeChoice({ form }: { form: UserForm }) {
+  return (
+    <>
+      <RadioGroup
+        aria-label="Phạm vi sub-merchant"
+        orientation="horizontal"
+        value={form.values.scope}
+        onValueChange={(value) => form.setScope(value as ScopeMode)}
+      >
+        <Radio value="all" label="Toàn bộ sub-merchant" />
+        <Radio value="selected" label="Chọn sub-merchant" />
+      </RadioGroup>
+      {form.values.scope === "selected" ? <SubMerchantList form={form} /> : null}
+    </>
+  );
+}
+
 export function UserScopePicker({ form, merchantName, merchantOptions }: Props) {
+  const level = form.scopeLevel;
   return (
     <DetailSection title="Phạm vi truy cập" icon={<Store className="h-4 w-4" />} bare>
       {merchantOptions && merchantOptions.length > 1 ? (
@@ -60,16 +93,8 @@ export function UserScopePicker({ form, merchantName, merchantOptions }: Props) 
       {merchantName ? (
         <p className="text-sm text-muted-foreground">Merchant: <span className="font-medium text-foreground">{merchantName}</span></p>
       ) : null}
-      <RadioGroup
-        aria-label="Phạm vi sub-merchant"
-        orientation="horizontal"
-        value={form.values.scope}
-        onValueChange={(value) => form.setScope(value as ScopeMode)}
-      >
-        <Radio value="all" label="Toàn bộ sub-merchant" />
-        <Radio value="selected" label="Chọn sub-merchant" />
-      </RadioGroup>
-      {form.values.scope === "selected" ? <SubMerchantList form={form} /> : null}
+      {level === null ? <LegacyScopeChoice form={form} /> : <LevelNote level={level} />}
+      {level === "SUB" ? <SubMerchantList form={form} /> : null}
     </DetailSection>
   );
 }

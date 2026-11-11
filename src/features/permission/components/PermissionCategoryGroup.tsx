@@ -12,11 +12,20 @@ interface Props {
   onSelectAll: (codes: string[]) => void;
 }
 
+/**
+ * BE chỉ cho cấp quyền mà người đang đăng nhập có (`grantable=false` là chưa có). Quyền như vậy không tick
+ * thêm được; nếu nhóm đang có sẵn thì vẫn bỏ tick được.
+ */
+function isLocked(permission: PermissionCatalogItem, checked: boolean): boolean {
+  return permission.grantable === false && !checked;
+}
+
 /** Permissions of one category: title, select-all and one plain row per permission. */
 export function PermissionCategoryGroup({ label, permissions, selected, onToggle, onSelectAll }: Props) {
-  const codes = permissions.map((permission) => permission.code);
+  // "Chọn tất cả" chỉ tính các quyền được phép cấp, để không gửi lên quyền BE sẽ từ chối.
+  const codes = permissions.filter((permission) => permission.grantable !== false).map((permission) => permission.code);
   const selectedCount = codes.filter((code) => selected.includes(code)).length;
-  const allSelected = selectedCount === codes.length;
+  const allSelected = codes.length > 0 && selectedCount === codes.length;
 
   return (
     <div>
@@ -27,19 +36,28 @@ export function PermissionCategoryGroup({ label, permissions, selected, onToggle
           label={allSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
           checked={allSelected}
           indeterminate={selectedCount > 0 && !allSelected}
+          disabled={codes.length === 0}
           onCheckedChange={() => onSelectAll(codes)}
         />
       </div>
       <ul className="grid grid-cols-1">
-        {permissions.map((permission) => (
-          <li key={permission.code} className="py-1.5">
-            <Checkbox
-              label={permissionLabel(permission.code)}
-              checked={selected.includes(permission.code)}
-              onCheckedChange={() => onToggle(permission.code)}
-            />
-          </li>
-        ))}
+        {permissions.map((permission) => {
+          const checked = selected.includes(permission.code);
+          const locked = isLocked(permission, checked);
+          return (
+            <li key={permission.code} className="flex items-center justify-between gap-3 py-1.5">
+              <Checkbox
+                label={permissionLabel(permission.code)}
+                checked={checked}
+                disabled={locked}
+                onCheckedChange={() => onToggle(permission.code)}
+              />
+              {permission.grantable === false ? (
+                <span className="shrink-0 text-xs text-muted-foreground">Bạn chưa có quyền này</span>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

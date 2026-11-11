@@ -17,7 +17,7 @@ const path = `${base}/permission-groups`;
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const id = "22222222-2222-4222-8222-222222222222";
 const group = { id, merchantId, name: "Nhóm", system: false, permissions: ["VIEW_ORDER"], createdAt: null };
-const values = { code: "GROUP_1", name: "Nhóm", description: "", permissions: ["VIEW_ORDER"] };
+const values = { code: "GROUP_1", name: "Nhóm", description: "", permissions: ["VIEW_ORDER"], scopeLevel: "MASTER" as const };
 const envelope = (data: unknown) => ({ success: true, data });
 const page = (content: unknown[]) => ({ content, totalElements: content.length, totalPages: 1, number: 0, size: 10 });
 
@@ -69,8 +69,8 @@ describe("permission group service", () => {
     expect(await createPermissionGroup(values, merchantId)).toMatchObject({ success: true });
     expect(await updatePermissionGroup(id, values)).toMatchObject({ success: true });
     expect(bodies).toEqual([
-      { merchantId, code: "GROUP_1", name: "Nhóm", permissions: ["VIEW_ORDER"] },
-      { code: "GROUP_1", name: "Nhóm", permissions: ["VIEW_ORDER"] },
+      { merchantId, code: "GROUP_1", name: "Nhóm", permissions: ["VIEW_ORDER"], scopeLevel: "MASTER" },
+      { code: "GROUP_1", name: "Nhóm", permissions: ["VIEW_ORDER"], scopeLevel: "MASTER" },
     ]);
   });
 

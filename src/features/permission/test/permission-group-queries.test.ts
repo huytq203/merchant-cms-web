@@ -29,7 +29,7 @@ describe('permission group mutations', () => {
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
     const invalidate = vi.spyOn(client, 'invalidateQueries');
     const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children);
-    const values = { code: 'ACCOUNTING', name: 'Kế toán', description: '', permissions: ['VIEW_ORDER'] };
+    const values = { code: 'ACCOUNTING', name: 'Kế toán', description: '', permissions: ['VIEW_ORDER'], scopeLevel: 'MASTER' as const };
     const group = { id: 'one', ...values, system: false };
     mswServer.use(http.post('/api/v1/merchant/permission-groups', () => HttpResponse.json(group)));
     mswServer.use(http.put('/api/v1/merchant/permission-groups/one', () => HttpResponse.json(group)));

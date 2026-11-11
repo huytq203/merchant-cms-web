@@ -54,6 +54,6 @@ describe("permission group collection route", () => {
   it("creates with the session merchant", async () => {
     const response = await POST(new Request(request().url, { method: "POST", body: JSON.stringify(values) }));
     expect(response.status).toBe(201);
-    expect(createPermissionGroup).toHaveBeenCalledWith(values, merchantId);
+    expect(createPermissionGroup).toHaveBeenCalledWith({ ...values, scopeLevel: "MASTER" }, merchantId);
   });
 });

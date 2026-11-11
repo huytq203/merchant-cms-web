@@ -2,9 +2,11 @@
 
 import { FormModalField, FormModalGrid } from '@/components/modal/FormModalField';
 import { Input } from '@/components/ui/input/Input';
+import { Radio } from '@/components/ui/radio/Radio';
+import { RadioGroup } from '@/components/ui/radio-group/RadioGroup';
 import { Textarea } from '@/components/ui/textarea/Textarea';
 import type { PermissionFormState } from '../hooks/use-permission-form';
-import type { PermissionCatalogItem } from '../schemas/permission-group.schema';
+import type { GroupScopeLevel, PermissionCatalogItem } from '../schemas/permission-group.schema';
 import { PermissionPicker } from './PermissionPicker';
 
 interface Props {
@@ -63,6 +65,33 @@ function BasicFields({ form, isEditing, nameError }: Pick<Props, 'form' | 'isEdi
   );
 }
 
+const LEVEL_HINTS: Record<GroupScopeLevel, string> = {
+  MASTER: 'Người dùng trong nhóm quản lý toàn bộ Merchant, khi tạo không phải chọn sub-merchant.',
+  SUB: 'Người dùng trong nhóm chỉ quản lý các sub-merchant được chọn khi tạo người dùng.',
+};
+
+/**
+ * Cấp quản lý quyết định phạm vi của người dùng thuộc nhóm (chốt 11/11), nên chọn ngay khi tạo nhóm
+ * để màn thêm người dùng biết có cần chọn sub-merchant hay không.
+ */
+function ScopeLevelField({ form }: Pick<Props, 'form'>) {
+  return (
+    <section className="mt-5">
+      <h3 className="mb-2 text-sm font-semibold text-foreground">Cấp quản lý</h3>
+      <RadioGroup
+        aria-label="Cấp quản lý"
+        orientation="horizontal"
+        value={form.scopeLevel}
+        onValueChange={(value) => form.setScopeLevel(value as GroupScopeLevel)}
+      >
+        <Radio value="MASTER" label="Cấp Master" />
+        <Radio value="SUB" label="Cấp Sub" />
+      </RadioGroup>
+      <p className="mt-1.5 text-xs text-muted-foreground">{LEVEL_HINTS[form.scopeLevel]}</p>
+    </section>
+  );
+}
+
 function PermissionSection({ form, catalog, catalogLoading }: Omit<Props, 'isEditing' | 'nameError'>) {
   return (
     <section className="mt-5">
@@ -95,6 +124,7 @@ export function PermissionForm({ form, catalog, catalogLoading, isEditing, nameE
   return (
     <>
       <BasicFields form={form} isEditing={isEditing} nameError={nameError} />
+      <ScopeLevelField form={form} />
       <PermissionSection form={form} catalog={catalog} catalogLoading={catalogLoading} />
     </>
   );

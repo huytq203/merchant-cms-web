@@ -124,6 +124,7 @@ describe('permission group form', () => {
       name: 'Quản trị merchant',
       description: 'Toàn quyền',
       permissions: ['VIEW_TRANSACTION', 'APPROVE_REFUND'],
+      scopeLevel: 'MASTER',
     });
   });
 
@@ -157,6 +158,7 @@ describe('permission group form', () => {
       name: 'Tài chính',
       description: 'Quản lý kế toán',
       permissions: ['VIEW_ORDER'],
+      scopeLevel: 'MASTER',
     });
   });
 
@@ -191,5 +193,64 @@ describe('permission group form', () => {
     renderModal({ catalog: [], catalogLoading: true });
 
     expect(screen.getByRole('status', { name: /Đang tải/ })).toBeInTheDocument();
+  });
+});
+
+describe('scope level', () => {
+  const level = (name: RegExp) => screen.getByRole('radio', { name });
+
+  it('defaults a new group to the Master level', () => {
+    renderModal();
+    expect(level(/Cấp Master/)).toBeChecked();
+    expect(level(/Cấp Sub/)).not.toBeChecked();
+  });
+
+  it('sends the Sub level when it is chosen', async () => {
+    const { onSubmit } = renderModal();
+    await userEvent.type(nameInput(), 'Quản lí cấp sub');
+    await userEvent.click(checkbox('VIEW_TRANSACTION'));
+    await userEvent.click(level(/Cấp Sub/));
+    await userEvent.click(save());
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scopeLevel: 'SUB' }));
+  });
+
+  it('prefills the stored level when editing', async () => {
+    const { onSubmit } = renderModal({ group: { ...existing, scopeLevel: 'SUB' } });
+    expect(level(/Cấp Sub/)).toBeChecked();
+    await userEvent.click(save());
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ scopeLevel: 'SUB' }));
+  });
+});
+
+describe('permissions the actor cannot grant', () => {
+  const limited: PermissionCatalogItem[] = [
+    { code: 'VIEW_TRANSACTION', category: 'TRANSACTION', grantable: true },
+    { code: 'EXPORT_TRANSACTION', category: 'TRANSACTION', grantable: false },
+  ];
+
+  it('disables them and says why', () => {
+    renderModal({ catalog: limited });
+    expect(checkbox('EXPORT_TRANSACTION')).toHaveAttribute('aria-disabled', 'true');
+    expect(checkbox('VIEW_TRANSACTION')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByText(/Bạn chưa có quyền này/)).toBeInTheDocument();
+  });
+
+  it('selects only the grantable ones with select all', async () => {
+    const { onSubmit } = renderModal({ catalog: limited });
+    await userEvent.type(nameInput(), 'Xem giao dịch');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Chọn tất cả' }));
+    await userEvent.click(save());
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ permissions: ['VIEW_TRANSACTION'] }));
+  });
+
+  it('lets an already granted one be removed but not ticked again', async () => {
+    renderModal({ catalog: limited, group: { ...existing, permissions: ['EXPORT_TRANSACTION'] } });
+    expect(checkbox('EXPORT_TRANSACTION')).toBeChecked();
+    expect(checkbox('EXPORT_TRANSACTION')).not.toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(checkbox('EXPORT_TRANSACTION'));
+    expect(checkbox('EXPORT_TRANSACTION')).toHaveAttribute('aria-disabled', 'true');
   });
 });

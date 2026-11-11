@@ -43,14 +43,16 @@ afterEach(() => {
   subRequests.length = 0;
 });
 
-function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}, proposal?: unknown) {
+const defaultGroups = [
+  { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A", "B", "C"] },
+  { id: otherGroupId, code: "ACC", name: "Kế toán", system: false, permissions: ["A"] },
+];
+
+function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}, proposal?: unknown, groups: unknown[] = defaultGroups) {
   mswServer.use(
     http.get("/api/v1/merchant/merchant-users/:id/scope-proposal", () =>
       proposal ? HttpResponse.json(proposal) : HttpResponse.json(null, { status: 404 })),
-    http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json([
-      { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A", "B", "C"] },
-      { id: otherGroupId, code: "ACC", name: "Kế toán", system: false, permissions: ["A"] },
-    ])),
+    http.get("/api/v1/merchant/merchant-users/assignable-groups", () => HttpResponse.json(groups)),
     // Một lần đọc /choices cho mọi Master; ô chọn tự lọc theo merchantId của từng Sub.
     http.get("/api/v1/admin/sub-merchants/choices", ({ request }) => {
       subRequests.push(new URL(request.url));
@@ -323,3 +325,62 @@ describe("user modal: update, name and scope", () => {
   });
 });
 
+
+describe("user modal: scope follows the group level", () => {
+  const leveled = [
+    { id: groupId, code: "OPS", name: "Vận hành", system: false, permissions: ["A", "B", "C"], scopeLevel: "MASTER" },
+    { id: otherGroupId, code: "SUB_MGR", name: "Quản lí cấp sub", system: false, permissions: ["A"], scopeLevel: "SUB" },
+  ];
+  const fillBasics = async () => {
+    await userEvent.type(screen.getByRole("textbox", { name: /Email/ }), "new@example.com");
+    await userEvent.type(screen.getByRole("textbox", { name: /Họ và tên/ }), "New User");
+  };
+
+  it("labels each group with its level", async () => {
+    renderModal({}, undefined, leveled);
+    expect(await screen.findByText("Cấp Master")).toBeInTheDocument();
+    expect(screen.getByText("Cấp Sub")).toBeInTheDocument();
+  });
+
+  it("asks for no sub-merchant with a Master group and creates a whole-merchant user", async () => {
+    const onSubmit = renderModal({}, undefined, leveled);
+    await fillBasics();
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Vận hành" }));
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Sub-merchant" })).not.toBeInTheDocument();
+    expect(screen.getByText(/toàn bộ Merchant/)).toBeInTheDocument();
+    await submitCreate();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ groupIds: [groupId], subMerchantIds: [] }));
+  });
+
+  it("only offers sub-merchants with a Sub group and requires one", async () => {
+    const onSubmit = renderModal({}, undefined, leveled);
+    await fillBasics();
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Quản lí cấp sub" }));
+    expect(screen.queryByRole("radio", { name: "Toàn bộ sub-merchant" })).not.toBeInTheDocument();
+    await submitCreate();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Chọn ít nhất một sub-merchant/)).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng 1/ }));
+    await submitCreate();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ groupIds: [otherGroupId], subMerchantIds: [subMerchantId] }));
+  });
+
+  it("refuses mixing a Master group with a Sub group", async () => {
+    const onSubmit = renderModal({}, undefined, leveled);
+    await fillBasics();
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Vận hành" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Quản lí cấp sub" }));
+    expect(screen.getAllByText(/cùng lúc nhóm cấp Master và nhóm cấp Sub/).length).toBeGreaterThan(0);
+    await submitCreate();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not ask for sub-merchants when editing a user in a Sub group", async () => {
+    const onSubmit = renderModal({ user: { ...existingUser, groups: [otherGroupId] }, actorId: "someone-else" }, undefined, leveled);
+    await screen.findByRole("checkbox", { name: "Quản lí cấp sub" });
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    expect(onSubmit).toHaveBeenCalled();
+  });
+});

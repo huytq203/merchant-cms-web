@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { PermissionGroupNameCell } from '../Permission.column';
+import { buildPermissionColumns, PermissionGroupNameCell } from '../Permission.column';
+import { scopeLevelLabel } from '../../utils/permission-group-mapper';
 
 afterEach(cleanup);
 
@@ -17,5 +18,15 @@ describe('PermissionGroupNameCell', () => {
   it('shows only the name when an older BE sends no code', () => {
     const { container } = render(<PermissionGroupNameCell group={group} />);
     expect(container.textContent).toBe('Vận hành');
+  });
+});
+
+describe('scope level column', () => {
+  it('names the level and counts a group without one as Master', () => {
+    const columns = buildPermissionColumns({ onView: () => {}, onEdit: () => {}, onDelete: () => {} }, 1, 10);
+    expect(columns.find((column) => column.id === 'scopeLevel')?.header).toBe('Cấp quản lý');
+    expect(scopeLevelLabel('SUB')).toBe('Cấp Sub');
+    expect(scopeLevelLabel('MASTER')).toBe('Cấp Master');
+    expect(scopeLevelLabel(undefined)).toBe('Cấp Master');
   });
 });
