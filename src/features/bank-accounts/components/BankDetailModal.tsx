@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button/Button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
 import { bankDisplayName, bankLinkLabel, bankStatusLabel } from "../utils/bank-mapper";
 import type { BankAccount } from "../types";
+import { BankAccountScopeLabel } from "./BankAccountScopeLabel";
 import { BankPendingNotice } from "./BankPendingNotice";
 
 type Props = { account: BankAccount | null; onClose: () => void };
@@ -30,6 +31,7 @@ export function BankDetailModal({ account, onClose }: Props) {
         {account?.pendingChangeRequest && <BankPendingNotice request={account.pendingChangeRequest} />}
         {account && (
           <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+            <Field label="Áp dụng cho"><BankAccountScopeLabel account={account} /></Field>
             <Field label="Ngân hàng">{bankDisplayName(account.bankCode)}</Field>
             <Field label="Chi nhánh">{account.branchName || "—"}</Field>
             <Field label="Số tài khoản"><span className="font-mono">{account.accountNumber}</span></Field>

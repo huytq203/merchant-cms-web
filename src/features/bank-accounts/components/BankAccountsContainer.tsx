@@ -19,6 +19,7 @@ function toSearchParams(filter: BankAccountFilter): string {
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
   if (filter.linkStatus) params.set("linkStatus", filter.linkStatus);
   if (filter.status) params.set("status", filter.status);
+  if (filter.subMerchantId) params.set("subMerchantId", filter.subMerchantId);
   return params.toString();
 }
 
@@ -42,7 +43,7 @@ export function BankAccountsContainer({ filter, canManage }: Props) {
       />
       <div>
         <BankAccountFilters
-          key={`${filter.linkStatus ?? ""}:${filter.status ?? ""}`}
+          key={`${filter.linkStatus ?? ""}:${filter.status ?? ""}:${filter.subMerchantId ?? ""}`}
           initial={filter}
           onSearch={(values) => navigate({ page: 1, pageSize: filter.pageSize, ...values })}
         />

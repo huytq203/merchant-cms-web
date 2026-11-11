@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge/Badge";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge } from "@/components/page/StatusBadge";
+import { BankAccountScopeLabel } from "../components/BankAccountScopeLabel";
 import { BankChangeRequestBadge } from "../components/BankChangeRequestBadge";
 import { bankAccountTitle, bankDisplayName, bankLinkLabel, canChangeBank } from "../utils/bank-mapper";
 import type { BankAccount } from "../types";
@@ -83,6 +84,8 @@ export function getBankAccountColumns(options: BankAccountColumnOptions, page: n
         </div>
       ),
     },
+    // TK gắn Sub nào (11/11/2026): trước đây phải mở chi tiết mới biết, giờ hiện ngay ở bảng.
+    { id: "scope", header: "Áp dụng cho", cell: ({ row }) => <BankAccountScopeLabel account={row.original} /> },
     { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "--" },
     {
       id: "accountNumber",

@@ -31,6 +31,10 @@ const account: BankAccount = {
 const editable = { ...account, accountNumber: "1234567890" };
 const challenge = { otpSessionId: "session-1", maskedRecipient: "0912•••678", expiresInSeconds: 300, canResendAfterSeconds: 60 };
 const filter = { page: 1, pageSize: 10, merchantId };
+const sub = { id: "77777777-7777-4777-8777-777777777777", code: "SUB01", name: "Chi nhanh 1", status: "ACTIVE" };
+const subAccount: BankAccount = {
+  ...account, id: "66666666-6666-4666-8666-666666666666", subMerchantId: sub.id, level: "SUB", accountNumber: "******2111",
+};
 
 function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -61,6 +65,7 @@ async function fillNewAccount() {
 
 beforeEach(() => {
   listReturns([account]);
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([sub])));
   mswServer.use(http.post(`${base}/otp-challenge`, () => HttpResponse.json(challenge)));
   mswServer.use(http.get(`${base}/${account.id}`, () => HttpResponse.json(editable)));
 });
@@ -266,10 +271,45 @@ describe("bank accounts container", () => {
     expect(body).not.toHaveProperty("accountNumber");
   });
 
+  // Cột Áp dụng cho (11/11/2026): TK Master nhận quyết toán cho mọi Sub chưa có TK riêng; TK Sub hiện mã - tên Sub.
+  it("shows which Sub-merchant each account belongs to, or the Master level", async () => {
+    listReturns([{ ...account, level: "MASTER" }, subAccount]);
+    renderContainer();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "Áp dụng cho" })).toBeInTheDocument();
+    expect(within(table).getByText("Cấp Master")).toBeInTheDocument();
+    expect(await within(table).findByText("SUB01 - Chi nhanh 1")).toBeInTheDocument();
+  });
+
+  it("names a Sub account it cannot look up instead of leaving the cell empty", async () => {
+    listReturns([{ ...subAccount, subMerchantId: "88888888-8888-4888-8888-888888888888" }]);
+    renderContainer();
+    const table = await screen.findByRole("table");
+    expect(await within(table).findByText("Sub-merchant")).toBeInTheDocument();
+  });
+
+  it("shows the Sub-merchant in the account detail", async () => {
+    listReturns([subAccount]);
+    mswServer.use(http.get(`${base}/${subAccount.id}`, () => HttpResponse.json(subAccount)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem tài khoản/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("SUB01 - Chi nhanh 1")).toBeInTheDocument();
+  });
+
+  it("filters by Sub-merchant and clears it with the other filters", async () => {
+    renderContainer();
+    await screen.findByText("******7890");
+    await userEvent.click(screen.getByRole("combobox", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("option", { name: "SUB01 - Chi nhanh 1" }));
+    await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    expect(push).toHaveBeenLastCalledWith(`/bank-accounts?page=1&pageSize=10&subMerchantId=${sub.id}`);
+    await userEvent.click(screen.getByRole("button", { name: "Xóa lọc" }));
+    expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10");
+  });
+
   it("adds a Sub-merchant level account with the chosen Sub-merchant", async () => {
-    const sub = { id: "77777777-7777-4777-8777-777777777777", code: "SUB01", name: "Chi nhanh 1", status: "ACTIVE" };
     let body: unknown;
-    mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([sub])));
     mswServer.use(http.post(base, async ({ request }) => {
       body = await request.json();
       return HttpResponse.json({ account, applied: true }, { status: 201 });
