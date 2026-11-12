@@ -55,7 +55,9 @@ describe("NotificationSettingsDialog", () => {
     renderDialog(session({ merchantIds: ["m1"] }));
     expect(await screen.findByText("Cài đặt thông báo")).toBeInTheDocument();
     expect(await screen.findByText("Kết quả thanh toán")).toBeInTheDocument();
-    expect(ticked(row("Kết quả thanh toán"))).toBe(2);
+    // Chỉ còn cột Email: "SMS" còn sót trong dữ liệu cũ bị bỏ qua, không có cột SMS.
+    expect(ticked(row("Kết quả thanh toán"))).toBe(1);
+    expect(screen.queryByRole("columnheader", { name: "SMS" })).toBeNull();
     expect(ticked(row("Bảo mật"))).toBe(1);
     expect(ticked(row("Rút tiền"))).toBe(0);
     expect(screen.getByText("ketoan@abc.vn")).toBeInTheDocument();

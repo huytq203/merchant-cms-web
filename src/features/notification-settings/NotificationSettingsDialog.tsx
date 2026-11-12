@@ -49,12 +49,12 @@ function Tick({ on }: { on: boolean }) {
 }
 
 /**
- * Kênh thực sự được gửi: khi công tắc kênh ngoài web tắt, chỉ nhóm bắt buộc vẫn gửi email (Admin cũng không tắt được),
+ * Kênh thực sự được gửi (chỉ còn email, đã bỏ SMS theo quyết định 13/11): khi công tắc kênh ngoài web tắt, chỉ nhóm bắt buộc vẫn gửi email (Admin cũng không tắt được),
  * nên bảng hiển thị đúng điều đó thay vì cấu hình nằm im.
  */
 function effectiveChannels(row: NotificationConfigRow, externalEnabled: boolean) {
-  if (externalEnabled) return { email: row.channels.includes("EMAIL"), sms: row.channels.includes("SMS") };
-  return { email: row.emailMandatory, sms: false };
+  if (externalEnabled) return { email: row.channels.includes("EMAIL") };
+  return { email: row.emailMandatory };
 }
 
 /** "Cài đặt thông báo": cấu hình thông báo hiệu lực của Master/Sub, chỉ đọc; muốn đổi phải liên hệ FlexPay. */
@@ -93,7 +93,6 @@ export function NotificationSettingsDialog({ open, onOpenChange }: Props) {
                   <tr>
                     <th scope="col" className="px-3 py-2 font-medium">Nhóm thông báo</th>
                     <th scope="col" className="w-20 px-3 py-2 text-center font-medium">Email</th>
-                    <th scope="col" className="w-20 px-3 py-2 text-center font-medium">SMS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,7 +105,6 @@ export function NotificationSettingsDialog({ open, onOpenChange }: Props) {
                           {row.emailMandatory && <span className="ml-2 text-xs text-muted-foreground">(email bắt buộc)</span>}
                         </th>
                         <td className="px-3 py-2"><Tick on={shown.email} /></td>
-                        <td className="px-3 py-2"><Tick on={shown.sms} /></td>
                       </tr>
                     );
                   })}

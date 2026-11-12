@@ -16,12 +16,14 @@ interface FirebaseWebConfig {
   projectId: string;
   messagingSenderId: string;
   appId: string;
+  /** Tùy chọn: thiếu thì getToken dùng khóa VAPID mặc định của Firebase. */
   vapidKey: string;
 }
 
 /**
  * Cấu hình web Firebase từ env công khai. Phải viết nguyên văn `process.env.NEXT_PUBLIC_*`
- * thì Next mới nhúng giá trị lúc build; thiếu một biến là coi như chưa cấu hình.
+ * thì Next mới nhúng giá trị lúc build; thiếu một biến bắt buộc là coi như chưa cấu hình.
+ * `NEXT_PUBLIC_FIREBASE_VAPID_KEY` là tùy chọn (chưa tạo được khóa VAPID tùy chỉnh thì dùng khóa mặc định của Firebase).
  */
 function readConfig(): FirebaseWebConfig | null {
   const config = {
@@ -32,7 +34,9 @@ function readConfig(): FirebaseWebConfig | null {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
     vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? "",
   };
-  return Object.values(config).every(Boolean) ? config : null;
+  // vapidKey không bắt buộc nên không tính vào điều kiện đủ cấu hình.
+  const { apiKey, authDomain, projectId, messagingSenderId, appId } = config;
+  return [apiKey, authDomain, projectId, messagingSenderId, appId].every(Boolean) ? config : null;
 }
 
 /** Có đủ cấu hình Firebase để hiện nút bật thông báo (chưa kiểm tra trình duyệt). */
@@ -64,7 +68,11 @@ async function resolveDevice(config: FirebaseWebConfig) {
   // SW tự xử lý sự kiện push nên không cần cấu hình Firebase; chỉ cần đăng ký đúng phạm vi gốc.
   const registration = await navigator.serviceWorker.register(SERVICE_WORKER_PATH);
   const messaging = getMessaging(app);
-  const token = await getToken(messaging, { vapidKey: config.vapidKey, serviceWorkerRegistration: registration });
+  // Chỉ truyền vapidKey khi có cấu hình; bỏ trống để Firebase dùng khóa mặc định.
+  const token = await getToken(messaging, {
+    serviceWorkerRegistration: registration,
+    ...(config.vapidKey ? { vapidKey: config.vapidKey } : {}),
+  });
   const installationId = await getId(getInstallations(app));
   return { messaging, token, installationId };
 }

@@ -1,7 +1,10 @@
 import { z } from "zod";
 
-/** Kênh ngoài web của một nhóm thông báo; kênh lạ (BE thêm sau) bị bỏ qua thay vì làm hỏng cả bảng. */
-const channelSchema = z.enum(["EMAIL", "SMS"]);
+/**
+ * Kênh ngoài web của một nhóm thông báo: chỉ còn EMAIL (đã bỏ SMS). Kênh lạ, kể cả "SMS" còn sót trong dữ liệu cũ,
+ * bị bỏ qua thay vì làm hỏng cả bảng.
+ */
+const channelSchema = z.enum(["EMAIL"]);
 
 /** Một dòng của bảng 9 nhóm: `emailMandatory` = nhóm bắt buộc gửi email, Admin cũng không tắt được. */
 export const notificationConfigRowSchema = z.object({

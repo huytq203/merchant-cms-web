@@ -65,6 +65,20 @@ describe("registerPush", () => {
     });
   });
 
+  it("passes the VAPID key to getToken when configured", async () => {
+    await registerPush();
+    expect(getToken).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ vapidKey: "vapid" }));
+  });
+
+  it("is configured without a VAPID key and calls getToken without vapidKey", async () => {
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_VAPID_KEY", "");
+    expect(isPushConfigured()).toBe(true);
+    expect(await registerPush()).toBe("granted");
+    const options = getToken.mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(options).not.toHaveProperty("vapidKey");
+    expect(options).toHaveProperty("serviceWorkerRegistration");
+  });
+
   it("registers the Portal service worker at the site root", async () => {
     await registerPush();
     expect(registerSw).toHaveBeenCalledWith("/firebase-messaging-sw.js");
