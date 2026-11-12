@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { DetailDeepLink } from "@/components/modal";
+import { useDetailParam } from "@/hooks/use-detail-param";
 import { bankAccountQueries } from "../bank-account-queries";
 import { useBankConfirm } from "../hooks/use-bank-confirm";
 import type { useBankAccountDialogs } from "../hooks/use-bank-account-dialogs";
@@ -14,6 +16,7 @@ type Props = { dialogs: ReturnType<typeof useBankAccountDialogs> };
 /** Every dialog of the page; the one that is open is chosen by `dialogs.active`. */
 export function BankAccountDialogs({ dialogs }: Props) {
   const { active, target, close } = dialogs;
+  const { closeDetail } = useDetailParam();
   const editing = active === "edit" && target !== null;
   const detail = useQuery({ ...bankAccountQueries.detail(target?.id ?? ""), enabled: editing });
   const confirm = useBankConfirm(close);
@@ -39,7 +42,15 @@ export function BankAccountDialogs({ dialogs }: Props) {
       {editing && detail.isError && (
         <BankLoadErrorDialog message={detail.error.message} onRetry={() => void detail.refetch()} onClose={close} />
       )}
-      <BankDetailModal account={active === "detail" ? target : null} onClose={close} />
+      <BankDetailModal
+        account={active === "detail" ? target : null}
+        onClose={() => {
+          close();
+          closeDetail();
+        }}
+      />
+      {/* `?detail=<id>` từ thông báo/push: tải tài khoản rồi mở hộp chi tiết ở trên. */}
+      <DetailDeepLink query={bankAccountQueries.detail} onLoaded={(account) => dialogs.openFor("detail", account)} />
       <BankConfirmDialog
         kind={active === "delete" || active === "default" ? active : null}
         account={target}

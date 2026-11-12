@@ -8,11 +8,11 @@ import { readAccessToken } from "@/lib/auth/session-cookies";
 import { getServerEnv } from "@/lib/env/server";
 import { classifyFetchError, toBeError } from "@/lib/be/errors";
 import { fail, ok } from "@/lib/http/result";
-import { refundSummarySchema, revenueRefundSchema } from "@/features/revenue-refunds/schemas";
-import type { CreateRefundBody, RefundQuery, RefundSummary, RevenueRefund } from "@/features/revenue-refunds/types";
+import { refundSummarySchema, revenueRefundDetailSchema, revenueRefundSchema } from "@/features/revenue-refunds/schemas";
+import type { CreateRefundBody, RefundQuery, RefundSummary, RevenueRefund, RevenueRefundDetail } from "@/features/revenue-refunds/types";
 import { refundQueryString } from "@/features/revenue-refunds/utils/refund-query";
 
-// Merchant Portal endpoints. The list is not paginated (500 newest, filters applied in the BE) and has no GET by id; every
+// Merchant Portal endpoints. The list is not paginated (500 newest, filters applied in the BE); GET by id serves the detail modal; every
 // write needs an OTP bound to that write: orderId + amount to create, the refund id to approve.
 const REFUNDS = "/api/v1/merchant/revenue-refunds";
 const item = (id: string) => `${REFUNDS}/${encodeURIComponent(id)}`;
@@ -20,6 +20,11 @@ const item = (id: string) => `${REFUNDS}/${encodeURIComponent(id)}`;
 /** BE nhận `statuses` dạng danh sách cách nhau bằng dấu phẩy, `from`/`to` là ngày tạo (giờ VN, gồm cả ngày `to`). */
 export function listRevenueRefunds(query: RefundQuery): Promise<BeResult<RevenueRefund[]>> {
   return merchantClient().get({ path: REFUNDS, schema: z.array(revenueRefundSchema), query: { ...query } });
+}
+
+/** Chi tiết một yêu cầu (mở từ `?detail=`): BE trả 404 "Không tìm thấy lệnh hoàn tiền." khi không thuộc phạm vi của người dùng. */
+export function getRevenueRefund(id: string): Promise<BeResult<RevenueRefundDetail>> {
+  return merchantClient().get({ path: item(id), schema: revenueRefundDetailSchema });
 }
 
 export function getRevenueRefundSummary(query: RefundQuery): Promise<BeResult<RefundSummary>> {

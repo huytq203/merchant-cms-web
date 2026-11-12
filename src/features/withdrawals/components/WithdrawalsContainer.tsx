@@ -5,6 +5,8 @@ import { getRouteTitle } from "@/app/(cms)/_layout/constants/route.constants";
 import { PageHeader } from "@/components/page/PageHeader";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
+import { DetailDeepLink } from "@/components/modal";
+import { useDetailParam } from "@/hooks/use-detail-param";
 import { useWithdrawalDialogs } from "../hooks/use-withdrawal-dialogs";
 import { useWithdrawalListNavigation } from "../hooks/use-withdrawal-list-navigation";
 import { withdrawalQueries } from "../withdrawal-queries";
@@ -26,6 +28,7 @@ type Props = {
 
 export function WithdrawalsContainer({ filter, abilities, subChoices = [] }: Props) {
   const dialogs = useWithdrawalDialogs();
+  const { closeDetail } = useDetailParam();
   const navigation = useWithdrawalListNavigation(filter);
   const list = useQuery(withdrawalQueries.list(filter));
 
@@ -49,9 +52,15 @@ export function WithdrawalsContainer({ filter, abilities, subChoices = [] }: Pro
       {dialogs.activeDialog === "create" && <WithdrawalCreateModal onClose={dialogs.close} onViewDetail={dialogs.openDetail} subChoices={subChoices} />}
       <WithdrawalDetailModal
         open={dialogs.activeDialog === "detail"}
-        onOpenChange={(open) => !open && dialogs.close()}
+        onOpenChange={(open) => {
+          if (open) return;
+          dialogs.close();
+          closeDetail();
+        }}
         listed={dialogs.target}
       />
+      {/* `?detail=<id>` từ thông báo/push: tải yêu cầu rồi mở hộp chi tiết ở trên. */}
+      <DetailDeepLink query={withdrawalQueries.detail} onLoaded={dialogs.openDetail} />
     </div>
   );
 }

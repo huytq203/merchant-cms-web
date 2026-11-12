@@ -36,6 +36,18 @@ export const revenueRefundSchema = z.object({
   terminalType: z.string().nullish(),
 });
 
+/**
+ * `GET /revenue-refunds/{id}`: các trường của dòng danh sách cộng thêm thông tin duyệt và chi tiền. BE không trả
+ * payoutMode ở đây; mọi trường thêm đều nullish để yêu cầu chưa duyệt/chưa chi vẫn đọc được.
+ */
+export const revenueRefundDetailSchema = revenueRefundSchema.extend({
+  approvedBy: z.string().nullish(),
+  approvedAt: z.string().nullish(),
+  decisionNote: z.string().nullish(),
+  payoutAt: z.string().nullish(),
+  payoutReference: z.string().nullish(),
+});
+
 /** `GET /revenue-refunds/summary`: đếm theo nhóm trạng thái + tổng tiền hoàn thành công. */
 export const refundSummarySchema = z.object({
   total: z.number(),

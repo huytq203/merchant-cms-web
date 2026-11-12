@@ -9,7 +9,7 @@ import { OrdersContainer } from "../OrdersContainer";
 import type { Order, OrderListFilter } from "../../types/types";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/order" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/order", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 const base = "/api/v1/admin/orders";

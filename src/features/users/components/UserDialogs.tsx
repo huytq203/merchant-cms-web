@@ -1,6 +1,9 @@
 "use client";
 
 import type { SessionMerchant } from "@/types/auth";
+import { DetailDeepLink } from "@/components/modal";
+import { useDetailParam } from "@/hooks/use-detail-param";
+import { userQueries } from "../user-queries";
 import { usePreservedValue } from "@/lib/hooks/use-preserved-value";
 import type { useUserActions } from "../hooks/use-user-actions";
 import { useScopeProposal } from "../hooks/use-scope-proposal";
@@ -142,8 +145,11 @@ function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: Section
 }
 
 export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds, merchants, actorId, canApproveScope }: Props) {
+  const { closeDetail } = useDetailParam();
   const onOpenChange = (open: boolean) => {
-    if (!open) actions.closeDialogs();
+    if (open) return;
+    actions.closeDialogs();
+    closeDetail();
   };
   const section = { dialogs, actions, openFor, actorId, onOpenChange };
 
@@ -152,6 +158,8 @@ export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds
       <UserFormDialog {...section} merchantId={merchantId} merchantIds={merchantIds} merchants={merchants} />
       <UserDetailDialog {...section} merchants={merchants} canApproveScope={canApproveScope} />
       <UserCommandDialogs {...section} />
+      {/* `?detail=<id>` từ thông báo/push: tải người dùng rồi mở hộp chi tiết ở trên. */}
+      <DetailDeepLink query={userQueries.detail} onLoaded={(user) => openFor("detail", user)} />
     </>
   );
 }

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page/PageHeader";
 import { ResultCard } from "@/components/page/ResultCard";
 import { ResultState } from "@/components/page/ResultState";
 import { Button } from "@/components/ui/button/Button";
+import { useDetailParam } from "@/hooks/use-detail-param";
 import { Table } from "@/components/ui/table/Table";
 import { revenueRefundColumns } from "../columns/RevenueRefundColumn";
 import { useRefundApproval } from "../hooks/use-refund-approval";
@@ -19,6 +20,7 @@ import type { RefundFilter, RevenueRefund } from "../types";
 import { canCancelRefund, refundFilterToSearch, toRefundQuery } from "../utils/refund-query";
 import { RefundApproveDialog } from "./RefundApproveDialog";
 import { RefundCancelDialog } from "./RefundCancelDialog";
+import { RefundDetailModal } from "./RefundDetailModal";
 import { RefundCreateDialog, type RefundOrder } from "./RefundCreateDialog";
 import { RefundOrderPicker } from "./RefundOrderPicker";
 import { RefundSummaryStrip } from "./RefundSummaryStrip";
@@ -44,6 +46,8 @@ type CreateStep = { step: "closed" } | { step: "pick" } | { step: "form"; order:
 export function RevenueRefundsContainer({ filter, today, canApprove, canCancelAny = canApprove, userId = "", canCreate = false, subNames }: Props) {
   const [create, setCreate] = useState<CreateStep>({ step: "closed" });
   const router = useRouter();
+  // `?detail=<id>` (từ thông báo/push) mở chi tiết của đúng yêu cầu; đóng thì bỏ `detail` khỏi URL.
+  const { detailId, closeDetail } = useDetailParam();
   const pathname = usePathname();
   const list = useQuery(revenueRefundQueries.list(filter, today));
   const summary = useQuery(revenueRefundQueries.summary(filter, today));
@@ -104,6 +108,7 @@ export function RevenueRefundsContainer({ filter, today, canApprove, canCancelAn
       </ResultCard>
       <RefundApproveDialog approval={approval} subNames={subNames} />
       <RefundCancelDialog cancel={cancel} />
+      {detailId ? <RefundDetailModal key={detailId} refundId={detailId} subNames={subNames} onClose={closeDetail} /> : null}
       {create.step === "pick" ? (
         <RefundOrderPicker onPick={(order) => setCreate({ step: "form", order })} onClose={() => setCreate({ step: "closed" })} />
       ) : null}

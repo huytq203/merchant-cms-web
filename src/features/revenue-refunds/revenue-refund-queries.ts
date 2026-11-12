@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
 import { parseSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
-import { refundFilterSchema, refundGroupSchema, refundListResultSchema, refundPeriodSchema, refundStatusSchema, refundSummarySchema } from "./schemas";
-import type { RefundFilter, RefundQuery, RefundSummary, RevenueRefund } from "./types";
+import { refundFilterSchema, refundGroupSchema, refundListResultSchema, refundPeriodSchema, refundStatusSchema, refundSummarySchema, revenueRefundDetailSchema } from "./schemas";
+import type { RefundFilter, RefundQuery, RefundSummary, RevenueRefund, RevenueRefundDetail } from "./types";
 import { refundQueryString, toRefundQuery } from "./utils/refund-query";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -48,6 +48,13 @@ export const revenueRefundQueries = {
       refetchInterval: (state) => (state.state.data?.some((refund) => refund.status === "PROCESSING") ? PROCESSING_POLL_MS : false),
     });
   },
+  /** Một yêu cầu theo id, cho modal chi tiết. */
+  detail: (id: string) =>
+    queryOptions({
+      queryKey: ["revenue-refunds", "detail", id] as const,
+      queryFn: async (): Promise<RevenueRefundDetail> =>
+        revenueRefundDetailSchema.parse(await apiClient.get<unknown>(`${REFUNDS_PATH}/${encodeURIComponent(id)}`)),
+    }),
   /** Dải đếm: cùng bộ lọc với danh sách nhưng không lọc theo trạng thái (để các nhóm vẫn hiện đủ số). */
   summary: (filter: RefundFilter, today: string) => {
     const query = toRefundQuery({ ...filter, group: undefined, status: undefined }, today);

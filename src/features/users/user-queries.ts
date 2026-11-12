@@ -60,6 +60,11 @@ export function parseUserSearchParams(raw: RawSearchParams, merchantIds: string[
 }
 
 export const userQueries = {
+  /** Một người dùng theo id, cho liên kết `?detail=`. */
+  detail: (id: string) => queryOptions({
+    queryKey: ["users", "detail", id] as const,
+    queryFn: () => apiClient.get<MerchantUser>(`/v1/merchant/merchant-users/${encodeURIComponent(id)}`),
+  }),
   list: (filter: UserFilter) => queryOptions({
     queryKey: ["users", "list", filter] as const,
     queryFn: () => apiClient.get<UserPage>("/v1/merchant/merchant-users", { query: { ...filter } }),

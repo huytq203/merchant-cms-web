@@ -9,7 +9,7 @@ import { WithdrawalsContainer } from "../WithdrawalsContainer";
 import type { Withdrawal, WithdrawalBankOption, WithdrawalListFilter } from "../../types/types";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/withdrawal" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/withdrawal", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 const base = "/api/v1/admin/withdrawals";

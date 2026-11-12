@@ -9,7 +9,7 @@ import { BankAccountsContainer } from "../BankAccountsContainer";
 import type { BankAccount } from "../../types";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/bank-accounts" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/bank-accounts", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 const base = "/api/v1/admin/bank-accounts";

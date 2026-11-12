@@ -8,7 +8,7 @@ import { mswServer } from "@/test/msw";
 import { UserContainer } from "../UserContainer";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/users" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/users", useSearchParams: () => new URLSearchParams() }));
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const groupId = "22222222-2222-4222-8222-222222222222";
 const otherGroupId = "66666666-6666-4666-8666-666666666666";

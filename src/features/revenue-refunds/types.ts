@@ -8,10 +8,12 @@ import type {
   refundQuerySchema,
   refundStatusSchema,
   refundSummarySchema,
+  revenueRefundDetailSchema,
   revenueRefundSchema,
 } from "./schemas";
 
 export type RevenueRefund = z.infer<typeof revenueRefundSchema>;
+export type RevenueRefundDetail = z.infer<typeof revenueRefundDetailSchema>;
 export type RefundStatus = z.infer<typeof refundStatusSchema>;
 export type RefundFilter = z.infer<typeof refundFilterSchema>;
 export type CreateRefundForm = z.output<typeof createRefundFormSchema>;

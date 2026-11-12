@@ -11,7 +11,7 @@ import { BE_COMPLAINT, BE_COMPLAINT_ROW } from "../../test/complaint.fixtures";
 import type { Complaint, ComplaintListFilter } from "../../types/types";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/complaint" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/complaint", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/features/sub-merchants/hooks/use-sub-merchant-options", () => ({ useSubMerchantOptions: () => ({ data: [] }) }));
 

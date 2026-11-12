@@ -8,6 +8,8 @@ import { ResultCard } from "@/components/page/ResultCard";
 import { ResultState } from "@/components/page/ResultState";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
+import { DetailDeepLink } from "@/components/modal";
+import { useDetailParam } from "@/hooks/use-detail-param";
 import { useOrderActions } from "../hooks/use-order-actions";
 import { useOrderDialogs } from "../hooks/use-order-dialogs";
 import { useOrderListNavigation } from "../hooks/use-order-list-navigation";
@@ -37,6 +39,7 @@ type Props = {
 
 export function OrdersContainer({ filter, abilities }: Props) {
   const dialogs = useOrderDialogs();
+  const { closeDetail } = useDetailParam();
   const actions = useOrderActions(dialogs);
   const navigation = useOrderListNavigation(filter);
   const list = useQuery(orderQueries.list(filter));
@@ -135,7 +138,11 @@ export function OrdersContainer({ filter, abilities }: Props) {
       )}
       <DialogOrderDetail
         open={activeDialog === "detail"}
-        onOpenChange={(open) => !open && actions.closeDialog()}
+        onOpenChange={(open) => {
+          if (open) return;
+          actions.closeDialog();
+          closeDetail();
+        }}
         refund={{ canCreate: abilities.canRefund, canView: abilities.canViewRefunds, onStart: startRefund }}
         cancel={{ canCancel: abilities.canCancel, onStart: (order) => startCancel(order, true) }}
         dispute={{ canCreate: abilities.canDispute, onStart: () => { const order = fresh.data ?? target; if (order) startDispute(order); } }}
@@ -159,6 +166,8 @@ export function OrdersContainer({ filter, abilities }: Props) {
         loadError={fresh.error?.message}
         error={actions.cancel.error}
       />
+      {/* `?detail=<id>` từ thông báo/push: tải đơn rồi mở đúng hộp chi tiết ở trên. */}
+      <DetailDeepLink query={orderQueries.detail} onLoaded={(order) => dialogs.openFor("detail", order)} />
       {refundOrder ? <RefundCreateDialog order={refundOrder} onClose={() => setRefundOrder(null)} /> : null}
       <DialogOderQR open={activeDialog === "qr"} onOpenChange={(open) => !open && actions.closeDialog()} {...qrDialog} />
     </div>

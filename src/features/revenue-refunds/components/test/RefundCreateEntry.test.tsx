@@ -8,7 +8,7 @@ import { mswServer } from "@/test/msw";
 import type { Order } from "@/features/orders/types/types";
 import { RevenueRefundsContainer } from "../RevenueRefundsContainer";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/revenue-refunds" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }), usePathname: () => "/revenue-refunds", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
 // Bộ chọn lấy đơn hàng thanh toán thành công từ danh sách đơn hàng (không còn màn Giao dịch).

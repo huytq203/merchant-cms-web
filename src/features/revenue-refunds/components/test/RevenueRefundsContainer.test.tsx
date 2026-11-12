@@ -10,7 +10,7 @@ import type { RefundFilter } from "../../types";
 import { RevenueRefundsContainer } from "../RevenueRefundsContainer";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/revenue-refunds" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/revenue-refunds", useSearchParams: () => new URLSearchParams() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const base = "/api/v1/admin/revenue-refunds";

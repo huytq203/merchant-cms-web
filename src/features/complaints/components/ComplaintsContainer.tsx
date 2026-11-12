@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/page/PageHeader";
 import { ResultCard } from "@/components/page/ResultCard";
 import { Button } from "@/components/ui/button/Button";
+import { DetailDeepLink } from "@/components/modal";
+import { useDetailParam } from "@/hooks/use-detail-param";
 import { QueryListState } from "@/features/sample-data/components/QueryListState";
 import { describeComplaintError, downloadComplaintsCsv } from "../complaint-api";
 import { complaintQueries } from "../complaint-queries";
@@ -31,6 +33,7 @@ type Props = {
 export function ComplaintsContainer({ filter, abilities }: Props) {
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [creating, setCreating] = useState(false);
+  const { closeDetail } = useDetailParam();
   const navigation = useComplaintListNavigation(filter);
   const list = useQuery(complaintQueries.list(filter));
   const exportCsv = useMutation({
@@ -95,8 +98,14 @@ export function ComplaintsContainer({ filter, abilities }: Props) {
         complaint={selected}
         open={selected !== null}
         canReply={abilities.canReply}
-        onOpenChange={(open) => !open && setSelected(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setSelected(null);
+          closeDetail();
+        }}
       />
+      {/* `?detail=<id>` từ thông báo/push: tải khiếu nại rồi mở hộp chi tiết ở trên. */}
+      <DetailDeepLink query={complaintQueries.detail} onLoaded={setSelected} />
       {abilities.canCreate && (
         <ComplaintCreateDialog open={creating} onOpenChange={setCreating} onCreated={setSelected} />
       )}

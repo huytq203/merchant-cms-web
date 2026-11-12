@@ -20,3 +20,4 @@ export {
   type InheritedHintProps,
 } from './DetailModal';
 export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
+export { DetailDeepLink, DetailUnavailableDialog, DETAIL_UNAVAILABLE_MESSAGE, detailErrorMessage } from './DetailDeepLink';
