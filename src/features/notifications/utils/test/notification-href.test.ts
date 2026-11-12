@@ -39,9 +39,19 @@ describe("notificationHref", () => {
     expect(href("SOMETHING_NEW")).toBeNull();
   });
 
-  it("has no destination for an id-based type without an id", () => {
-    for (const type of ["ORDER", "WITHDRAWAL", "REFUND", "COMPLAINT", "BANK_ACCOUNT", "SUB_MERCHANT", "USER"]) {
-      expect(href(type, null)).toBeNull();
+  it("falls back to the bare list page for an id-based type without an id, like the BE", () => {
+    const lists: Record<string, string> = {
+      ORDER: "/order",
+      WITHDRAWAL: "/withdrawal",
+      REFUND: "/revenue-refunds",
+      COMPLAINT: "/complaint",
+      BANK_ACCOUNT: "/bank-accounts",
+      SUB_MERCHANT: "/sub-merchants",
+      USER: "/users",
+    };
+    for (const [type, path] of Object.entries(lists)) {
+      expect(href(type, null)).toBe(path);
+      expect(href(type, "")).toBe(path);
     }
   });
 });

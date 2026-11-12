@@ -22,13 +22,14 @@ const LIST_PAGE: Record<string, string> = {
 
 /**
  * Đường dẫn Portal mà một thông báo mở tới; bản FE của `InboxTargetLinks` ở BE, hai bên phải khớp nhau.
- * `null` = thông báo không có đích (NONE, loại lạ BE thêm sau, hoặc loại theo id mà thiếu id) nên bấm chỉ đánh dấu đã đọc.
+ * Loại theo id mà thiếu id thì rơi về trang danh sách trần, giống BE (`InboxTargetLinks.detail()`).
+ * `null` = thông báo không có đích (NONE hoặc loại lạ BE thêm sau) nên bấm chỉ đánh dấu đã đọc.
  */
 export function notificationHref(notification: HrefInput): string | null {
   const { targetType, targetId, subMerchantId } = notification;
   if (!targetType) return null;
   const detailPage = DETAIL_PAGE[targetType];
-  if (detailPage) return targetId ? `${detailPage}?detail=${encodeURIComponent(targetId)}` : null;
+  if (detailPage) return targetId ? `${detailPage}?detail=${encodeURIComponent(targetId)}` : detailPage;
   const listPage = LIST_PAGE[targetType];
   if (listPage) return listPage;
   if (targetType === "FREEZE_LIST") {
