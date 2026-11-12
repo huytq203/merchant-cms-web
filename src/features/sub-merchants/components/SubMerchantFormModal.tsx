@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormModal } from '@/components/modal/FormModal';
+import type { BusinessCategoryOption } from '@/features/business-categories/utils';
 import { subMerchantFormSchema, type SubMerchantFormValues } from '../schemas';
 import type { SubMerchantDetail } from '../types';
 import {
@@ -21,7 +22,18 @@ type Props = {
   onSubmit: (values: SubMerchantSubmitValues) => void | Promise<void>;
   isSubmitting?: boolean;
   error?: string;
+  /** Danh mục ngành nghề cho dropdown. */
+  categories?: BusinessCategoryOption[];
+  categoriesLoading?: boolean;
+  /** Mã MCC của Master, điền sẵn khi thêm mới (người dùng vẫn đổi được). */
+  defaultMccCode?: string | null;
+  /** Master ký hợp đồng riêng với từng Sub: thêm Sub mà thiếu hợp đồng bị chặn ngay tại form. */
+  contractRequired?: boolean;
+  /** Tải lại chi tiết khi liên kết xem hợp đồng hết hạn. */
+  onRefreshLinks?: () => void;
 };
+
+const CONTRACT_REQUIRED_MESSAGE = 'Master ký hợp đồng riêng với từng Sub-merchant, vui lòng đính kèm hợp đồng của Sub-merchant';
 
 export function SubMerchantFormModal({
   open,
@@ -30,6 +42,11 @@ export function SubMerchantFormModal({
   onSubmit,
   isSubmitting,
   error,
+  categories,
+  categoriesLoading,
+  defaultMccCode,
+  contractRequired = false,
+  onRefreshLinks,
 }: Props) {
   const form = useForm<SubMerchantFormValues>({
     resolver: zodResolver(subMerchantFormSchema),
@@ -39,7 +56,21 @@ export function SubMerchantFormModal({
   useEffect(() => {
     if (open) form.reset(toFormValues(editTarget));
   }, [open, editTarget, form]);
-  const submit = (values: SubMerchantFormValues) => onSubmit(toSubmitValues(values));
+  // Hồ sơ Master thường về sau khi form đã mở: chỉ điền ngành mặc định nếu người dùng chưa chọn gì.
+  useEffect(() => {
+    if (!open || editTarget || !defaultMccCode) return;
+    if (!form.getValues('mccCode') && !form.formState.dirtyFields.mccCode) {
+      form.setValue('mccCode', defaultMccCode);
+    }
+  }, [open, editTarget, defaultMccCode, form]);
+  const submit = (values: SubMerchantFormValues) => {
+    // Chặn sớm cho đỡ một vòng gọi BE; BE vẫn kiểm lại (mã 5205).
+    if (!editTarget && contractRequired && !values.contractStagingId) {
+      form.setError('contractStagingId', { type: 'required', message: CONTRACT_REQUIRED_MESSAGE });
+      return;
+    }
+    return onSubmit(toSubmitValues(values));
+  };
 
   return (
     <FormModal
@@ -53,7 +84,14 @@ export function SubMerchantFormModal({
       error={error}
       onSubmit={() => void form.handleSubmit(submit)()}
     >
-      <SubMerchantFormFields form={form} editTarget={editTarget} />
+      <SubMerchantFormFields
+        form={form}
+        editTarget={editTarget}
+        categories={categories}
+        categoriesLoading={categoriesLoading}
+        contractRequired={contractRequired}
+        onRefreshLinks={onRefreshLinks}
+      />
     </FormModal>
   );
 }

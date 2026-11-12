@@ -10,7 +10,7 @@ const LIST_PATH = PATH;
 const merchantId = "11111111-1111-4111-8111-111111111111";
 const detail = { id: "22222222-2222-4222-8222-222222222222", merchantId, code: "SUB", name: "Sub-merchant", status: "ACTIVE", isDefault: false, taxCodeEditable: true, phone: { value: null, source: null, inherited: true, suspended: false }, address: { value: null, source: null, inherited: true, suspended: false } };
 const row = { id: detail.id, merchantId, code: detail.code, name: detail.name, status: detail.status, isDefault: false };
-const values = { name: " Sub-merchant ", businessField: "", inheritPhone: true, phone: "", inheritAddress: false, address: "Hà Nội" };
+const values = { name: " Sub-merchant ", mccCode: "", contractStagingId: "", inheritPhone: true, phone: "", inheritAddress: false, address: "Hà Nội" };
 const envelope = (data: unknown) => ({ success: true, data });
 const page = (content: unknown[], totalElements = content.length) => ({ content, totalElements, totalPages: 1, number: 0, size: 10 });
 

@@ -12,6 +12,7 @@ const detail: SubMerchantDetail = {
   code: 'MC000001-S002',
   name: 'Cửa hàng Quận 1',
   businessField: 'Bán lẻ',
+  mccCode: '5311',
   status: 'ACTIVE',
   isDefault: true,
   lockSource: null,
@@ -76,5 +77,27 @@ describe('SubMerchantDetailModal', () => {
   it('offers no lock or unlock when the Master locked the outlet', () => {
     renderModal({ detail: { ...detail, status: 'INACTIVE', lockSource: 'CASCADE' }, onLock: vi.fn(), onUnlock: vi.fn() });
     expect(screen.queryByRole('button', { name: /Khóa Sub-merchant|Mở khóa/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the industry name together with its MCC code', () => {
+    renderModal();
+    expect(screen.getByText('Bán lẻ (MCC 5311)')).toBeInTheDocument();
+  });
+
+  it('warns when the Sub must have its own contract but has none', () => {
+    renderModal({ detail: { ...detail, contractRequired: true, contractFile: null } });
+    expect(screen.getByRole('status')).toHaveTextContent('Sub-merchant chưa có hợp đồng riêng');
+  });
+
+  it('shows the contract with a view link instead of the warning once it exists', () => {
+    const contractFile = { id: 'aaaaaaaa-0000-4000-8000-000000000001', filename: 'hop-dong.pdf', contentType: 'application/pdf', url: 'https://s3.example/hop-dong.pdf?sig=x', urlExpiresAt: '2099-01-01T00:00:00Z' };
+    renderModal({ detail: { ...detail, contractRequired: true, contractFile } });
+    expect(screen.getByRole('link', { name: 'Xem hop-dong.pdf' })).toHaveAttribute('href', contractFile.url);
+    expect(screen.queryByText('Sub-merchant chưa có hợp đồng riêng')).not.toBeInTheDocument();
+  });
+
+  it('has no contract section when the Master does not sign per Sub and no file exists', () => {
+    renderModal();
+    expect(screen.queryByText('Hợp đồng riêng')).not.toBeInTheDocument();
   });
 });

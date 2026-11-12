@@ -26,8 +26,15 @@ const verifiedWallet: EnterpriseWallet = {
   legalRepresentativeName: "Nguyễn A",
 };
 
+/** Danh mục ngành nghề MCC mà dropdown của form hồ sơ đọc từ BE (không còn danh sách cứng trong FE). */
+const categories = [
+  { mccCode: "5812", name: "Nhà hàng, ăn uống" },
+  { mccCode: "5411", name: "Siêu thị, tạp hóa" },
+];
+
 function serve(profile: MerchantProfile) {
   mswServer.use(
+    http.get("/api/v1/admin/business-categories", () => HttpResponse.json(categories)),
     http.get(`${base}/merchants/${merchantId}`, () => HttpResponse.json(profile)),
     http.get(`${base}/merchants/${merchantId}/status-history`, () => HttpResponse.json({
       rows: [{ toStatus: "PENDING_APPROVAL", occurredAt: "2026-01-09T11:24:00" }],
@@ -91,6 +98,21 @@ describe("ĐVCNTT profile", () => {
     renderContainer();
     await userEvent.click(await screen.findByRole("tab", { name: "Đăng ký ĐVCNTT" }));
     expect(await screen.findByText("Đang chờ Flexpay duyệt")).toBeInTheDocument();
+  });
+
+  it("lists the industries from the BE catalogue labelled with name and MCC code", async () => {
+    serve(profileOf("DRAFT"));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("combobox", { name: /Ngành nghề kinh doanh/ }));
+    expect(await screen.findByRole("option", { name: "Nhà hàng, ăn uống (MCC 5812)" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Siêu thị, tạp hóa (MCC 5411)" })).toBeInTheDocument();
+  });
+
+  it("keeps a saved code that is no longer in the catalogue as an option", async () => {
+    serve({ ...profileOf("DRAFT"), mccCode: "9999" });
+    renderContainer();
+    await userEvent.click(await screen.findByRole("combobox", { name: /Ngành nghề kinh doanh/ }));
+    expect(await screen.findByRole("option", { name: "MCC 9999" })).toBeInTheDocument();
   });
 
   it("saves then submits, without an admin password", async () => {

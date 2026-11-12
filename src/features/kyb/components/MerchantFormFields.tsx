@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select/Select";
 import { Switch } from "@/components/ui/switch/Switch";
 import { Textarea } from "@/components/ui/textarea/Textarea";
 import type { MerchantFormValues, MerchantProfile, MerchantStagingIds } from "../types";
-import { mccOptionsFor } from "../constants/mcc-options";
+import { useBusinessCategoryOptions } from "@/features/business-categories/hooks/use-business-category-options";
 import { DocumentUploadField } from "./DocumentUploadField";
 
 type Props = {
@@ -20,6 +20,8 @@ type Props = {
 export function MerchantFormFields({ form, merchant, disabled, onStagingChange, onRefreshLinks }: Props) {
   const { register, control, formState } = form;
   const errors = formState.errors;
+  // Danh mục MCC chuẩn từ BE (nhãn "<tên> (MCC <mã>)"); mã đang lưu ngoài danh mục vẫn được giữ làm lựa chọn.
+  const categories = useBusinessCategoryOptions(merchant.mccCode);
   return (
     <div className="grid gap-6">
       <section className="grid gap-4" aria-labelledby="merchant-info-title">
@@ -33,10 +35,10 @@ export function MerchantFormFields({ form, merchant, disabled, onStagingChange, 
             render={({ field }) => (
               <Select
                 label="Ngành nghề kinh doanh (MCC)"
-                placeholder="Chọn ngành nghề"
+                placeholder={categories.isLoading ? "Đang tải danh mục..." : "Chọn ngành nghề"}
                 clearable={false}
                 disabled={disabled}
-                options={mccOptionsFor(field.value)}
+                options={categories.options}
                 value={field.value}
                 onChange={field.onChange}
                 error={errors.mccCode?.message}

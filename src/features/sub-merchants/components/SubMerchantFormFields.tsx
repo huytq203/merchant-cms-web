@@ -1,10 +1,13 @@
 'use client';
 
-import { useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Info, Lock } from 'lucide-react';
 import { DetailItem, DetailList, DetailSection } from '@/components/modal/DetailModal';
 import { InheritableField } from '@/components/form/InheritableField';
 import { Input } from '@/components/ui/input/Input';
+import { Select } from '@/components/ui/select/Select';
+import { DocumentUploadField } from '@/features/kyb/components/DocumentUploadField';
+import type { BusinessCategoryOption } from '@/features/business-categories/utils';
 import type { SubMerchantFormValues } from '../schemas';
 import type { SubMerchantDetail } from '../types';
 
@@ -59,7 +62,43 @@ function CreateIntro() {
   );
 }
 
-export function SubMerchantFormFields({ form, editTarget }: { form: Form; editTarget?: SubMerchantDetail | null }) {
+type FieldsProps = {
+  form: Form;
+  editTarget?: SubMerchantDetail | null;
+  /** Lựa chọn ngành nghề đã dựng sẵn (nhãn "<tên> (MCC <mã>)", có cả mã đang lưu); rỗng khi đang tải hoặc tải lỗi (dropdown hiện "Không tìm thấy"). */
+  categories?: BusinessCategoryOption[];
+  categoriesLoading?: boolean;
+  /**
+   * Master đã bật "Ký hợp đồng riêng với Sub-merchant" nên Sub mới bắt buộc có hợp đồng. Khi chưa biết (chưa tải được
+   * hồ sơ Master) truyền false: ô tải lên vẫn hiện, tùy chọn, và BE (mã 5205) là chốt chặn cuối.
+   */
+  contractRequired?: boolean;
+  onRefreshLinks?: () => void;
+};
+
+/**
+ * Hợp đồng riêng của Sub. Thêm mới luôn hiện ô tải lên (bắt buộc khi Master ký riêng từng Sub). Sửa chỉ hiện khi Sub
+ * thuộc diện phải có hợp đồng (`contractRequired`): hiện bản đang có và cho thay bản mới; không tải thì giữ bản cũ.
+ */
+function ContractSection({ form, editTarget, contractRequired, onRefreshLinks }: Pick<FieldsProps, 'form' | 'editTarget' | 'contractRequired' | 'onRefreshLinks'>) {
+  if (editTarget && !editTarget.contractRequired) return null;
+  const existing = editTarget?.contractFile ? [editTarget.contractFile] : [];
+  return (
+    <DetailSection title="Hợp đồng" bare>
+      <DocumentUploadField
+        type="MERCHANT_CONTRACT"
+        label="Hợp đồng riêng của Sub-merchant"
+        required={!editTarget && contractRequired}
+        existing={existing}
+        error={form.formState.errors.contractStagingId?.message}
+        onRefreshLinks={onRefreshLinks}
+        onChange={(ids) => form.setValue('contractStagingId', ids[0] ?? '', { shouldDirty: true, shouldValidate: true })}
+      />
+    </DetailSection>
+  );
+}
+
+export function SubMerchantFormFields({ form, editTarget, categories = [], categoriesLoading, contractRequired = false, onRefreshLinks }: FieldsProps) {
   const { errors } = form.formState;
   return (
     <div className="flex flex-col gap-6">
@@ -73,14 +112,25 @@ export function SubMerchantFormFields({ form, editTarget }: { form: Form; editTa
             error={errors.name?.message}
             {...form.register('name')}
           />
-          <Input
-            label="Lĩnh vực kinh doanh"
-            placeholder="Ví dụ: Ăn uống, bán lẻ"
-            error={errors.businessField?.message}
-            {...form.register('businessField')}
+          <Controller
+            name="mccCode"
+            control={form.control}
+            render={({ field }) => (
+              <Select
+                label="Lĩnh vực kinh doanh"
+                placeholder={categoriesLoading ? 'Đang tải danh mục...' : 'Chọn ngành nghề'}
+                description={editTarget ? undefined : 'Mặc định theo ngành nghề của Master.'}
+                clearable={false}
+                options={categories}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.mccCode?.message}
+              />
+            )}
           />
         </div>
       </DetailSection>
+      <ContractSection form={form} editTarget={editTarget} contractRequired={contractRequired} onRefreshLinks={onRefreshLinks} />
       {editTarget ? <LegalReadOnly detail={editTarget} /> : null}
       <DetailSection title="Liên hệ" bare>
         <div className="flex flex-col gap-5">

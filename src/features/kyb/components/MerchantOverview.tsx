@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Clock, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge/Badge";
 import { formatDate } from "@/lib/utils/helper";
+import { formatBusinessCategory } from "@/features/business-categories/utils";
 import { MERCHANT_STATUS_LABELS } from "../constants/status-labels";
 import { kybQueries } from "../kyb-queries";
 import type { MerchantProfile } from "../types";
@@ -37,7 +38,7 @@ function SubmittedInfo({ merchant }: { merchant: MerchantProfile }) {
   return (
     <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <DetailRow label="Tên hiển thị" value={merchant.name ?? ""} />
-      <DetailRow label="Ngành nghề (MCC)" value={merchant.mccCode ?? ""} />
+      <DetailRow label="Ngành nghề (MCC)" value={formatBusinessCategory(merchant.businessCategory, merchant.mccCode)} />
       <DetailRow label="Người liên hệ / Hotline" value={merchant.supportContact ?? ""} />
       <DetailRow label="Website">
         <WebsiteLink url={merchant.websiteUrl} />

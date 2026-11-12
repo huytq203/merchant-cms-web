@@ -2,6 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { Lock, Unlock } from 'lucide-react';
+import { Notice } from '@/components/page/Notice';
+import { StoredFileCard } from '@/features/kyb/components/StoredFileCard';
+import { formatBusinessCategory } from '@/features/business-categories/utils';
 import { Badge as TagBadge, DetailItem, DetailList, DetailModal, DetailSection } from '@/components/modal/DetailModal';
 import { Badge } from '@/components/ui/badge/Badge';
 import { Button } from '@/components/ui/button/Button';
@@ -17,6 +20,8 @@ type Props = {
   onEdit?: () => void;
   onLock?: () => void;
   onUnlock?: () => void;
+  /** Tải lại chi tiết khi liên kết xem hợp đồng (ký có hạn) đã hết hạn. */
+  onRefreshLinks?: () => void;
 };
 
 const empty = <span className="text-muted-foreground">Chưa có</span>;
@@ -46,7 +51,21 @@ function LockAction({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlo
   return null;
 }
 
-function Sections({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlock'> & { detail: SubMerchantDetail }): ReactNode {
+/** Hợp đồng riêng chỉ hiện với Sub thuộc diện phải có (Master ký riêng từng Sub) hoặc đã có file. */
+function ContractSection({ detail, onRefreshLinks }: Pick<Props, 'onRefreshLinks'> & { detail: SubMerchantDetail }) {
+  if (!detail.contractRequired && !detail.contractFile) return null;
+  return (
+    <DetailSection title="Hợp đồng riêng">
+      {detail.contractFile ? (
+        <StoredFileCard file={detail.contractFile} onRefreshLinks={onRefreshLinks} />
+      ) : (
+        <Notice tone="warning">Sub-merchant chưa có hợp đồng riêng</Notice>
+      )}
+    </DetailSection>
+  );
+}
+
+function Sections({ detail, onLock, onUnlock, onRefreshLinks }: Pick<Props, 'onLock' | 'onUnlock' | 'onRefreshLinks'> & { detail: SubMerchantDetail }): ReactNode {
   return (
     <>
       <div className="flex flex-wrap gap-2 empty:hidden">
@@ -54,9 +73,10 @@ function Sections({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlock
       </div>
       <DetailSection title="Thông tin chung">
         <DetailList>
-          <DetailItem label="Lĩnh vực kinh doanh" wide>{detail.businessField || empty}</DetailItem>
+          <DetailItem label="Lĩnh vực kinh doanh" wide>{formatBusinessCategory(detail.businessField, detail.mccCode) || empty}</DetailItem>
         </DetailList>
       </DetailSection>
+      <ContractSection detail={detail} onRefreshLinks={onRefreshLinks} />
       <DetailSection title="Thông tin pháp lý" aside="Lấy từ Master">
         <DetailList>
           <DetailItem label="Mã số thuế"><span className="tabular-nums">{detail.taxCode || empty}</span></DetailItem>
@@ -76,7 +96,7 @@ function Sections({ detail, onLock, onUnlock }: Pick<Props, 'onLock' | 'onUnlock
 
 const initialsOf = (name: string) => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word.charAt(0)).join('') || '?';
 
-export function SubMerchantDetailModal({ detail, open, onOpenChange, onEdit, onLock, onUnlock }: Props) {
+export function SubMerchantDetailModal({ detail, open, onOpenChange, onEdit, onLock, onUnlock, onRefreshLinks }: Props) {
   if (!detail) return null;
 
   return (
@@ -90,7 +110,7 @@ export function SubMerchantDetailModal({ detail, open, onOpenChange, onEdit, onL
         statusBadge: statusBadge(detail),
         secondaryBadge: detail.isDefault ? <TagBadge tone="info">Mặc định</TagBadge> : undefined,
       }}
-      sections={<Sections detail={detail} onLock={onLock} onUnlock={onUnlock} />}
+      sections={<Sections detail={detail} onLock={onLock} onUnlock={onUnlock} onRefreshLinks={onRefreshLinks} />}
       createdAt={formatDateTime(detail.createdAt)}
       updatedAt={formatDateTime(detail.updatedAt)}
       editLabel="Sửa"

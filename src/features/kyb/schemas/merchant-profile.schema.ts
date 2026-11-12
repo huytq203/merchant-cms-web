@@ -22,6 +22,8 @@ export const merchantProfileSchema = z.object({
   legalName: z.string().nullish(),
   taxCode: z.string().nullish(),
   mccCode: z.string().nullish(),
+  /** Tên ngành chuẩn do BE đặt theo `mccCode`; Portal không gửi lên. */
+  businessCategory: z.string().nullish(),
   websiteUrl: z.string().nullish(),
   productDescription: z.string().nullish(),
   supportContact: z.string().nullish(),

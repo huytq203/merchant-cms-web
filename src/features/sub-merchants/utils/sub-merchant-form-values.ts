@@ -6,7 +6,8 @@ export type SubMerchantSubmitValues =
 
 export const defaultFormValues: SubMerchantFormValues = {
   name: '',
-  businessField: '',
+  mccCode: '',
+  contractStagingId: '',
   inheritPhone: true,
   phone: '',
   inheritAddress: true,
@@ -17,7 +18,8 @@ export function toFormValues(editTarget: SubMerchantDetail | null | undefined): 
   if (!editTarget) return defaultFormValues;
   return {
     name: editTarget.name,
-    businessField: editTarget.businessField ?? '',
+    mccCode: editTarget.mccCode ?? '',
+    contractStagingId: '',
     inheritPhone: editTarget.phone.inherited,
     phone: editTarget.phone.inherited ? '' : editTarget.phone.value ?? '',
     inheritAddress: editTarget.address.inherited,
@@ -28,7 +30,8 @@ export function toFormValues(editTarget: SubMerchantDetail | null | undefined): 
 export function toSubmitValues(values: SubMerchantFormValues): SubMerchantSubmitValues {
   return {
     name: values.name,
-    businessField: values.businessField,
+    mccCode: values.mccCode,
+    contractStagingId: values.contractStagingId,
     inheritPhone: values.inheritPhone,
     ...(values.inheritPhone ? {} : { phone: values.phone }),
     inheritAddress: values.inheritAddress,

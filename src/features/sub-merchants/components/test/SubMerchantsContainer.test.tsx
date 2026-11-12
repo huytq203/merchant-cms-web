@@ -45,12 +45,16 @@ const detail: SubMerchantDetail = {
   updatedAt: null,
 };
 const base = '/api/v1/admin/sub-merchants';
-function renderContainer(data?: { rows: SubMerchantRow[]; total: number }, canLock = true) {
+function renderContainer(data?: { rows: SubMerchantRow[]; total: number }, canLock = true, merchantId?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (data) mswServer.use(http.get(base, () => HttpResponse.json(data)));
-  return render(<QueryClientProvider client={client}><SubMerchantsContainer filter={filter} canLock={canLock} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><SubMerchantsContainer filter={filter} canLock={canLock} merchantId={merchantId} /></QueryClientProvider>);
 }
-beforeEach(() => mswServer.use(http.get(base, () => HttpResponse.json({ rows: [row], total: 1 }))));
+const categories = [{ mccCode: '5812', name: 'Nhà hàng, ăn uống' }, { mccCode: '5411', name: 'Siêu thị, tạp hóa' }];
+beforeEach(() => mswServer.use(
+  http.get(base, () => HttpResponse.json({ rows: [row], total: 1 })),
+  http.get('/api/v1/admin/business-categories', () => HttpResponse.json(categories)),
+));
 afterEach(() => { cleanup(); push.mockClear(); vi.clearAllMocks(); currentSearch = ''; });
 
 describe('sub merchants container', () => {
@@ -177,5 +181,62 @@ describe('sub merchants container', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Tên Sub-merchant đã tồn tại');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  describe('ngành nghề và hợp đồng riêng', () => {
+    const masterId = '11111111-1111-4111-8111-111111111111';
+    const stagingId = '33333333-3333-4333-8333-333333333333';
+    const pdf = () => new File(['pdf'], 'hop-dong-sub.pdf', { type: 'application/pdf' });
+    const serveMaster = (profile: object) => mswServer.use(
+      http.get(`/api/v1/admin/kyb/merchants/${masterId}`, () => HttpResponse.json({ id: masterId, status: 'ACTIVE', ...profile })),
+    );
+
+    it('preselects the Master industry on create and sends it as mccCode', async () => {
+      let body: unknown;
+      serveMaster({ mccCode: '5812', contractSignedWithSub: false });
+      mswServer.use(http.post(base, async ({ request }) => { body = await request.json(); return HttpResponse.json(detail); }));
+      renderContainer({ rows: [row], total: 1 }, true, masterId);
+      await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
+      await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+      await waitFor(() => expect(screen.getByRole('combobox', { name: /Lĩnh vực kinh doanh/ })).toHaveTextContent('Nhà hàng, ăn uống (MCC 5812)'));
+      await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+      await waitFor(() => expect(body).toMatchObject({ name: 'New shop', mccCode: '5812' }));
+      expect(body).not.toHaveProperty('businessField');
+    });
+
+    it('blocks a new Sub without a contract when the Master signs contracts per Sub, then sends the staging id', async () => {
+      let body: unknown;
+      serveMaster({ mccCode: '5812', contractSignedWithSub: true });
+      mswServer.use(
+        http.post('/api/v1/admin/kyb/documents', () => HttpResponse.json({ stagingId }, { status: 201 })),
+        http.post(base, async ({ request }) => { body = await request.json(); return HttpResponse.json(detail); }),
+      );
+      renderContainer({ rows: [row], total: 1 }, true, masterId);
+      await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
+      await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+      const upload = await screen.findByLabelText(/Hợp đồng riêng của Sub-merchant \*/);
+      await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+      expect(await screen.findByText(/vui lòng đính kèm hợp đồng của Sub-merchant/)).toBeInTheDocument();
+      expect(body).toBeUndefined();
+      await userEvent.upload(upload, pdf());
+      await waitFor(() => expect(screen.queryByText(/vui lòng đính kèm hợp đồng/)).not.toBeInTheDocument());
+      await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+      await waitFor(() => expect(body).toMatchObject({ name: 'New shop', contractStagingId: stagingId }));
+    });
+
+    it('keeps the contract upload optional when the Master profile cannot be read and shows the BE 5205 message', async () => {
+      const message = 'Merchant ký hợp đồng riêng với từng Sub-merchant, vui lòng đính kèm hợp đồng của Sub-merchant';
+      mswServer.use(
+        http.get(`/api/v1/admin/kyb/merchants/${masterId}`, () => HttpResponse.json({ message: 'Lỗi' }, { status: 500 })),
+        http.post(base, () => HttpResponse.json({ message }, { status: 400 })),
+      );
+      renderContainer({ rows: [row], total: 1 }, true, masterId);
+      await userEvent.click(screen.getByRole('button', { name: /Thêm mới/ }));
+      await userEvent.type(await screen.findByRole('textbox', { name: /Tên Sub-merchant/ }), 'New shop');
+      expect(await screen.findByLabelText('Hợp đồng riêng của Sub-merchant')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Thêm Sub-merchant' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
   });
 });

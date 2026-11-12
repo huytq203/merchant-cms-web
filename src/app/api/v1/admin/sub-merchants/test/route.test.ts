@@ -16,7 +16,8 @@ const merchantId = "11111111-1111-4111-8111-111111111111";
 const session = { merchantIds: [merchantId], permissions: ["MANAGE_SUB_MERCHANT"] };
 const values = {
   name: "Sub-merchant",
-  businessField: "",
+  mccCode: "5812",
+  contractStagingId: "",
   inheritPhone: true,
   phone: "",
   inheritAddress: true,

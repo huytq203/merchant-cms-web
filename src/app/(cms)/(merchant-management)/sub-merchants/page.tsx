@@ -28,6 +28,7 @@ export default async function SubMerchantsPage({ searchParams }: Props) {
     <HydrationBoundary state={state}>
       <SubMerchantsContainer
         filter={filter}
+        merchantId={session.merchantIds[0]}
         canLock={hasAnyPermission(session.permissions, PERMISSION_GATES.subMerchantLock)}
         staticQr={{
           canView: hasAnyPermission(session.permissions, PERMISSION_GATES.terminalRead),

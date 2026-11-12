@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge/Badge';
 import { createIndexColumn } from '@/components/page/IndexColumn';
 import { StatusBadge } from '@/components/page/StatusBadge';
 import { formatAmount } from '@/lib/utils/helper';
+import { formatBusinessCategory } from '@/features/business-categories/utils';
 import {
   SubMerchantRowActions,
   type SubMerchantRowHandlers,
@@ -63,7 +64,7 @@ export function getColumn(handlers: SubMerchantRowHandlers, page: number, pageSi
     {
       id: 'businessField',
       header: 'Ngành nghề',
-      cell: ({ row }) => row.original.businessField || <span className="text-muted-foreground">—</span>,
+      cell: ({ row }) => formatBusinessCategory(row.original.businessField, row.original.mccCode) || <span className="text-muted-foreground">—</span>,
     },
     {
       id: 'terminals',

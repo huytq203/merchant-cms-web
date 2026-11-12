@@ -12,6 +12,8 @@ import { acceptedFormatsLabel, maxSizeLabel } from "../utils/document-validation
 
 type Props = {
   type: DocumentType;
+  /** Overrides the default label of the document type, for example the Sub's own contract vs the Master's. */
+  label?: string;
   required?: boolean;
   multiple?: boolean;
   /** Files already saved on the server, shown until the user uploads a replacement. */
@@ -25,8 +27,9 @@ type Props = {
 };
 
 export function DocumentUploadField(props: Props) {
-  const { type, required, multiple, existing = [], error, disabled, onChange, onRefreshLinks } = props;
+  const { type, label: customLabel, required, multiple, existing = [], error, disabled, onChange, onRefreshLinks } = props;
   const rule = DOCUMENT_RULES[type];
+  const label = customLabel ?? rule.label;
   // With a file already saved, the slot shows its card; "Thay tệp" opens the empty upload box instead.
   // Remember which saved file the user chose to replace, so a new saved file (after save/refetch) shows its card again.
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export function DocumentUploadField(props: Props) {
   if (existing.length > 0 && files.length === 0 && !replacing && !upload.isUploading) {
     return (
       <div className="grid gap-2">
-        <p className="text-sm font-medium text-foreground">{required ? `${rule.label} *` : rule.label}</p>
+        <p className="text-sm font-medium text-foreground">{required ? `${label} *` : label}</p>
         {existing.map((file, index) => (
           <StoredFileCard
             key={file.id}
@@ -51,7 +54,7 @@ export function DocumentUploadField(props: Props) {
             onRefreshLinks={onRefreshLinks}
             action={
               index === 0 && !disabled ? (
-                <Button type="button" variant="outline" size="sm" aria-label={`Thay tệp ${file.filename ?? rule.label}`} onClick={() => setReplacingId(existing[0]?.id ?? null)}>
+                <Button type="button" variant="outline" size="sm" aria-label={`Thay tệp ${file.filename ?? label}`} onClick={() => setReplacingId(existing[0]?.id ?? null)}>
                   Thay tệp
                 </Button>
               ) : undefined
@@ -64,7 +67,7 @@ export function DocumentUploadField(props: Props) {
   return (
     <div className="grid gap-2">
       <FileUpload
-        label={required ? `${rule.label} *` : rule.label}
+        label={required ? `${label} *` : label}
         size="sm"
         accept={rule.contentTypes.join(",")}
         multiple={multiple}

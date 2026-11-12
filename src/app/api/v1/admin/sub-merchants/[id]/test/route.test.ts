@@ -17,7 +17,8 @@ const id = "22222222-2222-4222-8222-222222222222";
 const ctx = { params: Promise.resolve({ id }) };
 const values = {
   name: "Sub-merchant",
-  businessField: "",
+  mccCode: "5812",
+  contractStagingId: "",
   inheritPhone: true,
   phone: "",
   inheritAddress: true,

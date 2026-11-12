@@ -20,9 +20,11 @@ type Props = {
   canLock: boolean;
   /** QR tĩnh cấp Sub dùng quyền Terminal: xem/hiển thị cần VIEW_TERMINAL hoặc MANAGE_TERMINAL, tạo/đổi/tắt cần MANAGE_TERMINAL. */
   staticQr?: { canView: boolean; canManage: boolean };
+  /** Master mà BE gắn Sub mới vào (Master đầu tiên của phiên); dùng để đọc ngành nghề và cờ hợp đồng riêng. */
+  merchantId?: string;
 };
 
-export function SubMerchantsContainer({ filter, canLock, staticQr }: Props) {
+export function SubMerchantsContainer({ filter, canLock, staticQr, merchantId }: Props) {
   const dialogs = useSubMerchantDialogs();
   const [staticQrScope, setStaticQrScope] = useState<(StaticQrScope & { name: string }) | null>(null);
   const actions = useSubMerchantActions(dialogs);
@@ -59,7 +61,7 @@ export function SubMerchantsContainer({ filter, canLock, staticQr }: Props) {
         onUnlock={canLock ? (row) => dialogs.openFor('unlock', row) : undefined}
         onStaticQr={staticQr?.canView ? (row) => setStaticQrScope({ subMerchantId: row.id, name: `Sub-merchant ${row.name}` }) : undefined}
       />
-      <SubMerchantDialogs dialogs={dialogs} actions={actions} canLock={canLock} />
+      <SubMerchantDialogs dialogs={dialogs} actions={actions} canLock={canLock} merchantId={merchantId} />
       <StaticQrDialog scope={staticQrScope} canManage={staticQr?.canManage ?? false} onClose={() => setStaticQrScope(null)} />
     </div>
   );

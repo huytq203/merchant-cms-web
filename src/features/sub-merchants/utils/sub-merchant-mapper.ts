@@ -16,8 +16,8 @@ export function toSubMerchantDetail(dto: unknown): SubMerchantDetail {
   return subMerchantDetailSchema.parse(dto);
 }
 
-function optionalText(value: string): string | undefined {
-  return value === "" ? undefined : value;
+function optionalText(value: string | undefined): string | undefined {
+  return !value ? undefined : value;
 }
 
 function contactFields(values: SubMerchantFormValues) {
@@ -29,12 +29,20 @@ function contactFields(values: SubMerchantFormValues) {
   };
 }
 
+/**
+ * Ngành nghề và hợp đồng riêng của Sub. Không gửi `businessField`: khi có `mccCode` BE tự đặt tên ngành chuẩn và bỏ qua
+ * giá trị gửi lên. Rỗng thì bỏ khỏi body (tạo mới ⇒ BE lấy ngành của Master; sửa ⇒ giữ nguyên).
+ */
+function categoryAndContractFields(values: SubMerchantFormValues) {
+  return { mccCode: optionalText(values.mccCode), contractStagingId: optionalText(values.contractStagingId) };
+}
+
 export function toCreateRequest(values: SubMerchantFormValues, merchantId: string) {
-  return { merchantId, name: values.name.trim(), businessField: optionalText(values.businessField), ...contactFields(values) };
+  return { merchantId, name: values.name.trim(), ...categoryAndContractFields(values), ...contactFields(values) };
 }
 
 export function toUpdateRequest(values: SubMerchantFormValues) {
-  return { name: values.name.trim(), businessField: optionalText(values.businessField), ...contactFields(values) };
+  return { name: values.name.trim(), ...categoryAndContractFields(values), ...contactFields(values) };
 }
 
 export const canLock = (node: LockState): boolean => node.status === "ACTIVE";

@@ -38,7 +38,7 @@ describe("subMerchantSummarySchema", () => {
 });
 
 describe("subMerchantFormSchema", () => {
-  const base = { name: "Sub-merchant A", businessField: "", inheritPhone: true, phone: "", inheritAddress: true, address: "" };
+  const base = { name: "Sub-merchant A", mccCode: "", contractStagingId: "", inheritPhone: true, phone: "", inheritAddress: true, address: "" };
 
   it("accepts inherited phone/address without values", () => {
     expect(subMerchantFormSchema.safeParse(base).success).toBe(true);
@@ -52,5 +52,12 @@ describe("subMerchantFormSchema", () => {
   });
   it("rejects a name over 255 characters", () => {
     expect(subMerchantFormSchema.safeParse({ ...base, name: "a".repeat(256) }).success).toBe(false);
+  });
+  it("accepts a contract staging id only as a uuid or empty", () => {
+    expect(subMerchantFormSchema.safeParse({ ...base, contractStagingId: "33333333-3333-4333-8333-333333333333" }).success).toBe(true);
+    expect(subMerchantFormSchema.safeParse({ ...base, contractStagingId: "abc" }).success).toBe(false);
+  });
+  it("rejects an MCC code longer than 10 characters", () => {
+    expect(subMerchantFormSchema.safeParse({ ...base, mccCode: "12345678901" }).success).toBe(false);
   });
 });

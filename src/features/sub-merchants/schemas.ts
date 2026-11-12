@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { inheritedFieldSchema, lockSourceSchema, subMerchantStatusSchema } from "@/lib/be/node-schemas";
+import { storedFileSchema } from "@/features/kyb/schemas/enterprise-wallet.schema";
 
 export { inheritedFieldSchema, lockSourceSchema, subMerchantStatusSchema } from "@/lib/be/node-schemas";
 
@@ -24,6 +25,8 @@ export const subMerchantSummarySchema = z
     createdAt: z.string().nullish(),
     /** Overview columns of the Portal list (BE `MerchantSubMerchantSummaryResponse`); absent on an older BE and in the admin shape. */
     businessField: z.string().nullish(),
+    /** Mã MCC của Sub (BE mới); `businessField` là tên ngành chuẩn tương ứng. */
+    mccCode: z.string().nullish(),
     terminalCount: z.number().int().nullish(),
     /** Always POS / ONLINE / QR when present. */
     terminalCountByType: z.record(z.string(), z.number().int()).nullish(),
@@ -54,6 +57,15 @@ export const subMerchantDetailSchema = z.object({
   code: z.string(),
   name: z.string(),
   businessField: z.string().nullish(),
+  /** Mã MCC trong danh mục ngành nghề; BE đặt `businessField` = tên ngành chuẩn của mã này. Sub cũ nhập tay có thể null. */
+  mccCode: z.string().nullish(),
+  /**
+   * true khi Master bật "Ký hợp đồng riêng với Sub-merchant": Sub phải có hợp đồng riêng. BE cũ không gửi trường này,
+   * coi như không bắt buộc.
+   */
+  contractRequired: z.boolean().optional(),
+  /** Hợp đồng riêng của Sub; `url` (liên kết ký có hạn) chỉ có ở `GET .../sub-merchants/{id}`. */
+  contractFile: storedFileSchema.nullish(),
   status: subMerchantStatusSchema,
   isDefault: z.boolean(),
   lockSource: lockSourceSchema.nullish(),
@@ -85,7 +97,13 @@ export const subMerchantFilterSchema = z.object({
 export const subMerchantFormSchema = z
   .object({
     name: z.string().trim().min(1, "Tên Sub-merchant là bắt buộc").max(255, "Tối đa 255 ký tự"),
-    businessField: z.string().trim().max(100, "Tối đa 100 ký tự"),
+    /** Mã MCC chọn từ danh mục. Rỗng khi tạo ⇒ BE lấy ngành của Master; mã ngoài danh mục BE trả 400 (4314). */
+    mccCode: z.string().trim().max(10, "MCC tối đa 10 ký tự").optional(),
+    /**
+     * stagingId của hợp đồng riêng đã tải lên trước qua `/documents`; rỗng = không đính kèm. Việc bắt buộc phụ thuộc
+     * hồ sơ Master nên form tự kiểm, không nằm trong schema.
+     */
+    contractStagingId: z.union([z.literal(""), z.uuid("Mã tệp hợp đồng không hợp lệ")]).optional(),
     inheritPhone: z.boolean(),
     phone: z.string().trim().max(15, "Tối đa 15 ký tự"),
     inheritAddress: z.boolean(),
