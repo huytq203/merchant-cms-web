@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { FilterCard } from "@/components/page/FilterCard";
 import { Select } from "@/components/ui/select/Select";
-import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import type { BankAccountFilter } from "../types";
 
-/** Lọc theo Sub (11/11/2026): BE trả TK của đúng Sub đó; TK cấp Master không thuộc Sub nào nên không hiện. */
-type Values = Pick<BankAccountFilter, "linkStatus" | "status" | "subMerchantId">;
+/** Lọc theo một hoặc nhiều Sub (12/11/2026): BE trả TK của các Sub đó; TK cấp Master không thuộc Sub nào nên không hiện. */
+type Values = Pick<BankAccountFilter, "linkStatus" | "status" | "subMerchantIds">;
 type Props = { initial: Values; onSearch: (values: Values) => void };
 
 const linkOptions = [
@@ -23,21 +23,19 @@ const usageOptions = [
 export function BankAccountFilters({ initial, onSearch }: Props) {
   const [linkStatus, setLinkStatus] = useState(initial.linkStatus ?? "");
   const [status, setStatus] = useState(initial.status ?? "");
-  const [subMerchantId, setSubMerchantId] = useState(initial.subMerchantId ?? "");
-  const subMerchants = useSubMerchantOptions();
-  const subOptions = (subMerchants.data ?? []).map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }));
+  const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
 
   const search = () => {
     onSearch({
       ...(linkStatus ? { linkStatus: linkStatus as Values["linkStatus"] } : {}),
       ...(status ? { status: status as Values["status"] } : {}),
-      ...(subMerchantId ? { subMerchantId } : {}),
+      ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
     });
   };
   const clear = () => {
     setLinkStatus("");
     setStatus("");
-    setSubMerchantId("");
+    setSubMerchantIds([]);
     onSearch({});
   };
 
@@ -57,13 +55,7 @@ export function BankAccountFilters({ initial, onSearch }: Props) {
           options={usageOptions}
           onChange={setStatus}
         />
-        <Select
-          label="Sub-merchant"
-          placeholder={subMerchants.isPending ? "Đang tải..." : "Tất cả Sub-merchant"}
-          value={subMerchantId}
-          options={subOptions}
-          onChange={setSubMerchantId}
-        />
+        <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
     </FilterCard>
   );
 }

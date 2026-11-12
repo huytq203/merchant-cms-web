@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subMerchantIdsCsv } from "@/features/sub-merchants/utils/sub-merchant-ids";
 
 /** Bucket size of the revenue series: Vietnam calendar day or month of payment. */
 export const revenueGranularitySchema = z.enum(["DAY", "MONTH"]);
@@ -35,7 +36,8 @@ export const revenuePresetSchema = z.enum(["DAY_7", "DAY_15", "DAY_30", "THIS_MO
 /** Query of the dashboard route: the client names the preset, the server turns it into dates (one "today"). */
 export const revenueQuerySchema = z.object({
   preset: revenuePresetSchema,
-  subMerchantId: z.uuid().optional(),
+  /** Danh sách Sub nối dấu phẩy; trống = mọi Sub trong phạm vi phiên. */
+  subMerchantIds: subMerchantIdsCsv.optional(),
 });
 
 export type RevenuePreset = z.infer<typeof revenuePresetSchema>;

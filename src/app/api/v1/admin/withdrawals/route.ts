@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
 import { z } from "zod";
+import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { withdrawalCreateBodySchema, withdrawalStatusGroupSchema } from "@/features/withdrawals/schemas/withdrawal.schema";
 import { createWithdrawal, listWithdrawals } from "@/server/modules/withdrawals/withdrawal.service";
 import { beErrorResponse, requireWithdrawalAccess } from "@/server/modules/withdrawals/require-withdrawal-access";
@@ -9,6 +10,7 @@ import { beErrorResponse, requireWithdrawalAccess } from "@/server/modules/withd
 const listQuerySchema = paginationQuerySchema.extend({
   transactionCode: z.string().trim().max(100).optional(),
   statusGroup: withdrawalStatusGroupSchema.optional(),
+  subMerchantIds: subMerchantIdsParam,
   createdFrom: z.iso.date().optional(),
   createdTo: z.iso.date().optional(),
 });

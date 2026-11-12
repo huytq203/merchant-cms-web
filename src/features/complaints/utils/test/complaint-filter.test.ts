@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { filterToFormValues, formValuesToFilter, toBeComplaintQuery } from "../complaint-filter";
 
 const SUB = "44444444-4444-4444-8444-444444444444";
+const SUB2 = "55555555-5555-4555-8555-555555555555";
 
 describe("formValuesToFilter", () => {
   it("drops empty and unknown values and restarts at the first page", () => {
-    expect(formValuesToFilter({ status: "pending", waitingOn: "", reporterType: "BANK", subMerchantId: "SM01" }, 20)).toEqual({
+    expect(formValuesToFilter({ status: "pending", waitingOn: "", reporterType: "BANK", subMerchantIds: ["SM01"] }, 20)).toEqual({
       page: 1,
       pageSize: 20,
     });
@@ -13,8 +14,8 @@ describe("formValuesToFilter", () => {
 
   it("keeps every BE filter with its contract value", () => {
     expect(
-      formValuesToFilter({ status: "PROCESSING", waitingOn: "MERCHANT", reporterType: "ADMIN", subMerchantId: SUB }, 10),
-    ).toEqual({ page: 1, pageSize: 10, status: "PROCESSING", waitingOn: "MERCHANT", reporterType: "ADMIN", subMerchantId: SUB });
+      formValuesToFilter({ status: "PROCESSING", waitingOn: "MERCHANT", reporterType: "ADMIN", subMerchantIds: [SUB, SUB2] }, 10),
+    ).toEqual({ page: 1, pageSize: 10, status: "PROCESSING", waitingOn: "MERCHANT", reporterType: "ADMIN", subMerchantIds: `${SUB},${SUB2}` });
   });
 
   it("keeps a trimmed complaint or transaction code search", () => {

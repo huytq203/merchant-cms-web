@@ -23,7 +23,7 @@ export function SettlementResults({ filter, onPageChange, onView, onPickSub, pic
 
   return (
     <>
-      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantId ? undefined : onPickSub} trancheFiltered={Boolean(filter.trancheStatus)} pickableSubIds={pickableSubIds} /> : null}
+      {list.data && list.data.rows.length > 0 ? <SettlementTotalsBar totals={list.data.totals} onPickSub={filter.subMerchantIds?.length === 1 ? undefined : onPickSub} trancheFiltered={Boolean(filter.trancheStatus)} pickableSubIds={pickableSubIds} /> : null}
       <ResultCard>
         {list.isPending ? <ResultState state="loading" loadingLabel="Đang tải dòng quyết toán" /> : null}
         {list.isError ? <ResultState state="error" errorMessage={list.error.message} onRetry={() => void list.refetch()} /> : null}

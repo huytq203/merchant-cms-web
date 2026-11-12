@@ -15,9 +15,9 @@ export async function GET(request: Request) {
   if (!access.ok) return access.response;
   const query = revenueQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
-  const { preset, subMerchantId } = query.data;
+  const { preset, subMerchantIds } = query.data;
   const { from, to, granularity } = revenueRange(preset, vnDay(new Date().toISOString()) as string);
-  const result = await getRevenueSeries({ granularity, from, to, ...(subMerchantId ? { subMerchantId } : {}) });
+  const result = await getRevenueSeries({ granularity, from, to, ...(subMerchantIds ? { subMerchantIds } : {}) });
   if (!result.success) {
     return NextResponse.json({ message: domainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });
   }

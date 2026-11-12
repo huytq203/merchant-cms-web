@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { settlementFilterSchema } from "@/features/settlement-items/schemas";
+import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
 import { requirePermission } from "@/server/auth/require-permission";
 import { readSettlementList } from "@/server/modules/settlement-items/settlement-list";
 
 const rawQuerySchema = paginationQuerySchema.extend({
-  subMerchantId: settlementFilterSchema.shape.subMerchantId,
+  subMerchantIds: subMerchantIdsParam,
   terminalId: settlementFilterSchema.shape.terminalId,
   trancheStatus: settlementFilterSchema.shape.trancheStatus,
   paidFrom: settlementFilterSchema.shape.paidFrom,

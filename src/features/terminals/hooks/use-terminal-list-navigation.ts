@@ -1,13 +1,15 @@
 import { usePathname, useRouter } from "next/navigation";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import type { TerminalListFilter } from "../types";
 
-type SearchValues = Pick<TerminalListFilter, "name" | "status" | "subMerchantId" | "terminalType">;
+type SearchValues = Pick<TerminalListFilter, "name" | "status" | "subMerchantIds" | "terminalType">;
 
 function toSearchParams(filter: TerminalListFilter): URLSearchParams {
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
   if (filter.name) params.set("name", filter.name);
   if (filter.status) params.set("status", filter.status);
-  if (filter.subMerchantId) params.set("subMerchantId", filter.subMerchantId);
+  const subMerchantIds = formatSubMerchantIds(filter.subMerchantIds);
+  if (subMerchantIds) params.set("subMerchantIds", subMerchantIds);
   if (filter.terminalType) params.set("terminalType", filter.terminalType);
   return params;
 }

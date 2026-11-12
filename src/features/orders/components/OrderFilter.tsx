@@ -7,7 +7,7 @@ import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker } from "@/components/ui/datepicker/DatePicker";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
-import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import { orderStatusSchema } from "../schemas/order.schema";
 import { ORDER_STATUS_OPTIONS } from "../constants/Order.constants";
 import type { OrderFilterValues } from "../types/types";
@@ -20,17 +20,16 @@ const toDay = (value: Date | undefined) => (value ? format(value, "yyyy-MM-dd") 
 export function OrderFilter({ initial, onSearch }: Props) {
   const [orderCode, setOrderCode] = useState(initial.orderCode ?? "");
   const [status, setStatus] = useState<string>(initial.status ?? "");
-  const [subMerchantId, setSubMerchantId] = useState(initial.subMerchantId ?? "");
+  const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
   const [createdFrom, setCreatedFrom] = useState(initial.createdFrom ?? "");
   const [createdTo, setCreatedTo] = useState(initial.createdTo ?? "");
-  const subMerchants = useSubMerchantOptions();
 
   const submit = () => {
     const parsedStatus = orderStatusSchema.safeParse(status);
     onSearch({
       ...(orderCode.trim() ? { orderCode: orderCode.trim() } : {}),
       ...(parsedStatus.success ? { status: parsedStatus.data } : {}),
-      ...(subMerchantId ? { subMerchantId } : {}),
+      ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
       ...(createdFrom ? { createdFrom } : {}),
       ...(createdTo ? { createdTo } : {}),
     });
@@ -38,7 +37,7 @@ export function OrderFilter({ initial, onSearch }: Props) {
   const clear = () => {
     setOrderCode("");
     setStatus("");
-    setSubMerchantId("");
+    setSubMerchantIds([]);
     setCreatedFrom("");
     setCreatedTo("");
     onSearch({});
@@ -47,8 +46,8 @@ export function OrderFilter({ initial, onSearch }: Props) {
   return (
     <FilterCard fieldCount={4} onSubmit={submit} onClear={clear}>
       <Input
-        label="Mã đơn hàng"
-        placeholder="Nhập mã đơn hàng cần tìm"
+        label="Mã đơn / Mã GD"
+        placeholder="Nhập mã đơn hoặc FM…"
         value={orderCode}
         maxLength={100}
         onChange={(event) => setOrderCode(event.target.value)}
@@ -60,13 +59,7 @@ export function OrderFilter({ initial, onSearch }: Props) {
         options={statusOptions}
         placeholder="Tất cả trạng thái"
       />
-      <Select
-        label="Sub-merchant"
-        value={subMerchantId}
-        onChange={setSubMerchantId}
-        options={(subMerchants.data ?? []).map((sub) => ({ value: sub.id, label: `${sub.code} — ${sub.name}` }))}
-        placeholder="Tất cả Sub-merchant"
-      />
+      <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
       <DatePicker
         mode="range"
         label="Ngày tạo"

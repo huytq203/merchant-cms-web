@@ -35,7 +35,7 @@ describe("revenue stats route", () => {
   it("rejects an unknown preset, a missing preset or a malformed Sub id", async () => {
     expect((await GET(request("?preset=WEEK"))).status).toBe(400);
     expect((await GET(request("?granularity=DAY"))).status).toBe(400);
-    expect((await GET(request("?preset=DAY_7&subMerchantId=S001"))).status).toBe(400);
+    expect((await GET(request("?preset=DAY_7&subMerchantIds=S001"))).status).toBe(400);
     expect(getRevenueSeries).not.toHaveBeenCalled();
   });
 
@@ -51,8 +51,8 @@ describe("revenue stats route", () => {
   });
 
   it("passes the Sub filter through", async () => {
-    await GET(request(`?preset=DAY_7&subMerchantId=${sub}`));
-    expect(getRevenueSeries).toHaveBeenLastCalledWith({ granularity: "DAY", from: "2026-11-04", to: "2026-11-10", subMerchantId: sub });
+    await GET(request(`?preset=DAY_7&subMerchantIds=${sub},${sub}`));
+    expect(getRevenueSeries).toHaveBeenLastCalledWith({ granularity: "DAY", from: "2026-11-04", to: "2026-11-10", subMerchantIds: `${sub},${sub}` });
   });
 
   it("forwards the Vietnamese BE message", async () => {

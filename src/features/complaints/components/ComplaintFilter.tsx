@@ -4,7 +4,7 @@ import type { DateRange } from "react-day-picker";
 import { useForm } from "react-hook-form";
 import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker, Form, FormField, Input, Select } from "@/components/ui";
-import { SubMerchantFilterField } from "@/features/sample-data/components/SubMerchantFilterField";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import {
   COMPLAINT_REPORTER_OPTIONS,
   COMPLAINT_STATUS_OPTIONS,
@@ -28,7 +28,7 @@ const EMPTY_VALUES: ComplaintFilterValues = {
   status: "",
   waitingOn: "",
   reporterType: "",
-  subMerchantId: "",
+  subMerchantIds: [],
   createdFrom: null,
   createdTo: null,
 };
@@ -78,8 +78,8 @@ export function ComplaintFilter({ onSearch, defaultValues }: ComplaintFilterProp
         />
         <FormField
           control={form.control}
-          name="subMerchantId"
-          render={({ field }) => <SubMerchantFilterField value={field.value ?? ""} onChange={field.onChange} />}
+          name="subMerchantIds"
+          render={({ field }) => <SubMerchantMultiFilter value={field.value ?? []} onChange={field.onChange} />}
         />
         <FormField
           control={form.control}

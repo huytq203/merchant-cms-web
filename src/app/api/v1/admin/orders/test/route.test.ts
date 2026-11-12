@@ -50,13 +50,13 @@ describe("orders list route", () => {
   });
 
   it("forwards the Sub-merchant and created-date filters and rejects malformed ones", async () => {
-    const query = `?subMerchantId=${subMerchantId}&createdFrom=2026-10-01&createdTo=2026-10-09`;
+    const query = `?subMerchantIds=${subMerchantId}&createdFrom=2026-10-01&createdTo=2026-10-09`;
     expect((await GET(listRequest(query))).status).toBe(200);
     expect(listOrders).toHaveBeenCalledWith({
-      page: 1, pageSize: 10, subMerchantId, createdFrom: "2026-10-01", createdTo: "2026-10-09",
+      page: 1, pageSize: 10, subMerchantIds: [subMerchantId], createdFrom: "2026-10-01", createdTo: "2026-10-09",
     });
     expect((await GET(listRequest("?createdFrom=01/10/2026"))).status).toBe(400);
-    expect((await GET(listRequest("?subMerchantId=abc"))).status).toBe(400);
+    expect((await GET(listRequest("?subMerchantIds=abc"))).status).toBe(400);
   });
 
   it("keeps the BE status and never answers 2xx for a failure", async () => {

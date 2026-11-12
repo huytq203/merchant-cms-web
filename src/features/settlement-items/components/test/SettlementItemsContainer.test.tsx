@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
@@ -28,7 +28,13 @@ function renderContainer(current: Parameters<typeof SettlementItemsContainer>[0]
   );
 }
 
+const subChoices = [
+  { id: subId, code: "SUB001", name: "Cửa hàng A", status: "ACTIVE" },
+  { id: "22222222-2222-4222-8222-222222222222", code: "SUB002", name: "Cửa hàng B", status: "ACTIVE" },
+];
+
 beforeEach(() => {
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json(subChoices)));
   mswServer.use(http.get(base, () => HttpResponse.json({ rows: [rowFixture], total: 1, totals: totalsFixture })));
 });
 afterEach(() => {
@@ -118,7 +124,7 @@ describe("settlement items container", () => {
     expect(within(split).getByText("Đã vào lệnh rút").parentElement).toHaveTextContent("88.000");
     expect(within(split).getByText("Chờ quyết toán").parentElement).toHaveTextContent("135.000");
     await userEvent.click(screen.getByRole("button", { name: "Lọc theo Halo tech" }));
-    expect(push).toHaveBeenCalledWith(`/settlement-items?paidFrom=2026-10-08&paidTo=2026-10-14&page=1&pageSize=20&subMerchantId=${subId}`);
+    expect(push).toHaveBeenCalledWith(`/settlement-items?paidFrom=2026-10-08&paidTo=2026-10-14&page=1&pageSize=20&subMerchantIds=${subId}`);
   });
 
   it("does not offer the split by Sub once a Sub is chosen", async () => {
@@ -127,7 +133,7 @@ describe("settlement items container", () => {
       total: 1,
       totals: { ...totalsFixture, bySub: [{ subMerchantId: subId, subMerchantCode: "S001", subMerchantName: "Halo tech", count: 1, grossAmount: 1, feeAmount: 0, recognisedAmount: 1, firstTrancheAmount: 1, heldAmount: 0 }] },
     })));
-    renderContainer({ ...filter, subMerchantId: subId });
+    renderContainer({ ...filter, subMerchantIds: [subId] });
     await screen.findByRole("table");
     expect(screen.queryByRole("button", { name: "Lọc theo Halo tech" })).not.toBeInTheDocument();
   });
@@ -153,6 +159,22 @@ describe("settlement items container", () => {
     await screen.findByRole("table");
     expect(screen.getByText("Thanh phân bổ chỉ hiện khi xem tất cả trạng thái.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Phân bổ theo trạng thái đợt" })).not.toBeInTheDocument();
+  });
+
+  it("loads the Terminals of every chosen Sub together and searches with the Sub list", async () => {
+    let terminalQuery: URLSearchParams | undefined;
+    mswServer.use(http.get("/api/v1/admin/terminals", ({ request }) => {
+      terminalQuery = new URL(request.url).searchParams;
+      return HttpResponse.json({ rows: [], total: 0 });
+    }));
+    renderContainer(filter, true);
+    await screen.findByRole("table");
+    await userEvent.click(screen.getByRole("button", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Cửa hàng A/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Áp dụng" }));
+    await waitFor(() => expect(terminalQuery?.get("subMerchantIds")).toBe(subId));
+    await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    expect(String(push.mock.calls.at(-1)?.[0])).toContain(`subMerchantIds=${subId}`);
   });
 
   it("notes the Terminal limit when the session has more Terminals than one load", async () => {

@@ -51,15 +51,22 @@ describe("terminal collection route", () => {
     expect(listTerminals).not.toHaveBeenCalled();
   });
 
-  it("rejects another sub merchant", async () => {
-    expect((await GET(get("?subMerchantId=22222222-2222-4222-8222-222222222222"))).status).toBe(403);
+  it("forwards the Sub list to the BE, which drops Subs outside the session scope", async () => {
+    listTerminals.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    const other = "22222222-2222-4222-8222-222222222222";
+    expect((await GET(get(`?subMerchantIds=${subMerchantId},${other}`))).status).toBe(200);
+    expect(listTerminals).toHaveBeenCalledWith({ page: 1, pageSize: 10, subMerchantIds: [subMerchantId, other] });
+  });
+
+  it("rejects a malformed Sub id in the list", async () => {
+    expect((await GET(get("?subMerchantIds=abc"))).status).toBe(400);
     expect(listTerminals).not.toHaveBeenCalled();
   });
 
   it("lists all permitted terminals when sub merchant filter is omitted", async () => {
     listTerminals.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
     expect((await GET(get("?name=Quay"))).status).toBe(200);
-    expect(listTerminals).toHaveBeenCalledWith({ page: 1, pageSize: 10, name: "Quay", subMerchantId: undefined });
+    expect(listTerminals).toHaveBeenCalledWith({ page: 1, pageSize: 10, name: "Quay" });
   });
 
   it("requires a sub merchant when creating a terminal", async () => {

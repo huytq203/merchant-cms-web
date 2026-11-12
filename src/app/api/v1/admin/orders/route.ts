@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
 import { z } from "zod";
+import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { orderFormSchema, orderStatusSchema } from "@/features/orders/schemas/order.schema";
 import { createOrder, listOrders } from "@/server/modules/orders/order.service";
 import {
@@ -13,7 +14,8 @@ import {
 const listQuerySchema = paginationQuerySchema.extend({
   orderCode: z.string().trim().max(100).optional(),
   status: orderStatusSchema.optional(),
-  subMerchantId: z.uuid().optional(),
+  // Danh sách Sub nối dấu phẩy; BE tự giao với phạm vi của người dùng nên không kiểm lại ở đây.
+  subMerchantIds: subMerchantIdsParam,
   createdFrom: z.iso.date().optional(),
   createdTo: z.iso.date().optional(),
 });

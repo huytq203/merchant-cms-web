@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiClient } from "@/lib/http/api-client";
+import { formatSubMerchantIds, parseSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { shiftVnDate, vnToday } from "@/lib/utils/vn-time";
 import { settlementItemDetailSchema, settlementListResultSchema, trancheGroupSchema } from "./schemas";
 import type { ResolvedSettlementFilter, SettlementFilter, SettlementItemDetail, SettlementListResult } from "./types";
@@ -46,11 +47,11 @@ export function parseSettlementSearchParams(raw: RawSearchParams, now = new Date
   // Khoảng quá 92 ngày (URL gõ tay hoặc chia sẻ) cũng coi là không hợp lệ: BE sẽ từ chối nên không gọi với nó.
   const rangeValid = !!paidFrom && !!paidTo && day.test(paidFrom) && day.test(paidTo) && paidFrom <= paidTo
     && settlementRangeError(paidFrom, paidTo) === null;
-  const subMerchantId = single(raw, "subMerchantId");
+  const subMerchantIds = parseSubMerchantIds(raw.subMerchantIds, raw.subMerchantId);
   const terminalId = single(raw, "terminalId");
   const trancheStatus = trancheGroupSchema.safeParse(single(raw, "trancheStatus"));
   return {
-    ...(subMerchantId && z.uuid().safeParse(subMerchantId).success ? { subMerchantId } : {}),
+    ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
     ...(terminalId && z.uuid().safeParse(terminalId).success ? { terminalId } : {}),
     ...(trancheStatus.success ? { trancheStatus: trancheStatus.data } : {}),
     paidFrom: rangeValid ? paidFrom : shiftVnDate(paidToDefault, 1 - RANGE_DAYS),
@@ -60,11 +61,17 @@ export function parseSettlementSearchParams(raw: RawSearchParams, now = new Date
   };
 }
 
+/** Query gửi lên route Next: apiClient chỉ nhận giá trị đơn, nên danh sách Sub nối dấu phẩy (rỗng = không gửi). */
+export function settlementQueryParams(filter: ResolvedSettlementFilter) {
+  const { subMerchantIds, ...rest } = filter;
+  return { ...rest, subMerchantIds: formatSubMerchantIds(subMerchantIds) };
+}
+
 export const settlementItemQueries = {
   list: (filter: ResolvedSettlementFilter) => queryOptions({
     queryKey: ["settlement-items", "list", filter] as const,
     queryFn: async (): Promise<SettlementListResult> =>
-      settlementListResultSchema.parse(await apiClient.get<unknown>("/v1/admin/settlement-items", { query: { ...filter } })),
+      settlementListResultSchema.parse(await apiClient.get<unknown>("/v1/admin/settlement-items", { query: settlementQueryParams(filter) })),
     staleTime: 30_000,
   }),
   detail: (id: string) => queryOptions({

@@ -282,16 +282,25 @@ describe("order list filters", () => {
   it("searches by status, Sub-merchant and created date", async () => {
     mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
       { id: "11111111-1111-4111-8111-111111111111", code: "MC1-S001", name: "Halo tech", status: "ACTIVE" },
+      { id: "44444444-4444-4444-8444-444444444444", code: "MC1-S002", name: "Kho Bắc", status: "ACTIVE" },
     ])));
     renderContainer();
     await screen.findByText("INV-1");
     const filter = screen.getByRole("form", { name: "Bộ lọc tìm kiếm" });
     await chooseOption(filter, /Trạng thái/, /Thành công/);
-    await chooseOption(filter, /Sub-merchant/, /Halo tech/);
+    await userEvent.click(within(filter).getByRole("button", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Halo tech/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Áp dụng" }));
     await userEvent.click(within(filter).getByRole("button", { name: "Tìm kiếm" }));
     const url = new URL(String(push.mock.calls.at(-1)?.[0]), "http://localhost");
     expect(url.searchParams.get("status")).toBe("SUCCESS");
-    expect(url.searchParams.get("subMerchantId")).toBe("11111111-1111-4111-8111-111111111111");
+    expect(url.searchParams.get("subMerchantIds")).toBe("11111111-1111-4111-8111-111111111111");
+  });
+
+  it("labels the order-code box as order code or transaction code", async () => {
+    renderContainer();
+    await screen.findByText("INV-1");
+    expect(screen.getByRole("textbox", { name: "Mã đơn / Mã GD" })).toBeInTheDocument();
   });
 
   it("shows where the order is going: the Sub-merchant and payment method columns", async () => {

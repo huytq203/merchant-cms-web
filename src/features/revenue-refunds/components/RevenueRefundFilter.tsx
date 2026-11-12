@@ -5,7 +5,7 @@ import type { DateRange } from "react-day-picker";
 import { SegmentedControl } from "@/components/form/SegmentedControl";
 import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker, Input } from "@/components/ui";
-import { SubMerchantFilterField } from "@/features/sample-data/components/SubMerchantFilterField";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import type { RefundFilter, RefundPeriod } from "../types";
 import { DEFAULT_REFUND_PERIOD, REFUND_PERIOD_OPTIONS } from "../utils/refund-query";
 
@@ -31,7 +31,7 @@ export function RevenueRefundFilter({ initial, onSearch }: Props) {
   const [period, setPeriod] = useState<RefundPeriod>(initial.period ?? DEFAULT_REFUND_PERIOD);
   const [range, setRange] = useState<{ from?: string; to?: string }>({ from: initial.from, to: initial.to });
   const [q, setQ] = useState(initial.q ?? "");
-  const [subMerchantId, setSubMerchantId] = useState(initial.subMerchantId ?? "");
+  const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
 
   const submit = () => {
     const keep = { ...(initial.group ? { group: initial.group } : {}), ...(initial.status ? { status: initial.status } : {}), ...(initial.orderId ? { orderId: initial.orderId } : {}) };
@@ -39,7 +39,7 @@ export function RevenueRefundFilter({ initial, onSearch }: Props) {
       ...keep,
       period,
       ...(q.trim() ? { q: q.trim() } : {}),
-      ...(subMerchantId ? { subMerchantId } : {}),
+      ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
       ...(period === "custom" ? { ...(range.from ? { from: range.from } : {}), ...(range.to ? { to: range.to } : {}) } : {}),
     });
   };
@@ -54,7 +54,7 @@ export function RevenueRefundFilter({ initial, onSearch }: Props) {
         setPeriod(DEFAULT_REFUND_PERIOD);
         setRange({});
         setQ("");
-        setSubMerchantId("");
+        setSubMerchantIds([]);
         onSearch(initial.orderId ? { orderId: initial.orderId } : {});
       }}
     >
@@ -80,7 +80,7 @@ export function RevenueRefundFilter({ initial, onSearch }: Props) {
         value={q}
         onChange={(event) => setQ(event.target.value)}
       />
-      <SubMerchantFilterField value={subMerchantId} onChange={setSubMerchantId} />
+      <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
     </FilterCard>
   );
 }

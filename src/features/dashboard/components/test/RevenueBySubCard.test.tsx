@@ -62,7 +62,22 @@ describe("RevenueBySubCard", () => {
     expect(screen.getByRole("list", { name: "Tổng kỳ" })).toHaveTextContent("2.200.000");
     expect(screen.getByRole("img", { name: /Doanh thu gộp theo ngày/ })).toBeInTheDocument();
     expect(requests[0]!.searchParams.get("preset")).toBe("DAY_7");
-    expect(requests[0]!.searchParams.has("subMerchantId")).toBe(false);
+    expect(requests[0]!.searchParams.has("subMerchantIds")).toBe(false);
+  });
+
+  it("asks only for the chosen Subs once some are ticked", async () => {
+    const first = "1311ae27-4ecb-447d-8c78-f3eb1307684c";
+    mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+      { id: first, code: "S2", name: "Halo Cầu Giấy", status: "ACTIVE" },
+      { id: LANG, code: "S1", name: "Halo Láng", status: "ACTIVE" },
+    ])));
+    answer([point({})]);
+    renderCard();
+    await screen.findByRole("table");
+    await userEvent.click(screen.getByRole("button", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Halo Cầu Giấy/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Áp dụng" }));
+    await waitFor(() => expect(requests.at(-1)?.searchParams.get("subMerchantIds")).toBe(first));
   });
 
   it("picks the period from one row of choices, including this and last month, and sends that preset", async () => {

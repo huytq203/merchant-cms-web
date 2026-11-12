@@ -2,7 +2,8 @@ import { queryOptions, useQuery, type UseQueryResult } from '@tanstack/react-que
 import { apiClient } from '@/lib/http/api-client';
 import type { SubMerchantStatus } from '../types';
 
-export type SubMerchantOption = { id: string; name: string; code: string; isDefault: boolean };
+/** `merchantId` is the Master the Sub sits under; BEs that do not send it leave it empty. */
+export type SubMerchantOption = { id: string; name: string; code: string; isDefault: boolean; merchantId?: string | null };
 
 /** A row of the light Sub list (`GET /api/v1/admin/sub-merchants/choices`). */
 export type SubMerchantChoiceRow = {
@@ -32,6 +33,6 @@ export function useSubMerchantOptions(merchantId?: string): UseQueryResult<SubMe
     select: (rows): SubMerchantOption[] =>
       rows
         .filter((row) => !merchantId || !row.merchantId || row.merchantId === merchantId)
-        .map(({ id, name, code, isDefault }) => ({ id, name, code, isDefault: isDefault ?? false })),
+        .map(({ id, name, code, isDefault, merchantId: master }) => ({ id, name, code, isDefault: isDefault ?? false, merchantId: master ?? null })),
   });
 }

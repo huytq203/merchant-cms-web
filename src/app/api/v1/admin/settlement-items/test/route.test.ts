@@ -10,7 +10,7 @@ vi.mock("@/lib/auth/session", () => ({ getServerSession }));
 vi.mock("@/server/modules/settlement-items/settlement-item.service", () => ({ listSettlementItems, getSettlementTotals }));
 import { GET } from "../route";
 
-const valid = `?subMerchantId=${subId}&paidFrom=2026-10-08&paidTo=2026-10-14&page=2&pageSize=20`;
+const valid = `?subMerchantIds=${subId}&paidFrom=2026-10-08&paidTo=2026-10-14&page=2&pageSize=20`;
 const request = (query: string) => new Request(`http://localhost/api/v1/admin/settlement-items${query}`);
 
 beforeEach(() => {
@@ -37,7 +37,7 @@ describe("settlement items route", () => {
     const response = await GET(request(valid));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ rows: [rowFixture], total: 41, totals: totalsFixture });
-    const filter = { subMerchantId: subId, paidFrom: "2026-10-08", paidTo: "2026-10-14", page: 2, pageSize: 20 };
+    const filter = { subMerchantIds: [subId], paidFrom: "2026-10-08", paidTo: "2026-10-14", page: 2, pageSize: 20 };
     expect(listSettlementItems).toHaveBeenCalledWith(filter);
     expect(getSettlementTotals).toHaveBeenCalledWith(filter);
   });

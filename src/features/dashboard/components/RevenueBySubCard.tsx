@@ -10,7 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle/Toggle";
 import { ResultState } from "@/components/page/ResultState";
 import { ModuleQueryError } from "@/features/sample-data/components/ModuleQueryError";
-import { SubMerchantFilterField } from "@/features/sample-data/components/SubMerchantFilterField";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { formatAmount } from "@/lib/utils/helper";
 import { revenueQueries } from "../revenue-queries";
 import type { RevenuePreset } from "../schemas/revenue.schema";
@@ -94,8 +95,8 @@ function SummaryTiles({ total }: { total: RevenueTotals }) {
 export function RevenueBySubCard() {
   const [preset, setPreset] = useState<RevenuePreset>("DAY_7");
   const [metric, setMetric] = useState<RevenueMetric>("GROSS");
-  const [subMerchantId, setSubMerchantId] = useState("");
-  const query = useQuery(revenueQueries.series({ preset, ...(subMerchantId ? { subMerchantId } : {}) }));
+  const [subMerchantIds, setSubMerchantIds] = useState<string[]>([]);
+  const query = useQuery(revenueQueries.series({ preset, ...(subMerchantIds.length > 0 ? { subMerchantIds: formatSubMerchantIds(subMerchantIds) } : {}) }));
   // The label follows the period of the data on screen when there is one (see revenueWindowText).
   const windowText = revenueWindowText(preset, query.data ? { from: query.data.from, to: query.data.to } : undefined);
   const metricLabel = METRICS.find((item) => item.value === metric)!.label;
@@ -111,8 +112,8 @@ export function RevenueBySubCard() {
               {windowText}, theo ngày thanh toán. Thực nhận = doanh thu gộp trừ phí; chưa trừ hoàn tiền.
             </p>
           </div>
-          <div className="sm:w-64">
-            <SubMerchantFilterField allowAll value={subMerchantId} onChange={setSubMerchantId} />
+          <div className="sm:w-72">
+            <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
           </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

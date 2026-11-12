@@ -34,17 +34,17 @@ describe("settlement items page", () => {
   // Mục 11: mặc định là mọi Sub trong phạm vi phiên, không tự chọn Sub đầu tiên.
   it("prefetches every Sub in scope over the requested range", async () => {
     const page = await SettlementItemsPage({ searchParams: Promise.resolve({ paidFrom: "2026-10-01", paidTo: "2026-10-05" }) }) as ReactElement<{ state: DehydratedState }>;
-    expect(listQuery?.has("subMerchantId")).toBe(false);
+    expect(listQuery?.has("subMerchantIds")).toBe(false);
     expect(listQuery?.get("paidFrom")).toBe("2026-10-01");
     expect(listQuery?.get("paidTo")).toBe("2026-10-05");
     expect(JSON.stringify(page.props.state)).toContain("MO20261013000123");
   });
 
   it("keeps a Sub the session may pick and drops one outside its choices", async () => {
-    await SettlementItemsPage({ searchParams: Promise.resolve({ subMerchantId: subId }) });
-    expect(listQuery?.get("subMerchantId")).toBe(subId);
-    await SettlementItemsPage({ searchParams: Promise.resolve({ subMerchantId: "99999999-9999-4999-8999-999999999999" }) });
-    expect(listQuery?.has("subMerchantId")).toBe(false);
+    await SettlementItemsPage({ searchParams: Promise.resolve({ subMerchantIds: subId }) });
+    expect(listQuery?.get("subMerchantIds")).toBe(subId);
+    await SettlementItemsPage({ searchParams: Promise.resolve({ subMerchantIds: "99999999-9999-4999-8999-999999999999" }) });
+    expect(listQuery?.has("subMerchantIds")).toBe(false);
   });
 
   it("denies access without VIEW_BALANCE and does not call the BE", async () => {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { bankLinkStatusSchema } from "./bank-account.schema";
 
 export const OTP_LENGTH = 6;
@@ -45,7 +46,8 @@ export const bankListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   merchantId: z.uuid().optional(),
-  subMerchantId: z.uuid().optional(),
+  // Danh sách Sub nối dấu phẩy; BE giao với phạm vi người dùng nên Sub ngoài phạm vi bị bỏ.
+  subMerchantIds: subMerchantIdsParam,
   linkStatus: bankLinkStatusSchema.optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });

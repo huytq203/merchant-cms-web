@@ -15,8 +15,9 @@ describe("bank account search params", () => {
   // Lọc theo Sub (11/11/2026): BE đã nhận subMerchantId; URL chỉ giữ một UUID hợp lệ.
   it("reads the Sub-merchant filter from the URL and drops an invalid id", () => {
     const sub = "77777777-7777-4777-8777-777777777777";
-    expect(parseBankAccountSearchParams({ subMerchantId: sub })).toEqual({ page: 1, pageSize: 10, subMerchantId: sub });
-    expect(parseBankAccountSearchParams({ subMerchantId: "not-an-id" })).toEqual({ page: 1, pageSize: 10 });
+    expect(parseBankAccountSearchParams({ subMerchantIds: `${sub},${sub}` })).toEqual({ page: 1, pageSize: 10, subMerchantIds: [sub] });
+    expect(parseBankAccountSearchParams({ subMerchantId: sub })).toEqual({ page: 1, pageSize: 10, subMerchantIds: [sub] });
+    expect(parseBankAccountSearchParams({ subMerchantIds: "not-an-id" })).toEqual({ page: 1, pageSize: 10 });
   });
 
   it("puts every filter and the Master into the query key", () => {

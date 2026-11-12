@@ -11,7 +11,8 @@ export type BankAccountFilter = {
   page: number;
   pageSize: number;
   merchantId?: string;
-  subMerchantId?: string;
+  /** Subs the list is limited to (empty/absent = all Subs); BE intersects them with the session scope. */
+  subMerchantIds?: string[];
   linkStatus?: BankAccount["linkStatus"];
   status?: BankAccount["status"];
 };

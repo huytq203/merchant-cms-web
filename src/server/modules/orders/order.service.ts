@@ -7,6 +7,7 @@ import type { BeResult } from "@/lib/be/client";
 import { orderResponseSchema, type Order, type OrderFormData } from "@/features/orders/schemas/order.schema";
 import type { OrderListFilter, OrderListResult } from "@/features/orders/types/types";
 import { toOrderCreateRequest } from "@/features/orders/utils/order-mapper";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { orderPaths } from "./order.paths";
 
 export async function listOrders(filter: OrderListFilter): Promise<BeResult<OrderListResult>> {
@@ -18,7 +19,7 @@ export async function listOrders(filter: OrderListFilter): Promise<BeResult<Orde
       size: filter.pageSize,
       orderCode: filter.orderCode,
       status: filter.status,
-      subMerchantId: filter.subMerchantId,
+      subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
       createdFrom: filter.createdFrom,
       createdTo: filter.createdTo,
     },

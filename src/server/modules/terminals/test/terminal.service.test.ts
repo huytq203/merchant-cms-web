@@ -29,14 +29,14 @@ describe("terminal service", () => {
       query = new URL(request.url).searchParams;
       return HttpResponse.json(envelope(page([row], 17)));
     }));
-    expect(await listTerminals({ page: 2, pageSize: 10, subMerchantId, name: "Quầy", status: "ACTIVE" }))
+    expect(await listTerminals({ page: 2, pageSize: 10, subMerchantIds: [subMerchantId, "22222222-2222-4222-8222-222222222222"], name: "Quầy", status: "ACTIVE" }))
       .toMatchObject({ success: true, data: { rows: [row], total: 17 } });
-    expect(Object.fromEntries(query!)).toEqual({ page: "2", size: "10", subMerchantId, name: "Quầy", status: "ACTIVE" });
+    expect(Object.fromEntries(query!)).toEqual({ page: "2", size: "10", subMerchantIds: `${subMerchantId},22222222-2222-4222-8222-222222222222`, name: "Quầy", status: "ACTIVE" });
   });
 
   it("maps an empty Page", async () => {
     mswServer.use(http.get(path, () => HttpResponse.json(envelope(page([], 0)))));
-    expect(await listTerminals({ page: 1, pageSize: 10, subMerchantId })).toEqual({ success: true, data: { rows: [], total: 0 } });
+    expect(await listTerminals({ page: 1, pageSize: 10, subMerchantIds: [subMerchantId] })).toEqual({ success: true, data: { rows: [], total: 0 } });
   });
 
   it("preserves 403 and rejects malformed response", async () => {

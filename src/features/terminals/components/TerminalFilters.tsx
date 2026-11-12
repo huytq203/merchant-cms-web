@@ -3,7 +3,7 @@
 import { FilterCard } from "@/components/page/FilterCard";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
-import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import { terminalStatusOptions, terminalTypeOptions } from "../constants/terminal.constants";
 import { useTerminalFilterForm, type TerminalFilterValues } from "../hooks/use-terminal-filter-form";
 
@@ -11,11 +11,6 @@ type Props = { initial: TerminalFilterValues; onSearch: (values: TerminalFilterV
 
 export function TerminalFilters({ initial, onSearch }: Props) {
   const form = useTerminalFilterForm(initial, onSearch);
-  const subMerchants = useSubMerchantOptions();
-  const options = (subMerchants.data ?? []).map((item) => ({
-    value: item.id,
-    label: `${item.code} - ${item.name}`,
-  }));
 
   return (
     <FilterCard fieldCount={4} onSubmit={form.submit} onClear={form.clear}>
@@ -32,13 +27,7 @@ export function TerminalFilters({ initial, onSearch }: Props) {
           options={terminalTypeOptions}
           placeholder="Tất cả loại"
         />
-        <Select
-          label="Sub-merchant"
-          value={form.subMerchantId}
-          onChange={form.setSubMerchantId}
-          options={options}
-          placeholder="Tất cả Sub-merchant"
-        />
+        <SubMerchantMultiFilter value={form.subMerchantIds} onChange={form.setSubMerchantIds} />
         <Select
           label="Trạng thái"
           value={form.status}

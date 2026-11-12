@@ -70,6 +70,16 @@ describe("withdrawal service list", () => {
     });
   });
 
+  it("sends the Sub list as one comma-joined subMerchantIds param", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(path, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(page([])));
+    }));
+    await listWithdrawals({ page: 1, pageSize: 10, subMerchantIds: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"] });
+    expect(query?.get("subMerchantIds")).toBe("11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222");
+  });
+
   it("does not drop rows by merchant because BE already scopes the list by session", async () => {
     const other = { ...record, id: "77777777-7777-4777-8777-777777777777", merchantId: "55555555-5555-4555-8555-555555555555" };
     mswServer.use(http.get(path, () => HttpResponse.json(envelope(page([record, other])))));

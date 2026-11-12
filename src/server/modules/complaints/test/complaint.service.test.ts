@@ -45,7 +45,7 @@ describe("listComplaints", () => {
       status: "PROCESSING",
       waitingOn: "MERCHANT",
       reporterType: "ADMIN",
-      subMerchantId: BE_COMPLAINT.subMerchantId ?? undefined,
+      subMerchantIds: `${BE_COMPLAINT.subMerchantId},55555555-5555-4555-8555-555555555555`,
       createdFrom: "2026-11-01",
       createdTo: "2026-11-03",
     });
@@ -57,7 +57,7 @@ describe("listComplaints", () => {
       status: "PROCESSING",
       waitingOn: "MERCHANT",
       reporterType: "ADMIN",
-      subMerchantId: BE_COMPLAINT.subMerchantId,
+      subMerchantIds: `${BE_COMPLAINT.subMerchantId},55555555-5555-4555-8555-555555555555`,
       createdFrom: "2026-11-01",
       createdTo: "2026-11-03",
     });

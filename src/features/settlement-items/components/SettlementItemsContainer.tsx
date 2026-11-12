@@ -30,9 +30,8 @@ export function SettlementItemsContainer({ filter, choices, canFilterTerminal }:
         description="Mỗi đơn hàng thanh toán thành công chia thành Đợt 1 và Đợt tạm giữ. Đơn hàng mới có thể mất vài phút mới hiện."
       />
       <SettlementFilter
-        key={`${filter.subMerchantId}|${filter.terminalId}|${filter.trancheStatus}|${filter.paidFrom}|${filter.paidTo}`}
+        key={`${(filter.subMerchantIds ?? []).join(",")}|${filter.terminalId}|${filter.trancheStatus}|${filter.paidFrom}|${filter.paidTo}`}
         initial={filter}
-        choices={choices}
         canFilterTerminal={canFilterTerminal}
         onSearch={navigation.search}
         onClear={navigation.clear}

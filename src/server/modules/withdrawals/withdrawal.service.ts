@@ -16,6 +16,7 @@ import {
 } from "@/features/withdrawals/schemas/withdrawal.schema";
 import type { WithdrawalListFilter, WithdrawalListResult } from "@/features/withdrawals/types/types";
 import { toWithdrawalCreateRequest } from "@/features/withdrawals/utils/withdrawal-mapper";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { withdrawalPaths } from "./withdrawal.paths";
 
 /** The stage a merchant picks stands for several BE statuses, sent as one comma separated list. */
@@ -32,6 +33,7 @@ export async function listWithdrawals(filter: WithdrawalListFilter): Promise<BeR
       size: filter.pageSize,
       transactionCode: filter.transactionCode,
       status: statusesOf(filter),
+      subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
       createdFrom: filter.createdFrom,
       createdTo: filter.createdTo,
     },

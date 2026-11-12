@@ -29,7 +29,7 @@ const row: TerminalRow = {
   createdAt: null,
 };
 const base = "/api/v1/admin/terminals";
-const filter = { page: 1, pageSize: 10, subMerchantId };
+const filter = { page: 1, pageSize: 10, subMerchantIds: [subMerchantId] };
 
 function renderContainer(canManage = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -92,7 +92,7 @@ describe("terminals container", () => {
     }));
     renderContainer();
     await screen.findByRole("table");
-    expect(Object.fromEntries(search!)).toEqual({ page: "1", pageSize: "10", subMerchantId });
+    expect(Object.fromEntries(search!)).toEqual({ page: "1", pageSize: "10", subMerchantIds: subMerchantId });
   });
 
   it("keeps a conflict visible in the lock modal", async () => {

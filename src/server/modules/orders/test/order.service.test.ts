@@ -56,11 +56,11 @@ describe("order service", () => {
       return HttpResponse.json(envelope(page([])));
     }));
     await listOrders({
-      page: 1, pageSize: 10, subMerchantId: "11111111-1111-4111-8111-111111111111",
+      page: 1, pageSize: 10, subMerchantIds: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"],
       createdFrom: "2026-10-01", createdTo: "2026-10-09",
     });
     expect(Object.fromEntries(query!)).toMatchObject({
-      subMerchantId: "11111111-1111-4111-8111-111111111111", createdFrom: "2026-10-01", createdTo: "2026-10-09",
+      subMerchantIds: "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222", createdFrom: "2026-10-01", createdTo: "2026-10-09",
     });
   });
 

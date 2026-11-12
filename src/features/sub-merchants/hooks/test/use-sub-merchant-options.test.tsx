@@ -31,7 +31,7 @@ describe('useSubMerchantOptions', () => {
     const { result } = renderHook(() => useSubMerchantOptions(), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(get).toHaveBeenCalledWith('/v1/admin/sub-merchants/choices');
-    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: true }]);
+    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: true, merchantId: masterA }]);
   });
 
   it('keeps only the chosen Master outlets when a merchant id is given', async () => {
@@ -47,7 +47,7 @@ describe('useSubMerchantOptions', () => {
     const { wrapper } = setup();
     const { result } = renderHook(() => useSubMerchantOptions(masterB), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: false }]);
+    expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: false, merchantId: null }]);
   });
 
   it('shares one request between several pickers', async () => {
@@ -65,6 +65,6 @@ describe('useSubMerchantOptions', () => {
     const { result } = renderHook(() => useSubMerchantOptions(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
     await act(async () => { await result.current.refetch(); });
-    await waitFor(() => expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: true }]));
+    await waitFor(() => expect(result.current.data).toEqual([{ id: row.id, name: row.name, code: row.code, isDefault: true, merchantId: masterA }]));
   });
 });

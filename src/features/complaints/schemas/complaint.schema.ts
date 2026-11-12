@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subMerchantIdsCsv } from "@/features/sub-merchants/utils/sub-merchant-ids";
 
 /**
  * Contract of `GET /api/v1/merchant/complaints` (flex.merchant `MerchantComplaintService.Complaint`).
@@ -156,7 +157,8 @@ export const complaintListQuerySchema = z
     status: complaintStatusSchema.optional(),
     waitingOn: complaintPartySchema.optional(),
     reporterType: complaintPartySchema.optional(),
-    subMerchantId: z.uuid().optional(),
+    /** Danh sách Sub nối dấu phẩy; trống = tất cả Sub trong phạm vi (BE tự giao với phạm vi người dùng). */
+    subMerchantIds: subMerchantIdsCsv.optional(),
     createdFrom: z.iso.date().optional(),
     createdTo: z.iso.date().optional(),
   })
@@ -172,7 +174,7 @@ export const complaintFilterSchema = z
     status: z.string().optional(),
     waitingOn: z.string().optional(),
     reporterType: z.string().optional(),
-    subMerchantId: z.string().optional(),
+    subMerchantIds: z.array(z.string()).optional(),
     createdFrom: z.date().nullable().optional(),
     createdTo: z.date().nullable().optional(),
   })

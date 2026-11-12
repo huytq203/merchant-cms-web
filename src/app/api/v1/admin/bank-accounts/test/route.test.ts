@@ -67,12 +67,18 @@ describe("bank account collection route", () => {
     expect(listBankAccounts).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects a branch outside the session scope", async () => {
+  it("rejects creating an account for a branch outside the session scope", async () => {
     const foreignBranch = "44444444-4444-4444-8444-444444444444";
-    expect((await GET(get(`?subMerchantId=${foreignBranch}`))).status).toBe(403);
     expect((await POST(post({ ...values, subMerchantId: foreignBranch }))).status).toBe(403);
-    expect(listBankAccounts).not.toHaveBeenCalled();
     expect(createBankAccount).not.toHaveBeenCalled();
+  });
+
+  it("forwards a Sub list to the BE, which drops Subs outside the session scope; a malformed id is a 400", async () => {
+    listBankAccounts.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    const foreignBranch = "44444444-4444-4444-8444-444444444444";
+    expect((await GET(get(`?subMerchantIds=${subMerchantId},${foreignBranch}`))).status).toBe(200);
+    expect(listBankAccounts).toHaveBeenCalledWith({ page: 1, pageSize: 10, subMerchantIds: [subMerchantId, foreignBranch], merchantId });
+    expect((await GET(get("?subMerchantIds=abc"))).status).toBe(400);
   });
 
   it.each([

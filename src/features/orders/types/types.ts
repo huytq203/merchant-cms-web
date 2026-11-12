@@ -7,7 +7,8 @@ export interface OrderListFilter {
   pageSize: number;
   orderCode?: string;
   status?: OrderStatus;
-  subMerchantId?: string;
+  /** Subs the list is limited to (empty/absent = all Subs); BE intersects them with the session scope. */
+  subMerchantIds?: string[];
   /** Inclusive calendar days as `yyyy-MM-dd`. */
   createdFrom?: string;
   createdTo?: string;

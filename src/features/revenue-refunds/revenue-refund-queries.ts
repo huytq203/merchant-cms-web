@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
+import { parseSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { refundFilterSchema, refundGroupSchema, refundListResultSchema, refundPeriodSchema, refundStatusSchema, refundSummarySchema } from "./schemas";
 import type { RefundFilter, RefundQuery, RefundSummary, RevenueRefund } from "./types";
 import { refundQueryString, toRefundQuery } from "./utils/refund-query";
@@ -17,10 +18,10 @@ export function parseRefundSearchParams(raw: RawSearchParams): RefundFilter {
   const status = refundStatusSchema.safeParse(first(raw.status));
   const group = refundGroupSchema.safeParse(first(raw.group));
   const period = refundPeriodSchema.safeParse(first(raw.period));
-  const text = refundFilterSchema.pick({ orderId: true, q: true, subMerchantId: true, from: true, to: true }).safeParse({
+  const subMerchantIds = parseSubMerchantIds(raw.subMerchantIds, raw.subMerchantId);
+  const text = refundFilterSchema.pick({ orderId: true, q: true, from: true, to: true }).safeParse({
     orderId: first(raw.orderId) || undefined,
     q: first(raw.q) || undefined,
-    subMerchantId: first(raw.subMerchantId) || undefined,
     from: first(raw.from) || undefined,
     to: first(raw.to) || undefined,
   });
@@ -30,6 +31,7 @@ export function parseRefundSearchParams(raw: RawSearchParams): RefundFilter {
     ...(status.success ? { status: status.data } : {}),
     ...(group.success ? { group: group.data } : {}),
     ...(period.success ? { period: period.data } : {}),
+    ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
     ...parts,
   };
 }

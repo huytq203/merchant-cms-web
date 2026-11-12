@@ -21,7 +21,10 @@ function onlyStrings(raw: RawSearchParams): Record<string, string> {
 
 /** Invalid input never breaks the page: it falls back to the default first page. */
 export function parseComplaintSearchParams(raw: RawSearchParams): ComplaintListFilter {
-  const parsed = complaintListQuerySchema.safeParse(onlyStrings(raw));
+  const strings = onlyStrings(raw);
+  // URL đã lưu trước khi chuyển sang chọn nhiều Sub vẫn dùng `subMerchantId`.
+  if (strings.subMerchantId && !strings.subMerchantIds) strings.subMerchantIds = strings.subMerchantId;
+  const parsed = complaintListQuerySchema.safeParse(strings);
   return parsed.success ? parsed.data : DEFAULT_FILTER;
 }
 

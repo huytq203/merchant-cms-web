@@ -1,3 +1,4 @@
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { shiftVnDate } from "@/lib/utils/vn-time";
 import { REFUND_GROUPS } from "../constants/refund-status";
 import type { RefundFilter, RefundPeriod, RefundQuery } from "../types";
@@ -31,7 +32,7 @@ export function toRefundQuery(filter: RefundFilter, today: string): RefundQuery 
     ...(filter.q ? { q: filter.q } : {}),
     ...(statuses.size > 0 ? { statuses: [...statuses].join(",") } : {}),
     ...(filter.orderId ? { orderId: filter.orderId } : {}),
-    ...(filter.subMerchantId ? { subMerchantId: filter.subMerchantId } : {}),
+    ...(filter.subMerchantIds?.length ? { subMerchantIds: formatSubMerchantIds(filter.subMerchantIds) } : {}),
     ...refundPeriodToDates(filter, today),
   };
 }
@@ -52,7 +53,7 @@ export function refundFilterToSearch(filter: RefundFilter): string {
   put("q", filter.q);
   put("group", filter.group);
   put("status", filter.status);
-  put("subMerchantId", filter.subMerchantId);
+  put("subMerchantIds", formatSubMerchantIds(filter.subMerchantIds));
   put("orderId", filter.orderId);
   if (filter.period && filter.period !== DEFAULT_REFUND_PERIOD) params.set("period", filter.period);
   if (filter.period === "custom") {

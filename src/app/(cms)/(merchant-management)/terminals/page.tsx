@@ -17,12 +17,8 @@ export default async function TerminalsPage({ searchParams }: Props) {
   if (!hasAnyPermission(user.permissions, PERMISSION_GATES.terminalRead)) {
     return <AccessDenied />;
   }
-  const requested = parseTerminalSearchParams(await searchParams);
-  const subMerchantId = requested.subMerchantId;
-  if (subMerchantId && !user.subMerchantIds.includes(subMerchantId)) {
-    return <AccessDenied />;
-  }
-  const filter = { ...requested, subMerchantId };
+  // Sub ngoài phạm vi trên URL do BE bỏ khi giao với phạm vi phiên, nên không chặn cả màn ở đây.
+  const filter = parseTerminalSearchParams(await searchParams);
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...terminalQueries.list(filter),

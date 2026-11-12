@@ -1,5 +1,5 @@
 import { format, parse } from "date-fns";
-import { z } from "zod";
+import { formatSubMerchantIds, parseSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import {
   complaintPartySchema,
   complaintStatusSchema,
@@ -19,7 +19,7 @@ export function formValuesToFilter(values: ComplaintFilterValues, pageSize: numb
   const status = complaintStatusSchema.safeParse(values.status);
   const waitingOn = complaintPartySchema.safeParse(values.waitingOn);
   const reporterType = complaintPartySchema.safeParse(values.reporterType);
-  const subMerchantId = z.uuid().safeParse(cleanText(values.subMerchantId));
+  const subMerchantIds = formatSubMerchantIds(parseSubMerchantIds(values.subMerchantIds ?? []));
   const keyword = cleanText(values.keyword);
   return {
     page: 1,
@@ -28,7 +28,7 @@ export function formValuesToFilter(values: ComplaintFilterValues, pageSize: numb
     ...(status.success ? { status: status.data } : {}),
     ...(waitingOn.success ? { waitingOn: waitingOn.data } : {}),
     ...(reporterType.success ? { reporterType: reporterType.data } : {}),
-    ...(subMerchantId.success ? { subMerchantId: subMerchantId.data } : {}),
+    ...(subMerchantIds ? { subMerchantIds } : {}),
     // The calendar day the user picked (Vietnam time on the BE); the BE includes the whole last day.
     ...(values.createdFrom ? { createdFrom: format(values.createdFrom, DAY) } : {}),
     ...(values.createdTo ? { createdTo: format(values.createdTo, DAY) } : {}),
@@ -42,7 +42,7 @@ export function filterToFormValues(filter: ComplaintListFilter): ComplaintFilter
     status: filter.status ?? "",
     waitingOn: filter.waitingOn ?? "",
     reporterType: filter.reporterType ?? "",
-    subMerchantId: filter.subMerchantId ?? "",
+    subMerchantIds: parseSubMerchantIds(filter.subMerchantIds),
     createdFrom: filter.createdFrom ? parse(filter.createdFrom, DAY, new Date()) : null,
     createdTo: filter.createdTo ? parse(filter.createdTo, DAY, new Date()) : null,
   };
@@ -59,7 +59,7 @@ export function toBeComplaintQuery(filter: ComplaintListFilter, options: { paged
     status: filter.status,
     waitingOn: filter.waitingOn,
     reporterType: filter.reporterType,
-    subMerchantId: filter.subMerchantId,
+    subMerchantIds: filter.subMerchantIds,
     createdFrom: filter.createdFrom,
     createdTo: filter.createdTo,
   };

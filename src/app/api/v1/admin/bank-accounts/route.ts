@@ -16,8 +16,6 @@ export async function GET(request: Request) {
   if (!query.success) return badRequest("Tham số không hợp lệ");
   const merchantId = selectMerchantId(access.user, query.data.merchantId);
   if (merchantId instanceof NextResponse) return merchantId;
-  const outOfScope = checkSubMerchantScope(access.user, query.data.subMerchantId);
-  if (outOfScope) return outOfScope;
   const result = await listBankAccounts({ ...query.data, merchantId });
   return result.success ? NextResponse.json(result.data) : bankErrorResponse(result.error);
 }

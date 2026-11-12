@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { subMerchantIdsCsv } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { sensitiveOtpSchema } from "@/lib/schemas/sensitive-otp";
 
 export const refundStatusSchema = z.enum(["PENDING_APPROVAL", "PROCESSING", "ACCOUNTING_QUEUE", "SUCCEEDED", "FAILED", "REJECTED", "CANCELLED"]);
@@ -62,7 +63,8 @@ export const refundFilterSchema = z.object({
   orderId: z.uuid().optional(),
   q: z.string().trim().max(100).optional(),
   group: refundGroupSchema.optional(),
-  subMerchantId: z.uuid().optional(),
+  /** Nhiều Sub: rỗng = tất cả Sub trong phạm vi. */
+  subMerchantIds: z.array(z.uuid()).max(500).optional(),
   period: refundPeriodSchema.optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),
@@ -73,7 +75,8 @@ export const refundQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   statuses: z.string().regex(/^[A-Z_]+(,[A-Z_]+)*$/).optional(),
   orderId: z.uuid().optional(),
-  subMerchantId: z.uuid().optional(),
+  /** Danh sách Sub nối dấu phẩy (đã ở dạng gửi BE). */
+  subMerchantIds: subMerchantIdsCsv.optional(),
   from: isoDate.optional(),
   to: isoDate.optional(),
 });

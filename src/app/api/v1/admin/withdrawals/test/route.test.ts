@@ -55,6 +55,14 @@ describe("withdrawals list route", () => {
     });
   });
 
+  it("forwards the Sub list and rejects a malformed one", async () => {
+    const a = "11111111-1111-4111-8111-111111111111";
+    const b = "22222222-2222-4222-8222-222222222222";
+    expect((await GET(listRequest(`?subMerchantIds=${a},${b}`))).status).toBe(200);
+    expect(listWithdrawals).toHaveBeenCalledWith({ page: 1, pageSize: 10, subMerchantIds: [a, b] });
+    expect((await GET(listRequest("?subMerchantIds=abc"))).status).toBe(400);
+  });
+
   it("never forwards a merchantId from the client because BE scopes by session", async () => {
     expect((await GET(listRequest(`?merchantId=${foreignId}`))).status).toBe(200);
     expect(listWithdrawals).toHaveBeenCalledWith({ page: 1, pageSize: 10 });

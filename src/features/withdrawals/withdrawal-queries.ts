@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiClient } from "@/lib/http/api-client";
+import { formatSubMerchantIds, parseSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { withdrawalStatusGroupSchema } from "./schemas/withdrawal.schema";
 import type {
   Withdrawal,
@@ -24,6 +25,7 @@ const dayParam = z.iso.date();
 export function parseWithdrawalSearchParams(raw: RawSearchParams): WithdrawalListFilter {
   const transactionCode = typeof raw.transactionCode === "string" ? raw.transactionCode.trim().slice(0, 100) : "";
   const group = withdrawalStatusGroupSchema.safeParse(raw.status);
+  const subMerchantIds = parseSubMerchantIds(raw.subMerchantIds, raw.subMerchantId);
   const createdFrom = dayParam.safeParse(raw.createdFrom);
   const createdTo = dayParam.safeParse(raw.createdTo);
   return {
@@ -31,6 +33,7 @@ export function parseWithdrawalSearchParams(raw: RawSearchParams): WithdrawalLis
     pageSize: numberParam(raw.pageSize, 10, 100),
     ...(transactionCode ? { transactionCode } : {}),
     ...(group.success ? { statusGroup: group.data } : {}),
+    ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
     ...(createdFrom.success ? { createdFrom: createdFrom.data } : {}),
     ...(createdTo.success ? { createdTo: createdTo.data } : {}),
   };
@@ -41,6 +44,8 @@ export function toWithdrawalSearchParams(filter: WithdrawalListFilter): URLSearc
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
   if (filter.transactionCode) params.set("transactionCode", filter.transactionCode);
   if (filter.statusGroup) params.set("status", filter.statusGroup);
+  const subMerchantIds = formatSubMerchantIds(filter.subMerchantIds);
+  if (subMerchantIds) params.set("subMerchantIds", subMerchantIds);
   if (filter.createdFrom) params.set("createdFrom", filter.createdFrom);
   if (filter.createdTo) params.set("createdTo", filter.createdTo);
   return params;

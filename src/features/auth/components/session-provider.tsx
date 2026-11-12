@@ -22,6 +22,11 @@ export function useSession(): SessionUser {
   return session;
 }
 
+/** Như `useSession` nhưng trả null ngoài provider — cho component dùng chung chỉ cần session để làm giàu giao diện. */
+export function useOptionalSession(): SessionUser | null {
+  return React.useContext(SessionContext);
+}
+
 export function useHasPermission(permission: MerchantPermission): boolean {
   return hasPermission(useSession().permissions, permission);
 }

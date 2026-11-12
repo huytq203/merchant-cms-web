@@ -20,6 +20,9 @@ describe("withdrawal search params", () => {
 
   it("puts every filter into the page URL and the query key", () => {
     const filter = { page: 2, pageSize: 20, statusGroup: "COMPLETED", transactionCode: "WD", createdFrom: "2026-01-01" } as const;
+    const subs = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
+    expect(toWithdrawalSearchParams({ ...filter, subMerchantIds: subs }).get("subMerchantIds")).toBe(subs.join(","));
+    expect(parseWithdrawalSearchParams({ subMerchantIds: subs.join(",") })).toMatchObject({ subMerchantIds: subs });
     expect(toWithdrawalSearchParams(filter).toString())
       .toBe("page=2&pageSize=20&transactionCode=WD&status=COMPLETED&createdFrom=2026-01-01");
     expect(withdrawalQueries.list(filter).queryKey).toEqual(["withdrawals", "list", filter]);

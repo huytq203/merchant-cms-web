@@ -26,7 +26,7 @@ import type { Order } from "../types/types";
 import { customerDisplayHref, openCustomerDisplay } from "@/features/customer-display/utils/open-display";
 
 const orderFilterKey = (filter: OrderListFilter) =>
-  [filter.orderCode, filter.status, filter.subMerchantId, filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
+  [filter.orderCode, filter.status, (filter.subMerchantIds ?? []).join(","), filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
 
 type Props = {
   filter: OrderListFilter;

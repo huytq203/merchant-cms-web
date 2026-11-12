@@ -28,11 +28,11 @@ beforeEach(() => {
 
 describe("revenue refunds collection route", () => {
   it("lists only with VIEW_REFUND and forwards the filter", async () => {
-    const response = await get(`?statuses=PENDING_APPROVAL,PROCESSING&orderId=${orderId}&q=DH26&from=2026-11-04&to=2026-11-10&subMerchantId=${subId}`);
+    const response = await get(`?statuses=PENDING_APPROVAL,PROCESSING&orderId=${orderId}&q=DH26&from=2026-11-04&to=2026-11-10&subMerchantIds=${subId}`);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ rows: [pendingRefund] });
     expect(listRevenueRefunds).toHaveBeenCalledWith({
-      statuses: "PENDING_APPROVAL,PROCESSING", orderId, q: "DH26", from: "2026-11-04", to: "2026-11-10", subMerchantId: subId,
+      statuses: "PENDING_APPROVAL,PROCESSING", orderId, q: "DH26", from: "2026-11-04", to: "2026-11-10", subMerchantIds: subId,
     });
     expect((await get("?from=04-11-2026")).status).toBe(400);
     getServerSession.mockResolvedValue({ ...session, permissions: ["CREATE_REFUND"] });

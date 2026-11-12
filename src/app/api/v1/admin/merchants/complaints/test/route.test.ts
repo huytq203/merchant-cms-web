@@ -64,7 +64,7 @@ describe("list route", () => {
   });
 
   it("rejects an oversized page, an old status, a bad sub-merchant id and a reversed range", async () => {
-    for (const query of ["?pageSize=101", "?status=resolved", "?subMerchantId=SM01", "?createdFrom=2026-11-05&createdTo=2026-11-01"]) {
+    for (const query of ["?pageSize=101", "?status=resolved", "?subMerchantIds=SM01", "?createdFrom=2026-11-05&createdTo=2026-11-01"]) {
       expect((await list(new Request(url(query)))).status).toBe(400);
     }
     expect(service.listComplaints).not.toHaveBeenCalled();

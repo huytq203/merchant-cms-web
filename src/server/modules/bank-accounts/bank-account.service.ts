@@ -19,6 +19,7 @@ import type {
   CreateBankRequest,
   UpdateBankRequest,
 } from "@/features/bank-accounts/types";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { bankAccountPaths } from "./bank-account.paths";
 
 /** Only the operation the merchant portal may ask for; the approval operation belongs to the checker. */
@@ -31,7 +32,7 @@ export async function listBankAccounts(filter: BankAccountFilter): Promise<BeRes
     query: {
       page: filter.page,
       size: filter.pageSize,
-      subMerchantId: filter.subMerchantId,
+      subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
       linkStatus: filter.linkStatus,
       status: filter.status,
     },

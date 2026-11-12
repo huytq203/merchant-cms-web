@@ -4,6 +4,7 @@ import { MAX_SETTLEMENT_RANGE_DAYS, parseSettlementSearchParams, settlementRange
 // 17:30 UTC on 13/10 is already 14/10 in Vietnam.
 const now = new Date("2026-10-13T17:30:00Z");
 const subId = "11111111-1111-4111-8111-111111111111";
+const subId2 = "22222222-2222-4222-8222-222222222222";
 
 describe("parseSettlementSearchParams", () => {
   it("defaults to the last 7 Vietnam days, page 1", () => {
@@ -11,8 +12,8 @@ describe("parseSettlementSearchParams", () => {
   });
 
   it("keeps a valid Sub, range and page from the URL", () => {
-    expect(parseSettlementSearchParams({ subMerchantId: subId, paidFrom: "2026-09-01", paidTo: "2026-09-30", page: "3", pageSize: "50" }, now))
-      .toEqual({ subMerchantId: subId, paidFrom: "2026-09-01", paidTo: "2026-09-30", page: 3, pageSize: 50 });
+    expect(parseSettlementSearchParams({ subMerchantIds: `${subId},${subId2}`, paidFrom: "2026-09-01", paidTo: "2026-09-30", page: "3", pageSize: "50" }, now))
+      .toEqual({ subMerchantIds: [subId, subId2], paidFrom: "2026-09-01", paidTo: "2026-09-30", page: 3, pageSize: 50 });
   });
 
   it("falls back to the default range when the end is before the start or a date is malformed", () => {
@@ -23,7 +24,7 @@ describe("parseSettlementSearchParams", () => {
   });
 
   it("drops a Sub id that is not a UUID", () => {
-    expect(parseSettlementSearchParams({ subMerchantId: "abc" }, now)).not.toHaveProperty("subMerchantId");
+    expect(parseSettlementSearchParams({ subMerchantIds: "abc" }, now)).not.toHaveProperty("subMerchantIds");
   });
 
   it("keeps a valid Terminal and tranche group and drops unknown ones", () => {

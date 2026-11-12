@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { paginationQuerySchema } from "@/lib/schemas/pagination";
 import { z } from "zod";
 import { terminalFormSchema, terminalTypeSchema } from "@/features/terminals/schemas";
+import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { subMerchantStatusSchema } from "@/lib/be/node-schemas";
 import { domainErrorMessage, toDomainHttpStatus } from "@/lib/be/errors";
 import { createTerminal, listTerminals } from "@/server/modules/terminals/terminal.service";
 import { requireTerminalAccess, selectSubMerchantId } from "@/server/modules/terminals/require-terminal-access";
 
 const listQuerySchema = paginationQuerySchema.extend({
-  subMerchantId: z.uuid().optional(),
+  // Danh sách Sub nối dấu phẩy; BE giao với phạm vi người dùng nên Sub ngoài phạm vi bị bỏ (không còn 403 cả danh sách).
+  subMerchantIds: subMerchantIdsParam,
   name: z.string().max(100).optional(),
   status: subMerchantStatusSchema.optional(),
   terminalType: terminalTypeSchema.optional(),
@@ -19,9 +21,7 @@ export async function GET(request: Request) {
   if (!access.ok) return access.response;
   const query = listQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
   if (!query.success) return NextResponse.json({ message: "Tham số không hợp lệ" }, { status: 400 });
-  const subMerchantId = selectSubMerchantId(access.user, query.data.subMerchantId);
-  if (subMerchantId instanceof NextResponse) return subMerchantId;
-  const result = await listTerminals({ ...query.data, subMerchantId });
+  const result = await listTerminals(query.data);
   return result.success
     ? NextResponse.json(result.data)
     : NextResponse.json({ message: domainErrorMessage(result.error) }, { status: toDomainHttpStatus(result.error) });

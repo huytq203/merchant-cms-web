@@ -1,5 +1,5 @@
 // Merchant Portal endpoints (`/api/v1/merchant/terminals`): scoped by the session, ownership checked at Master level.
-// List filters BE reads: name, status, subMerchantId and pagination.
+// List filters BE reads: name, status, subMerchantIds (comma-separated) and pagination.
 const MERCHANT = "/api/v1/merchant/terminals";
 
 export const terminalPaths = {

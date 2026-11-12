@@ -4,6 +4,7 @@ import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import type { BeResult } from "@/lib/be/client";
 import { ok } from "@/lib/http/result";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { trancheStatusesOf } from "@/features/settlement-items/constants/settlement-labels";
 import { settlementItemDetailSchema, settlementItemSchema, settlementTotalsSchema } from "@/features/settlement-items/schemas";
 import type {
@@ -19,7 +20,7 @@ import type {
 const SETTLEMENT_ITEMS = "/api/v1/merchant/settlement-items";
 
 const rangeQuery = (filter: ResolvedSettlementFilter) => ({
-  subMerchantId: filter.subMerchantId,
+  subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
   terminalId: filter.terminalId,
   trancheStatus: filter.trancheStatus ? trancheStatusesOf(filter.trancheStatus) : undefined,
   paidFrom: filter.paidFrom,

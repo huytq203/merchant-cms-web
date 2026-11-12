@@ -7,6 +7,7 @@ import { FilterCard } from "@/components/page/FilterCard";
 import { DatePicker } from "@/components/ui/datepicker/DatePicker";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
+import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import { withdrawalStatusGroupSchema } from "../schemas/withdrawal.schema";
 import { WITHDRAWAL_STATUS_GROUPS } from "../constants/Withdrawal.constants";
 import type { WithdrawalFilterValues } from "../types/types";
@@ -19,6 +20,7 @@ const toDay = (value: Date | undefined) => (value ? format(value, "yyyy-MM-dd") 
 export function WithdrawalFilter({ initial, onSearch }: Props) {
   const [transactionCode, setTransactionCode] = useState(initial.transactionCode ?? "");
   const [group, setGroup] = useState<string>(initial.statusGroup ?? "");
+  const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
   const [createdFrom, setCreatedFrom] = useState(initial.createdFrom ?? "");
   const [createdTo, setCreatedTo] = useState(initial.createdTo ?? "");
 
@@ -27,6 +29,7 @@ export function WithdrawalFilter({ initial, onSearch }: Props) {
     onSearch({
       ...(transactionCode.trim() ? { transactionCode: transactionCode.trim() } : {}),
       ...(parsedGroup.success ? { statusGroup: parsedGroup.data } : {}),
+      ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
       ...(createdFrom ? { createdFrom } : {}),
       ...(createdTo ? { createdTo } : {}),
     });
@@ -34,13 +37,14 @@ export function WithdrawalFilter({ initial, onSearch }: Props) {
   const clear = () => {
     setTransactionCode("");
     setGroup("");
+    setSubMerchantIds([]);
     setCreatedFrom("");
     setCreatedTo("");
     onSearch({});
   };
 
   return (
-    <FilterCard fieldCount={3} onSubmit={submit} onClear={clear}>
+    <FilterCard fieldCount={4} onSubmit={submit} onClear={clear}>
       <Input
         label="Mã giao dịch"
         placeholder="Nhập mã giao dịch cần tìm"
@@ -49,6 +53,7 @@ export function WithdrawalFilter({ initial, onSearch }: Props) {
         onChange={(event) => setTransactionCode(event.target.value)}
       />
       <Select label="Trạng thái" value={group} onChange={setGroup} options={groupOptions} placeholder="Tất cả trạng thái" />
+      <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
       <DatePicker
         mode="range"
         label="Ngày yêu cầu"

@@ -32,10 +32,10 @@ describe("toRefundQuery", () => {
   });
 
   it("carries the search code, the Sub and the order, and drops empty fields from the query string", () => {
-    const query = toRefundQuery({ q: "FM26K3QZP", subMerchantId: "aaaaaaaa-0000-4000-8000-0000000000b2" }, today);
-    expect(query).toMatchObject({ q: "FM26K3QZP", subMerchantId: "aaaaaaaa-0000-4000-8000-0000000000b2", from: "2026-11-04", to: today });
+    const query = toRefundQuery({ q: "FM26K3QZP", subMerchantIds: ["aaaaaaaa-0000-4000-8000-0000000000b2", "aaaaaaaa-0000-4000-8000-0000000000b3"] }, today);
+    expect(query).toMatchObject({ q: "FM26K3QZP", subMerchantIds: "aaaaaaaa-0000-4000-8000-0000000000b2,aaaaaaaa-0000-4000-8000-0000000000b3", from: "2026-11-04", to: today });
     expect(refundQueryString({ q: "", from: "2026-11-04" })).toBe("from=2026-11-04");
-    expect(refundQueryString(query, ["statuses", "from", "to"])).toBe("q=FM26K3QZP&subMerchantId=aaaaaaaa-0000-4000-8000-0000000000b2");
+    expect(refundQueryString(query, ["statuses", "from", "to"])).toBe("q=FM26K3QZP&subMerchantIds=aaaaaaaa-0000-4000-8000-0000000000b2%2Caaaaaaaa-0000-4000-8000-0000000000b3");
   });
 });
 

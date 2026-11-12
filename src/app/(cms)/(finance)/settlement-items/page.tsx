@@ -34,8 +34,10 @@ export default async function SettlementItemsPage({ searchParams }: Props) {
   if (choices.data.length === 0) {
     return <Empty title={title}><ServerResultState state="empty" message="Chưa có Sub-merchant nào để xem dòng quyết toán." /></Empty>;
   }
-  const { subMerchantId: requested, ...rest } = parsed;
-  const filter = requested && choices.data.some((choice) => choice.id === requested) ? { ...rest, subMerchantId: requested } : rest;
+  // Giữ lại các Sub người dùng thật sự chọn được; Sub lạ trên URL bị bỏ (rỗng = mọi Sub trong phạm vi).
+  const { subMerchantIds: requested = [], ...rest } = parsed;
+  const allowed = requested.filter((id) => choices.data.some((choice) => choice.id === id));
+  const filter = allowed.length > 0 ? { ...rest, subMerchantIds: allowed } : rest;
   // Bộ lọc Terminal cần quyền đọc Terminal; thiếu quyền thì ẩn ô thay vì để người dùng gặp lỗi 403.
   const canFilterTerminal = hasAnyPermission(user.permissions, PERMISSION_GATES.terminalRead);
   const state = await prefetchDehydrated(async (client) => {

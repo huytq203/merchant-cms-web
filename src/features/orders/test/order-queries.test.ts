@@ -21,15 +21,23 @@ describe("order search params", () => {
 
   it("round-trips the Sub-merchant and created-date filters through the URL", () => {
     const filter = {
-      page: 1, pageSize: 10, subMerchantId: "11111111-1111-4111-8111-111111111111",
+      page: 1, pageSize: 10, subMerchantIds: ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"],
       createdFrom: "2026-10-01", createdTo: "2026-10-09",
-    } as const;
+    };
     const params = toOrderSearchParams(filter);
     expect(parseOrderSearchParams(Object.fromEntries(params))).toEqual(filter);
   });
 
+  it("writes several Subs as one comma-joined subMerchantIds param and still reads the old subMerchantId", () => {
+    const a = "11111111-1111-4111-8111-111111111111";
+    const b = "22222222-2222-4222-8222-222222222222";
+    expect(toOrderSearchParams({ page: 1, pageSize: 10, subMerchantIds: [a, b] }).get("subMerchantIds")).toBe(`${a},${b}`);
+    expect(parseOrderSearchParams({ subMerchantId: a })).toMatchObject({ subMerchantIds: [a] });
+    expect(toOrderSearchParams({ page: 1, pageSize: 10, subMerchantIds: [] }).has("subMerchantIds")).toBe(false);
+  });
+
   it("drops a malformed Sub-merchant id or date instead of sending it on", () => {
-    expect(parseOrderSearchParams({ subMerchantId: "abc", createdFrom: "09/10/2026", createdTo: "2026-13-40" }))
+    expect(parseOrderSearchParams({ subMerchantIds: "abc,", createdFrom: "09/10/2026", createdTo: "2026-13-40" }))
       .toEqual({ page: 1, pageSize: 10 });
   });
 });

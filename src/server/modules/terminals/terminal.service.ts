@@ -7,6 +7,7 @@ import type { BeResult } from "@/lib/be/client";
 import { terminalDetailSchema, terminalSummarySchema, type TerminalFormValues } from "@/features/terminals/schemas";
 import type { TerminalDetail, TerminalListFilter, TerminalListResult } from "@/features/terminals/types";
 import { toCreateTerminalRequest, toUpdateTerminalRequest } from "@/features/terminals/utils/terminal-mapper";
+import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { terminalPaths } from "./terminal.paths";
 
 export async function listTerminals(filter: TerminalListFilter): Promise<BeResult<TerminalListResult>> {
@@ -16,7 +17,7 @@ export async function listTerminals(filter: TerminalListFilter): Promise<BeResul
     query: {
       page: filter.page,
       size: filter.pageSize,
-      subMerchantId: filter.subMerchantId,
+      subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
       name: filter.name,
       status: filter.status,
       terminalType: filter.terminalType,

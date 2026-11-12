@@ -18,7 +18,8 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày không hợp lệ");
  */
 export const settlementFilterSchema = z
   .object({
-    subMerchantId: z.uuid("Sub-merchant không hợp lệ").optional(),
+    // Nhiều Sub: trống = mọi Sub trong phạm vi phiên; BE tự giao với phạm vi nên Sub ngoài phạm vi bị bỏ.
+    subMerchantIds: z.array(z.uuid("Sub-merchant không hợp lệ")).max(500).optional(),
     terminalId: z.uuid("Terminal không hợp lệ").optional(),
     trancheStatus: trancheGroupSchema.optional(),
     paidFrom: day,

@@ -298,12 +298,17 @@ describe("bank accounts container", () => {
   });
 
   it("filters by Sub-merchant and clears it with the other filters", async () => {
+    mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+      sub,
+      { id: "99999999-9999-4999-8999-999999999999", code: "SUB02", name: "Chi nhanh 2", status: "ACTIVE" },
+    ])));
     renderContainer();
     await screen.findByText("******7890");
-    await userEvent.click(screen.getByRole("combobox", { name: /Sub-merchant/ }));
-    await userEvent.click(await screen.findByRole("option", { name: "SUB01 - Chi nhanh 1" }));
+    await userEvent.click(screen.getByRole("button", { name: /Sub-merchant/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Chi nhanh 1/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Áp dụng" }));
     await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
-    expect(push).toHaveBeenLastCalledWith(`/bank-accounts?page=1&pageSize=10&subMerchantId=${sub.id}`);
+    expect(push).toHaveBeenLastCalledWith(`/bank-accounts?page=1&pageSize=10&subMerchantIds=${sub.id}`);
     await userEvent.click(screen.getByRole("button", { name: "Xóa lọc" }));
     expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10");
   });

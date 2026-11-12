@@ -24,7 +24,7 @@ export type TrancheGroup = z.infer<typeof trancheGroupSchema>;
  * đợt là tùy chọn.
  */
 export interface SettlementFilter {
-  subMerchantId?: string;
+  subMerchantIds?: string[];
   terminalId?: string;
   trancheStatus?: TrancheGroup;
   paidFrom: string;
