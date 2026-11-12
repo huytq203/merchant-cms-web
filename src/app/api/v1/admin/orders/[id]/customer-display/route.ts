@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { canRefreshQr } from "@/features/orders/utils/order-mapper";
 import { invalidIdResponse } from "@/lib/be/route-id";
 import { createOrderDisplay } from "@/server/modules/customer-display/customer-display.service";
-import { beErrorResponse, requireOrderAccess, requireOwnedOrder } from "@/server/modules/orders/require-order-access";
+import { requirePermission } from "@/server/auth/require-permission";
+import { beErrorResponse, requireOwnedOrder } from "@/server/modules/orders/require-order-access";
 
 type Context = { params: Promise<{ id: string }> };
 
 /**
- * Mở màn "Hiển thị cho khách" cho một đơn. Cùng quyền với "Làm mới QR" (CREATE_ORDER): người đứng quầy
- * lập đơn rồi quay màn cho khách quét. Chỉ đơn còn chờ trả (ACTIVE) mới có mã để hiện.
+ * Mở màn QR hiển thị cho khách của một đơn: đây là màn của nút "Xem mã QR", nên ai xem được đơn (VIEW_ORDER) hoặc
+ * lập đơn (CREATE_ORDER) đều mở được, khớp quyền của BE. Chỉ đơn còn chờ trả (ACTIVE) mới có mã để hiện.
  */
 export async function POST(_request: Request, context: Context) {
-  const access = await requireOrderAccess("CREATE_ORDER");
+  const access = await requirePermission(["CREATE_ORDER", "VIEW_ORDER"]);
   if (!access.ok) return access.response;
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);

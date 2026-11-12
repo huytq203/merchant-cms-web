@@ -14,6 +14,7 @@ import { useOrderListNavigation } from "../hooks/use-order-list-navigation";
 import { orderQueries } from "../order-queries";
 import { readFieldErrors } from "../order-api";
 import type { OrderListFilter } from "../types/types";
+import { isOrderQrExpired } from "../utils/order-mapper";
 import { DialogOderQR } from "./DialogOderQR";
 import { DialogOrderDetail } from "./DialogOrderDetail";
 import { OrderFilter } from "./OrderFilter";
@@ -106,8 +107,11 @@ export function OrdersContainer({ filter, abilities }: Props) {
             pageSize={filter.pageSize}
             onPageChange={navigation.changePage}
             onView={(order) => dialogs.openFor("detail", order)}
-            onViewQr={(order) => dialogs.openFor("qr", order)}
-            onCustomerDisplay={abilities.canCreate ? (order) => openCustomerDisplay(customerDisplayHref.order(order.id)) : undefined}
+            // "Xem mã QR" mở thẳng màn QR hiển thị cho khách (thiết kế v2, 12/11/2026). Mã đã hết hạn thì vẫn mở
+            // hộp QR cũ vì chỉ ở đó có nút "Làm mới QR"; màn cho khách không tự cấp mã mới.
+            onViewQr={(order) => isOrderQrExpired(order, new Date())
+              ? dialogs.openFor("qr", order)
+              : openCustomerDisplay(customerDisplayHref.order(order.id))}
             onCancel={abilities.canCancel ? (order) => startCancel(order, false) : undefined}
             onRefund={abilities.canRefund ? startRefund : undefined}
             onDispute={abilities.canDispute ? startDispute : undefined}

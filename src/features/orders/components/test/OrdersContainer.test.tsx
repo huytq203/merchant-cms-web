@@ -158,24 +158,13 @@ describe("order actions by status", () => {
     expect(screen.queryByRole("button", { name: /Xác nhận thanh toán/ })).not.toBeInTheDocument();
   });
 
-  it("opens the customer display of an ACTIVE order in a new tab, from the row and from the QR dialog", async () => {
+  it("opens the customer-facing QR screen in a new tab from \"Xem mã QR\", even without CREATE_ORDER", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    renderContainer();
-    await userEvent.click(await screen.findByRole("button", { name: /Hiển thị cho khách đơn INV-1/ }));
-    expect(open).toHaveBeenLastCalledWith(`/customer-display/order/${activeOrder.id}`, "_blank", "noopener");
-    await userEvent.click(screen.getByRole("button", { name: /Xem mã QR đơn INV-1/ }));
-    await userEvent.click(await screen.findByRole("button", { name: "Hiển thị cho khách" }));
-    expect(open).toHaveBeenCalledTimes(2);
-  });
-
-  it("hides the customer display without CREATE_ORDER or for a paid order", async () => {
     renderContainer({ abilities: { ...abilities, canCreate: false } });
-    await screen.findByText("INV-1");
-    expect(screen.queryByRole("button", { name: /Hiển thị cho khách/ })).not.toBeInTheDocument();
-    cleanup();
-    listReturns([makeOrder({ status: "SUCCESS" })]);
-    renderContainer();
-    await screen.findByText("INV-1");
+    await userEvent.click(await screen.findByRole("button", { name: /Xem mã QR đơn INV-1/ }));
+    expect(open).toHaveBeenLastCalledWith(`/customer-display/order/${activeOrder.id}`, "_blank", "noopener");
+    // Không còn hộp QR riêng hay nút "Hiển thị cho khách" cho mã còn hạn.
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Hiển thị cho khách/ })).not.toBeInTheDocument();
   });
 
@@ -186,8 +175,12 @@ describe("order actions by status", () => {
     mswServer.use(http.post(`${base}/${expired.id}/refresh-qr`, () =>
       HttpResponse.json({ ...expired, qrCode: "fresh-qr" }),
     ));
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    open.mockClear();
     renderContainer();
+    // Mã đã hết hạn: "Xem mã QR" mở hộp có nút "Làm mới QR" thay cho màn của khách.
     await userEvent.click(await screen.findByRole("button", { name: /Xem mã QR đơn INV-1/ }));
+    expect(open).not.toHaveBeenCalled();
     const refresh = await screen.findByRole("button", { name: /Làm mới QR/ });
     expect(screen.queryByTitle(/Mã QR đơn INV-1/)).not.toBeInTheDocument();
     await userEvent.click(refresh);

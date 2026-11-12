@@ -1,7 +1,6 @@
 "use client";
 
-import { MonitorSmartphone, RefreshCw } from "lucide-react";
-import { customerDisplayHref, openCustomerDisplay } from "@/features/customer-display/utils/open-display";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { useNow } from "../hooks/use-now";
 import type { Order } from "../types/types";
@@ -53,12 +52,6 @@ export function OrderQrSection(props: OrderQrSectionProps) {
       )}
       {showRefresh && (
         <div className="flex flex-wrap justify-center gap-2">
-          {/* Màn chiếu cho khách quét (QR ví FlexPay 12/11/2026): cùng quyền CREATE_ORDER với "Làm mới QR", chỉ khi mã còn hạn. */}
-          {order && !expired && qrValue ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => openCustomerDisplay(customerDisplayHref.order(order.id))}>
-              <MonitorSmartphone size={15} aria-hidden="true" /> Hiển thị cho khách
-            </Button>
-          ) : null}
           <Button type="button" variant="outline" size="sm" isLoading={isRefreshing} onClick={() => void onRefresh()}>
             <RefreshCw size={15} aria-hidden="true" /> Làm mới QR
           </Button>

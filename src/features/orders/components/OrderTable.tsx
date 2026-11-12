@@ -13,8 +13,8 @@ type Props = OrderColumnActions & {
 };
 
 export function OrderTable(props: Props) {
-  const { rows, total, page, pageSize, onPageChange, onView, onViewQr, onCustomerDisplay, onCancel, onRefund, onDispute } = props;
-  const columns = getOrderColumns({ onView, onViewQr, onCustomerDisplay, onCancel, onRefund, onDispute }, page, pageSize);
+  const { rows, total, page, pageSize, onPageChange, onView, onViewQr, onCancel, onRefund, onDispute } = props;
+  const columns = getOrderColumns({ onView, onViewQr, onCancel, onRefund, onDispute }, page, pageSize);
   return (
     <Table
       data={rows}

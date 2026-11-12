@@ -25,10 +25,15 @@ beforeEach(() => {
 });
 
 describe("order customer-display route", () => {
-  it("needs CREATE_ORDER", async () => {
-    getServerSession.mockResolvedValue(session(["VIEW_ORDER"]));
+  it("needs VIEW_ORDER or CREATE_ORDER, like the \"Xem mã QR\" button that opens it", async () => {
+    getServerSession.mockResolvedValue(session(["VIEW_REVENUE"]));
     expect((await call()).status).toBe(403);
     expect(createOrderDisplay).not.toHaveBeenCalled();
+  });
+
+  it("opens for a session that can only view orders", async () => {
+    getServerSession.mockResolvedValue(session(["VIEW_ORDER"]));
+    expect((await call()).status).not.toBe(403);
   });
 
   it("answers 404 for a bad id and for an order of another merchant", async () => {
