@@ -12,6 +12,8 @@ import { filterRoutesByAccess, routesConfig } from "./constants/route.constants"
 import { useSession } from "@/features/auth/components/session-provider";
 import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
 import { AccountDialog } from "@/features/account/components/AccountDialog";
+import { NotificationSettingsDialog } from "@/features/notification-settings/NotificationSettingsDialog";
+import { hasPermission } from "@/features/auth/permissions";
 import { SidebarBrand } from "./SidebarBrand";
 import { SidebarNavGroup } from "./SidebarNavGroup";
 import { SidebarUserMenu } from "./SidebarUserMenu";
@@ -21,7 +23,9 @@ export default function DocSidebar() {
   const { state } = useSidebar();
   const { logout, isPending: isLoggingOut } = useLogoutMutation();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
   const session = useSession();
+  const canViewNotificationSettings = hasPermission(session.permissions, "MANAGE_NOTIFICATION");
   const hasMerchant = session.merchantIds.length > 0;
   const visibleRoutes = useMemo(
     () => filterRoutesByAccess(routesConfig, { permissions: session.permissions, hasMerchant }),
@@ -45,9 +49,14 @@ export default function DocSidebar() {
           isLoggingOut={isLoggingOut}
           onOpenAccount={() => setAccountOpen(true)}
           onLogout={logout}
+          canViewNotificationSettings={canViewNotificationSettings}
+          onOpenNotificationSettings={() => setNotificationSettingsOpen(true)}
         />
       </Sidebar>
       <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} user={session} />
+      {canViewNotificationSettings && (
+        <NotificationSettingsDialog open={notificationSettingsOpen} onOpenChange={setNotificationSettingsOpen} />
+      )}
     </>
   );
 }

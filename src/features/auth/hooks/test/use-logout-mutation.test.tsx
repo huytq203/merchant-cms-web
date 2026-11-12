@@ -24,6 +24,20 @@ describe("useLogoutMutation", () => {
     expect(order).toEqual(["unregister", "logout"]);
   });
 
+  it("does not wait forever for a stalled token removal", async () => {
+    vi.useFakeTimers();
+    try {
+      unregisterPush.mockReturnValue(new Promise(() => undefined));
+      const { result } = renderHook(() => useLogoutMutation());
+      act(() => result.current.logout());
+      expect(logoutAction).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(3_100); });
+      expect(logoutAction).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("still signs out when removing the token fails", async () => {
     unregisterPush.mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() => useLogoutMutation());
