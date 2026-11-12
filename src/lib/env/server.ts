@@ -11,6 +11,8 @@ const normalizeBaseUrl = (value: string) =>
 const serverEnvSchema = z.object({
   IDENTITY_BASE_URL: z.url().transform(normalizeBaseUrl),
   MERCHANT_BASE_URL: z.url().transform(normalizeBaseUrl),
+  /** Gốc dịch vụ flexpay.notification; chỉ push trình duyệt cần, nên không bắt buộc. */
+  NOTIFICATION_BASE_URL: z.preprocess((value) => (value === "" ? undefined : value), z.url().transform(normalizeBaseUrl).optional()),
   MERCHANT_API_MODE: z.enum(["live", "fixture"]).optional(),
 });
 

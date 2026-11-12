@@ -6,6 +6,8 @@ import React from 'react'
 import Link from 'next/link'
 import { getBreadcrumbs, homeRoute, routeSearchOptions } from './constants/route.constants';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { PushOptIn } from '@/features/notifications/push/components/PushOptIn';
+import { PushSync } from '@/features/notifications/push/components/PushSync';
 import { usePathname, useRouter } from 'next/navigation';
 
 const Header = () => {
@@ -54,7 +56,8 @@ const Header = () => {
           className="ml-auto hidden md:flex md:w-[200px] lg:w-[240px]"
         />
       </nav>
-      <NotificationBell />
+      <PushSync />
+      <NotificationBell pushSlot={<PushOptIn />} />
     </header>
   )
 }

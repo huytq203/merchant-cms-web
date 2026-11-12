@@ -50,3 +50,14 @@ describe("parseServerEnv", () => {
     );
   });
 });
+
+describe("NOTIFICATION_BASE_URL", () => {
+  const base = { IDENTITY_BASE_URL: "https://identity.test", MERCHANT_BASE_URL: "https://merchant.test" };
+  it("is optional and an empty value counts as unset", () => {
+    expect(parseServerEnv(base).NOTIFICATION_BASE_URL).toBeUndefined();
+    expect(parseServerEnv({ ...base, NOTIFICATION_BASE_URL: "" }).NOTIFICATION_BASE_URL).toBeUndefined();
+  });
+  it("trims trailing slashes when set", () => {
+    expect(parseServerEnv({ ...base, NOTIFICATION_BASE_URL: "https://noti.test/" }).NOTIFICATION_BASE_URL).toBe("https://noti.test");
+  });
+});

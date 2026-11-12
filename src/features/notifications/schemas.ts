@@ -52,3 +52,12 @@ export const notificationFilterSchema = z.object({
 export const readAllQuerySchema = z.object({
   category: z.enum(NOTIFICATION_CATEGORIES, { error: "Nhóm thông báo không hợp lệ." }).optional(),
 });
+
+/** Body mà trình duyệt gửi cho proxy push; giới hạn độ dài khớp `DeviceRequest` của flexpay.notification. */
+export const pushTokenSchema = z.object({
+  token: z.string().min(1, "Thiếu token thông báo").max(4096, "Token thông báo quá dài"),
+  installationId: z.string().max(160, "Mã cài đặt quá dài").optional(),
+  platform: z.string().max(20).optional(),
+  appId: z.string().max(80).optional(),
+});
+export type PushTokenInput = z.infer<typeof pushTokenSchema>;
