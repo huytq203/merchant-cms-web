@@ -99,5 +99,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+  // Bỏ qua cả service worker web push và icon thông báo: trình duyệt tự tải chúng không kèm phiên, chặn về /login
+  // thì đăng ký push hỏng và thông báo mất icon.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|firebase-messaging-sw.js|icon-192x192.png).*)"],
 };

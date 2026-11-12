@@ -42,7 +42,12 @@ self.addEventListener("notificationclick", (event) => {
       // Ưu tiên tab Portal đang mở: chuyển nó tới link thay vì mở tab mới.
       for (const client of windows) {
         if ("navigate" in client && "focus" in client) {
-          return client.navigate(target).then((c) => (c || client).focus());
+          // navigate() bị từ chối khi tab không do worker này kiểm soát hoặc đang ở origin khác:
+          // khi đó mở tab mới để cú bấm vẫn tới đúng trang thay vì không làm gì.
+          return client
+            .navigate(target)
+            .then((c) => (c || client).focus())
+            .catch(() => self.clients.openWindow(target));
         }
       }
       return self.clients.openWindow(target);

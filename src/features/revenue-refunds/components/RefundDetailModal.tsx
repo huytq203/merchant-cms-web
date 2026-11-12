@@ -44,7 +44,8 @@ function RefundSections({ refund, subName }: { refund: RevenueRefundDetail; subN
       </DetailSection>
       <DetailSection title="Phê duyệt và chi tiền">
         <DetailList>
-          <DetailItem label="Người duyệt">{refund.approvedBy || "Chưa duyệt"}</DetailItem>
+          {/* Ẩn "Người duyệt": BE hiện trả approvedBy là UUID thô, chưa có tên để hiển thị. Thời điểm duyệt và
+              ghi chú vẫn đủ cho Merchant; hiện lại dòng này khi BE trả tên người duyệt. */}
           <DetailItem label="Duyệt lúc">{when(refund.approvedAt)}</DetailItem>
           <DetailItem label="Chi tiền lúc">{when(refund.payoutAt)}</DetailItem>
           <DetailItem label="Mã tham chiếu chi tiền">{refund.payoutReference || empty}</DetailItem>

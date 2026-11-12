@@ -14,7 +14,7 @@ const url = `/api/v1/admin/revenue-refunds/${succeededRefund.id}`;
 const detail = {
   ...succeededRefund,
   orderCode: "DH2611",
-  approvedBy: "Nguyễn Văn An",
+  approvedBy: "3f1c2a9e-7b4d-4e8a-9c21-5d6e7f8a9b0c",
   approvedAt: "2026-10-13T03:00:00Z",
   decisionNote: "Đã đối chiếu với khách",
   payoutAt: null,
@@ -30,14 +30,17 @@ function renderModal(onClose = vi.fn()) {
 afterEach(cleanup);
 
 describe("RefundDetailModal", () => {
-  it("shows code, order, amount, status, approver and reason", async () => {
+  it("shows code, order, amount, status, approval time and reason", async () => {
     mswServer.use(http.get(url, () => HttpResponse.json(detail)));
     renderModal();
     expect(await screen.findByText(succeededRefund.refundCode)).toBeTruthy();
     expect(screen.getByText("DH2611")).toBeTruthy();
     expect(screen.getByText(/40\.000/)).toBeTruthy();
     expect(screen.getByText("Thành công")).toBeTruthy();
-    expect(screen.getByText("Nguyễn Văn An")).toBeTruthy();
+    // BE còn trả UUID thô cho người duyệt: ẩn dòng "Người duyệt", giữ thời điểm duyệt và ghi chú.
+    expect(screen.queryByText("Người duyệt")).toBeNull();
+    expect(screen.queryByText(detail.approvedBy)).toBeNull();
+    expect(screen.getByText("Duyệt lúc")).toBeTruthy();
     expect(screen.getByText("Khách trả hàng")).toBeTruthy();
     expect(screen.getByText("Đã đối chiếu với khách")).toBeTruthy();
   });

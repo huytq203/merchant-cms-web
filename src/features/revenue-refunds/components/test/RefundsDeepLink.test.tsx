@@ -41,10 +41,11 @@ afterEach(cleanup);
 describe("revenue refunds ?detail=", () => {
   it("opens the refund detail modal and removes detail when closed", async () => {
     search = `group=SUCCEEDED&detail=${succeededRefund.id}`;
-    mswServer.use(http.get(`${base}/${succeededRefund.id}`, () => HttpResponse.json({ ...succeededRefund, approvedBy: "An" })));
+    mswServer.use(http.get(`${base}/${succeededRefund.id}`, () => HttpResponse.json(succeededRefund)));
     renderPage();
     expect(await screen.findByText("Chi tiết hoàn tiền")).toBeInTheDocument();
-    expect(await screen.findByText("An")).toBeInTheDocument();
+    // Chờ chi tiết tải xong (dòng "Duyệt lúc" chỉ có khi đã có bản ghi).
+    expect(await screen.findByText("Duyệt lúc")).toBeInTheDocument();
     await userEvent.click(screen.getAllByRole("button", { name: "Đóng" }).at(-1)!);
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/revenue-refunds?group=SUCCEEDED"));
   });

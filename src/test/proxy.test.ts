@@ -111,4 +111,16 @@ describe("proxy", () => {
     }
   });
 
+  // Service worker và icon của web push phải tải được khi chưa đăng nhập (trình duyệt tự xin, không kèm phiên);
+  // bị chuyển về /login thì đăng ký service worker hỏng và thông báo mất icon.
+  it("matcher skips the push service worker and its icon but still guards pages", async () => {
+    vi.stubEnv("IDENTITY_BASE_URL", "https://identity.test");
+    vi.stubEnv("MERCHANT_BASE_URL", "https://merchant.test");
+    const { config } = await import("@/proxy");
+    const matches = (path: string) => config.matcher.some((m: string) => new RegExp(`^${m}$`).test(path));
+    expect(matches("/firebase-messaging-sw.js")).toBe(false);
+    expect(matches("/icon-192x192.png")).toBe(false);
+    expect(matches("/notifications")).toBe(true);
+    expect(matches("/dashboard")).toBe(true);
+  });
 });
