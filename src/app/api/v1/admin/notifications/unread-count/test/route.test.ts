@@ -11,7 +11,7 @@ import { GET } from "../route";
 beforeEach(() => {
   vi.clearAllMocks();
   getServerSession.mockResolvedValue({ permissions: [], merchantIds: [] });
-  getUnreadCount.mockResolvedValue({ success: true, data: { count: 4 } });
+  getUnreadCount.mockResolvedValue({ success: true, data: { count: 4, byCategory: { PAYMENT: 2, WITHDRAWAL: 1, OTHER: 1 } } });
 });
 
 describe("unread count route", () => {
@@ -24,7 +24,7 @@ describe("unread count route", () => {
   it("returns the count for any signed-in user", async () => {
     const response = await GET();
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ count: 4 });
+    expect(await response.json()).toEqual({ count: 4, byCategory: { PAYMENT: 2, WITHDRAWAL: 1, OTHER: 1 } });
   });
 
   it("keeps a BE 4xx status and turns a BE 5xx into 502", async () => {

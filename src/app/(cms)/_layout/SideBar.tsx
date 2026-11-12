@@ -12,8 +12,6 @@ import { filterRoutesByAccess, routesConfig } from "./constants/route.constants"
 import { useSession } from "@/features/auth/components/session-provider";
 import { useLogoutMutation } from "@/features/auth/hooks/use-logout-mutation";
 import { AccountDialog } from "@/features/account/components/AccountDialog";
-import { NotificationSheet } from "@/features/notifications/components/NotificationSheet";
-import { useUnreadCount } from "@/features/notifications/hooks/use-unread-count";
 import { SidebarBrand } from "./SidebarBrand";
 import { SidebarNavGroup } from "./SidebarNavGroup";
 import { SidebarUserMenu } from "./SidebarUserMenu";
@@ -23,8 +21,6 @@ export default function DocSidebar() {
   const { state } = useSidebar();
   const { logout, isPending: isLoggingOut } = useLogoutMutation();
   const [accountOpen, setAccountOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const unreadCount = useUnreadCount();
   const session = useSession();
   const hasMerchant = session.merchantIds.length > 0;
   const visibleRoutes = useMemo(
@@ -47,14 +43,11 @@ export default function DocSidebar() {
           name={session.username}
           email={session.email ?? ""}
           isLoggingOut={isLoggingOut}
-          unreadCount={unreadCount}
           onOpenAccount={() => setAccountOpen(true)}
-          onOpenNotifications={() => setNotificationsOpen(true)}
           onLogout={logout}
         />
       </Sidebar>
       <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} user={session} />
-      <NotificationSheet open={notificationsOpen} onOpenChange={setNotificationsOpen} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
-import type { NotificationListResult, UnreadCount } from "./types";
+import type { NotificationCategory, NotificationListResult, UnreadCount } from "./types";
 
 export const NOTIFICATIONS_ENDPOINT = "/v1/admin/notifications";
 export const NOTIFICATION_PAGE_SIZE = 20;
@@ -16,11 +16,12 @@ export const notificationQueries = {
     queryFn: () => apiClient.get<UnreadCount>(`${NOTIFICATIONS_ENDPOINT}/unread-count`),
     refetchInterval: UNREAD_COUNT_REFRESH_MS,
   }),
-  list: (unreadOnly: boolean) => infiniteQueryOptions({
-    queryKey: [...NOTIFICATIONS_KEY, "list", { unreadOnly }] as const,
+  /** `category` undefined = tab "Tất cả"; each tab and unread filter keeps its own pages. */
+  list: (unreadOnly: boolean, category?: NotificationCategory) => infiniteQueryOptions({
+    queryKey: [...NOTIFICATIONS_KEY, "list", { unreadOnly, category: category ?? null }] as const,
     initialPageParam: 1,
     queryFn: ({ pageParam }) => apiClient.get<NotificationListResult>(NOTIFICATIONS_ENDPOINT, {
-      query: { page: pageParam, pageSize: NOTIFICATION_PAGE_SIZE, unreadOnly: unreadOnly ? true : undefined },
+      query: { page: pageParam, pageSize: NOTIFICATION_PAGE_SIZE, unreadOnly: unreadOnly ? true : undefined, category },
     }),
     /** The open list refreshes on the count's interval, so a notification that arrives while it is open shows up. */
     refetchInterval: UNREAD_COUNT_REFRESH_MS,

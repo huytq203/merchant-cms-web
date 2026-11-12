@@ -55,4 +55,14 @@ describe("notification list route", () => {
     expect(response.status).toBe(403);
     expect(typeof (await response.json()).message).toBe("string");
   });
+
+  it("forwards a valid category and rejects an unknown one with a Vietnamese 400", async () => {
+    await GET(get("?category=PAYMENT"));
+    expect(listNotifications).toHaveBeenCalledWith({ page: 1, pageSize: 20, unreadOnly: false, category: "PAYMENT" });
+    listNotifications.mockClear();
+    const response = await GET(get("?category=NOPE"));
+    expect(response.status).toBe(400);
+    expect((await response.json()).message).toBe("Nhóm thông báo không hợp lệ.");
+    expect(listNotifications).not.toHaveBeenCalled();
+  });
 });

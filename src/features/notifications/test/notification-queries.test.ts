@@ -8,6 +8,9 @@ import { notificationQueries, NOTIFICATION_PAGE_SIZE, UNREAD_COUNT_REFRESH_MS } 
 const row = (n: number) => ({
   id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
   type: "TRANSACTION_RESULT",
+  category: "PAYMENT" as const,
+  targetType: "ORDER",
+  targetId: null,
   title: `Thông báo ${n}`,
   body: "",
   orderId: null,
@@ -32,8 +35,8 @@ describe("notification queries", () => {
   });
 
   it("reads the count from the app route", async () => {
-    mswServer.use(http.get("/api/v1/admin/notifications/unread-count", () => HttpResponse.json({ count: 5 })));
-    expect(await client().fetchQuery(notificationQueries.unreadCount())).toEqual({ count: 5 });
+    mswServer.use(http.get("/api/v1/admin/notifications/unread-count", () => HttpResponse.json({ count: 5, byCategory: { PAYMENT: 3, WITHDRAWAL: 1, OTHER: 1 } })));
+    expect(await client().fetchQuery(notificationQueries.unreadCount())).toEqual({ count: 5, byCategory: { PAYMENT: 3, WITHDRAWAL: 1, OTHER: 1 } });
   });
 
   it("asks for page after page and stops when every row is loaded", async () => {
@@ -73,5 +76,17 @@ describe("notification queries", () => {
     }));
     await client().fetchInfiniteQuery(notificationQueries.list(false));
     expect(params?.has("unreadOnly")).toBe(false);
+  });
+
+  it("sends the category and keeps each tab under its own key", async () => {
+    let params: URLSearchParams | undefined;
+    mswServer.use(http.get("/api/v1/admin/notifications", ({ request }) => {
+      params = new URL(request.url).searchParams;
+      return HttpResponse.json({ rows: [], total: 0 });
+    }));
+    await client().fetchInfiniteQuery(notificationQueries.list(false, "WITHDRAWAL"));
+    expect(params?.get("category")).toBe("WITHDRAWAL");
+    expect(notificationQueries.list(false, "PAYMENT").queryKey).not.toEqual(notificationQueries.list(false, "OTHER").queryKey);
+    expect(notificationQueries.list(false).queryKey).not.toEqual(notificationQueries.list(false, "PAYMENT").queryKey);
   });
 });

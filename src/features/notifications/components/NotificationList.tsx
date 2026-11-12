@@ -4,8 +4,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { BellOff, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Skeleton } from "@/components/ui/skeleton/Skeleton";
-import { useMarkNotificationRead } from "../hooks/use-notification-mutations";
 import { notificationQueries } from "../notification-queries";
+import type { Notification, NotificationCategory } from "../types";
 import { NotificationItem } from "./NotificationItem";
 
 function ListSkeleton() {
@@ -36,10 +36,16 @@ function ListMessage({ icon, title, hint, action }: { icon: React.ReactNode; tit
   );
 }
 
-/** The paged list for one tab; `unreadOnly` is part of the query key, so each tab keeps its own pages. */
-export function NotificationList({ unreadOnly }: { unreadOnly: boolean }) {
-  const query = useInfiniteQuery(notificationQueries.list(unreadOnly));
-  const markRead = useMarkNotificationRead();
+interface NotificationListProps {
+  unreadOnly: boolean;
+  /** Undefined = tab "Tất cả". */
+  category?: NotificationCategory;
+  onOpen: (notification: Notification) => void;
+}
+
+/** The paged list for one tab; `category` and `unreadOnly` are part of the query key, so each tab keeps its own pages. */
+export function NotificationList({ unreadOnly, category, onOpen }: NotificationListProps) {
+  const query = useInfiniteQuery(notificationQueries.list(unreadOnly, category));
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
 
   if (query.isPending) return <ListSkeleton />;
@@ -60,14 +66,14 @@ export function NotificationList({ unreadOnly }: { unreadOnly: boolean }) {
       <ListMessage
         icon={<BellOff className="h-6 w-6" />}
         title={unreadOnly ? "Không còn thông báo chưa đọc" : "Chưa có thông báo nào"}
-        hint={unreadOnly ? undefined : "Thông báo về giao dịch sẽ xuất hiện ở đây."}
+        hint={unreadOnly ? undefined : "Thông báo mới sẽ xuất hiện ở đây."}
       />
     );
   }
   return (
     <div className="grid gap-1">
       {rows.map((notification) => (
-        <NotificationItem key={notification.id} notification={notification} onRead={markRead.mutate} />
+        <NotificationItem key={notification.id} notification={notification} onOpen={onOpen} />
       ))}
       {query.hasNextPage ? (
         <Button variant="ghost" size="sm" className="mt-2 justify-self-center" isLoading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>

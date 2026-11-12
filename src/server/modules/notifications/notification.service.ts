@@ -7,6 +7,7 @@ import { ok } from "@/lib/http/result";
 import { notificationSchema, readAllResultSchema, unreadCountSchema } from "@/features/notifications/schemas";
 import type {
   Notification,
+  NotificationCategory,
   NotificationFilter,
   NotificationListResult,
   ReadAllResult,
@@ -18,7 +19,7 @@ export async function listNotifications(filter: NotificationFilter): Promise<BeR
   const result = await merchantClient().get({
     path: notificationPaths.list,
     schema: pageSchema(notificationSchema),
-    query: { page: filter.page, size: filter.pageSize, unreadOnly: filter.unreadOnly ? true : undefined },
+    query: { page: filter.page, size: filter.pageSize, unreadOnly: filter.unreadOnly ? true : undefined, category: filter.category },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
@@ -31,6 +32,7 @@ export function markNotificationRead(id: string): Promise<BeResult<Notification>
   return merchantClient().post({ path: notificationPaths.read(id), schema: notificationSchema });
 }
 
-export function markAllNotificationsRead(): Promise<BeResult<ReadAllResult>> {
-  return merchantClient().post({ path: notificationPaths.readAll, schema: readAllResultSchema });
+/** `category` limits the update to one tab; without it every notification of the user is marked read. */
+export function markAllNotificationsRead(category?: NotificationCategory): Promise<BeResult<ReadAllResult>> {
+  return merchantClient().post({ path: notificationPaths.readAll, schema: readAllResultSchema, query: category ? { category } : undefined });
 }

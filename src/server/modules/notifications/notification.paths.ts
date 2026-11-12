@@ -1,5 +1,5 @@
 // Merchant Portal endpoints (`/api/v1/merchant/notifications`): the inbox of the signed-in user, no permission code.
-// BE list takes `page`, `size` (at most 100) and `unreadOnly`; the order is fixed newest first.
+// BE list takes `page`, `size` (at most 100), `unreadOnly` and `category`; the order is fixed newest first.
 const MERCHANT = "/api/v1/merchant/notifications";
 
 export const notificationPaths = {

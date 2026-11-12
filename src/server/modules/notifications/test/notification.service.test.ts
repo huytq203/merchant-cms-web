@@ -15,6 +15,9 @@ const page = (content: unknown[], totalElements = content.length) => ({ content,
 const notice = {
   id,
   type: "TRANSACTION_RESULT",
+  category: "PAYMENT",
+  targetType: "ORDER",
+  targetId: "22222222-2222-4222-8222-222222222222",
   title: "Đơn DH001 đã thanh toán",
   body: "Số tiền 150.000 ₫",
   orderId: null,
@@ -58,8 +61,8 @@ describe("notification service", () => {
   });
 
   it("reads the unread count", async () => {
-    mswServer.use(http.get(`${base}/unread-count`, () => HttpResponse.json(envelope({ count: 7 }))));
-    expect(await getUnreadCount()).toEqual({ success: true, data: { count: 7 } });
+    mswServer.use(http.get(`${base}/unread-count`, () => HttpResponse.json(envelope({ count: 7, byCategory: { PAYMENT: 4, WITHDRAWAL: 2, OTHER: 1 } }))));
+    expect(await getUnreadCount()).toEqual({ success: true, data: { count: 7, byCategory: { PAYMENT: 4, WITHDRAWAL: 2, OTHER: 1 } } });
   });
 
   it("marks one notification read and returns it", async () => {
@@ -81,5 +84,32 @@ describe("notification service", () => {
   it("preserves a not-active user error", async () => {
     mswServer.use(http.get(`${base}/unread-count`, () => HttpResponse.json({ success: false, message: "Tài khoản chưa hoạt động" }, { status: 403 })));
     expect(await getUnreadCount()).toMatchObject({ success: false, error: { status: 403 } });
+  });
+
+  it("forwards the category to the list", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(base, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(page([])));
+    }));
+    await listNotifications({ page: 1, pageSize: 20, unreadOnly: false, category: "WITHDRAWAL" });
+    expect(query?.get("category")).toBe("WITHDRAWAL");
+  });
+
+  it("keeps a target type the FE does not know yet", async () => {
+    mswServer.use(http.get(base, () => HttpResponse.json(envelope(page([{ ...notice, targetType: "SOMETHING_NEW" }])))));
+    const result = await listNotifications({ page: 1, pageSize: 20, unreadOnly: false });
+    expect(result).toMatchObject({ success: true, data: { rows: [{ targetType: "SOMETHING_NEW" }] } });
+  });
+
+  it("limits read-all to a category, and sends none by default", async () => {
+    const seen: (string | null)[] = [];
+    mswServer.use(http.post(`${base}/read-all`, ({ request }) => {
+      seen.push(new URL(request.url).searchParams.get("category"));
+      return HttpResponse.json(envelope({ updated: 2 }));
+    }));
+    await markAllNotificationsRead("PAYMENT");
+    await markAllNotificationsRead();
+    expect(seen).toEqual(["PAYMENT", null]);
   });
 });
