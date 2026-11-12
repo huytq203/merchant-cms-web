@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Ban, Eye, MessageSquareWarning, QrCode, Undo2 } from "lucide-react";
+import { Ban, Eye, MessageSquareWarning, MonitorSmartphone, QrCode, Undo2 } from "lucide-react";
 import { DateTimeCell } from "@/components/page/DateTimeCell";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
@@ -12,6 +12,8 @@ import { canCancelOrder, canRefreshQr } from "../utils/order-mapper";
 export type OrderColumnActions = {
   onView: (order: Order) => void;
   onViewQr: (order: Order) => void;
+  /** Present only for a session with CREATE_ORDER: opens the full-screen "Hiển thị cho khách" page of an ACTIVE order. */
+  onCustomerDisplay?: (order: Order) => void;
   /** Present only for a session with CANCEL_ORDER. */
   onCancel?: (order: Order) => void;
   /** Present only for a session with CREATE_REFUND; the row shows it for a paid (SUCCESS) order. */
@@ -55,6 +57,8 @@ function OrderRowActions({ order, actions }: { order: Order; actions: OrderColum
   return <RowActions subject={`đơn ${order.orderCode}`} actions={[
     { label: "Xem chi tiết", icon: <Eye size={16} />, onClick: () => actions.onView(order) },
     { label: "Xem mã QR", icon: <QrCode size={16} />, visible: showQr, onClick: () => actions.onViewQr(order) },
+    // QR ví FlexPay 12/11/2026: màn chiếu cho khách quét, chỉ đơn còn chờ trả (cùng điều kiện với "Xem mã QR").
+    { label: "Hiển thị cho khách", icon: <MonitorSmartphone size={16} />, visible: showQr && Boolean(actions.onCustomerDisplay), onClick: () => actions.onCustomerDisplay?.(order) },
     // Chỉ đơn đã thanh toán thành công mới hoàn được; quyền CREATE_REFUND quyết định có truyền onRefund hay không.
     { label: "Hoàn tiền", icon: <Undo2 size={16} />, visible: Boolean(actions.onRefund) && order.status === "SUCCESS", onClick: () => actions.onRefund?.(order) },
     // Khiếu nại ngay trên dòng (10/11/2026): chỉ đơn Thành công đã có mã giao dịch, vì BE tra soát theo mã giao dịch.

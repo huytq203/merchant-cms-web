@@ -23,6 +23,7 @@ import { OrderTable } from "./OrderTable";
 import { RefundCreateDialog, type RefundOrder } from "@/features/revenue-refunds/components/RefundCreateDialog";
 import { ComplaintCreateDialog } from "@/features/complaints/components/ComplaintCreateDialog";
 import type { Order } from "../types/types";
+import { customerDisplayHref, openCustomerDisplay } from "@/features/customer-display/utils/open-display";
 
 const orderFilterKey = (filter: OrderListFilter) =>
   [filter.orderCode, filter.status, filter.subMerchantId, filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
@@ -106,6 +107,7 @@ export function OrdersContainer({ filter, abilities }: Props) {
             onPageChange={navigation.changePage}
             onView={(order) => dialogs.openFor("detail", order)}
             onViewQr={(order) => dialogs.openFor("qr", order)}
+            onCustomerDisplay={abilities.canCreate ? (order) => openCustomerDisplay(customerDisplayHref.order(order.id)) : undefined}
             onCancel={abilities.canCancel ? (order) => startCancel(order, false) : undefined}
             onRefund={abilities.canRefund ? startRefund : undefined}
             onDispute={abilities.canDispute ? startDispute : undefined}

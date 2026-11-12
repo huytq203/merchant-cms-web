@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Edit, Eye, Lock, Unlock } from "lucide-react";
+import { Edit, Eye, Lock, QrCode, Unlock } from "lucide-react";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { Badge } from "@/components/ui/badge/Badge";
@@ -16,6 +16,8 @@ type Actions = {
   onEdit?: (row: TerminalRow) => void;
   onLock?: (row: TerminalRow) => void;
   onUnlock?: (row: TerminalRow) => void;
+  /** Mã QR tĩnh FlexPay của Terminal (QR ví FlexPay 12/11/2026); có cho cả người chỉ xem để mở màn hiển thị. */
+  onStaticQr?: (row: TerminalRow) => void;
 };
 
 function TerminalRowActions({ item, actions }: { item: TerminalRow; actions: Actions }) {
@@ -38,6 +40,7 @@ function TerminalRowActions({ item, actions }: { item: TerminalRow; actions: Act
       actions={[
         { label: "Xem chi tiết", icon: <Eye size={16} />, onClick: () => actions.onView(item) },
         { label: "Sửa", icon: <Edit size={16} />, visible: !!onEdit, onClick: () => onEdit?.(item) },
+        { label: "QR tĩnh", icon: <QrCode size={16} />, visible: !!actions.onStaticQr, onClick: () => actions.onStaticQr?.(item) },
         lockAction,
       ]}
     />

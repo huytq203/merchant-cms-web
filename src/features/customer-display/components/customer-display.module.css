@@ -1,0 +1,461 @@
+/*
+ * Màn "Hiển thị cho khách" (Merchant Portal). Đây là màn khách nhìn thấy nên bám hệ thiết kế v2 của APP MOBILE
+ * (ewallet-mobileapp: app_colors.dart, app_typography.dart, fp_hero_pattern, fp_result_mascot) theo mock up đã duyệt
+ * 12/11/2026 ở docs/mockup-qr-hien-thi-cho-khach — không dùng token CMS (Be Vietnam Pro, nền canvas) của Portal.
+ * Vì vậy màu khai báo riêng ở đây, đúng mã màu của app; không dùng lại ở màn khác.
+ */
+.screen {
+  --teal: #02ccbb;
+  --teal-ink: #008175;
+  --teal50: #e9faf8;
+  --tint: #eaf6f4;
+  --mint2: #d1f0ed;
+  --ink: #005045;
+  --ink900: #1c2120;
+  --body: #3b3b3b;
+  --muted: #738b8c;
+  --border: #cee0e1;
+  --divider: #ddebea;
+  --action: #ffcd03;
+  --lime: #b9de32;
+  --success: #1f9a5b;
+  --success-bg: #dcf3e5;
+  --qr-size: clamp(200px, min(46vh, 34vw), 420px);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: #fff;
+  color: var(--ink900);
+  font-family: var(--font-lexend), system-ui, sans-serif;
+  color-scheme: light;
+}
+
+/* Đặt lại lề mặc định của thẻ chữ mà không tăng độ ưu tiên (các lớp bên dưới tự đặt lề của mình). */
+.screen :where(p, dl, dd, dt) {
+  margin: 0;
+}
+
+/* ---- Cột thanh toán (trái / trên) ---- */
+.pay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(20px, 4vh, 48px) clamp(16px, 3vw, 40px);
+  text-align: center;
+}
+
+.shop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--teal-ink);
+  font-size: clamp(14px, 1.6vh, 18px);
+  font-weight: 500;
+}
+.shop::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+.shopName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amountLabel {
+  margin-top: clamp(12px, 2.4vh, 24px);
+  font-size: clamp(14px, 1.6vh, 18px);
+  color: var(--muted);
+}
+.amount {
+  font-size: clamp(36px, 6vh, 64px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.amount sup {
+  position: relative;
+  top: 0.3em;
+  margin-left: 2px;
+  font-size: 0.5em;
+  font-weight: 600;
+  vertical-align: top;
+}
+.amountHint {
+  font-size: clamp(22px, 3.2vh, 32px);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.meta {
+  margin-top: 6px;
+  font-size: clamp(14px, 1.6vh, 18px);
+  color: var(--muted);
+}
+.meta b {
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  position: relative;
+  margin: clamp(14px, 2.4vh, 24px) 0 10px;
+  padding: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  background: #fff;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1.5px dashed var(--mint2);
+  border-radius: 24px;
+  pointer-events: none;
+}
+.qr {
+  display: block;
+  width: var(--qr-size);
+  height: var(--qr-size);
+}
+.qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Dùng primitive QRCode của dự án nhưng bỏ khung riêng của nó: khung ở đây là thẻ viền đứt của mock up. */
+.qr div {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Logo ở giữa mã: mức sửa lỗi H chịu được phần che ~5% diện tích này. */
+.qrLogo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--qr-size) * 0.21);
+  height: calc(var(--qr-size) * 0.21);
+  border: 4px solid #fff;
+  border-radius: 16px;
+  background: var(--teal);
+  transform: translate(-50%, -50%);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.chip {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  color: var(--body);
+}
+.chipMain {
+  border-color: var(--mint2);
+  background: var(--teal50);
+  font-weight: 500;
+  color: var(--teal-ink);
+}
+
+/* ---- Thanh toán thành công ---- */
+.ok {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  animation: pop 0.45s ease-out;
+}
+.tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(72px, 11vh, 112px);
+  height: clamp(72px, 11vh, 112px);
+  border-radius: 50%;
+  background: var(--success-bg);
+  color: var(--success);
+}
+.okTitle {
+  margin: 14px 0 4px;
+  font-size: clamp(26px, 4vh, 40px);
+  font-weight: 700;
+  color: var(--ink);
+}
+.rows {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--divider);
+  font-size: clamp(14px, 1.6vh, 18px);
+  color: var(--muted);
+}
+.row b {
+  font-weight: 600;
+  color: var(--ink900);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Hết hạn / lỗi / đang tải: một khối chữ giữa cột thanh toán. */
+.notice {
+  max-width: 360px;
+  margin-top: 18px;
+}
+.noticeTitle {
+  margin: 0 0 6px;
+  font-size: clamp(22px, 3.2vh, 32px);
+  font-weight: 700;
+  color: var(--ink);
+}
+.noticeText {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.retry {
+  margin-top: 16px;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+  font-weight: 500;
+  color: var(--teal-ink);
+  cursor: pointer;
+}
+.retry:focus-visible,
+.fullscreen:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.skeleton {
+  width: var(--qr-size);
+  height: var(--qr-size);
+  margin-top: 24px;
+  border-radius: 18px;
+  background: var(--tint);
+}
+
+.offline {
+  margin-top: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff4cc;
+  font-size: 12px;
+  color: #6b5200;
+}
+
+/* ---- Cột quảng bá ví FlexPay (phải / dưới) ---- */
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  padding: clamp(20px, 4vh, 40px);
+  background: linear-gradient(160deg, #16906f 0%, #058478 55%, #007e72 100%);
+  color: #fff;
+}
+.rings {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 92% 6%, transparent 0 60px, rgb(255 255 255 / 9%) 61px 62px, transparent 63px 110px, rgb(255 255 255 / 7%) 111px 112px, transparent 113px 170px, rgb(255 255 255 / 5%) 171px 172px, transparent 173px),
+    radial-gradient(circle at 6% 92%, transparent 0 70px, rgb(0 0 0 / 8%) 71px 72px, transparent 73px 130px, rgb(0 0 0 / 6%) 131px 132px, transparent 133px),
+    radial-gradient(rgb(255 255 255 / 6%) 1.2px, transparent 1.4px) 0 0 / 22px 22px;
+}
+.hero > :not(.rings) {
+  position: relative;
+}
+.logo {
+  align-self: flex-start;
+  width: auto;
+  height: clamp(28px, 4vh, 40px);
+}
+.over {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.say {
+  margin: 0;
+  font-size: clamp(24px, 3.6vh, 38px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.sub {
+  margin: 0;
+  font-size: clamp(15px, 1.8vh, 19px);
+  color: rgb(255 255 255 / 75%);
+}
+.stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 200px;
+}
+/* Quầng sáng lime sau Flexie như fp_result_mascot của app. */
+.stage::before {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: min(300px, 80%);
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(185 222 50 / 45%) 0%, rgb(185 222 50 / 18%) 45%, transparent 72%);
+  transform: translateX(-50%);
+}
+.mascot {
+  position: relative;
+  width: auto;
+  max-width: 100%;
+  /* Ảnh gốc của app nhỏ: đặt chiều cao theo màn để Flexie to như mock up, chiều rộng theo tỉ lệ ảnh. */
+  height: clamp(180px, 36vh, 400px);
+  object-fit: contain;
+  animation: pop 0.45s ease-out;
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  padding: 10px 12px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 12%);
+  font-size: clamp(13px, 1.5vh, 16px);
+}
+.step b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lime);
+}
+.download {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 18%);
+  font-size: 13px;
+  color: rgb(255 255 255 / 80%);
+}
+.cta {
+  flex: none;
+  padding: 9px 16px;
+  border-radius: 14px;
+  background: var(--action);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Nút toàn màn hình: nhỏ, góc trên, chỉ người đứng quầy dùng; ẩn khi đã toàn màn hình. */
+.fullscreen {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 85%);
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ok,
+  .mascot {
+    animation: none;
+  }
+}
+
+/* Màn dọc (máy tính bảng dựng đứng, điện thoại): mã ở trên, quảng bá ở dưới và gọn lại. */
+@media (orientation: portrait), (max-width: 860px) {
+  .screen {
+    --qr-size: clamp(200px, min(34vh, 70vw), 420px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+  .hero {
+    gap: 10px;
+  }
+  .stage {
+    min-height: 150px;
+  }
+  .mascot {
+    height: clamp(140px, 20vh, 260px);
+  }
+}
+
+@media (max-width: 420px) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .download {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

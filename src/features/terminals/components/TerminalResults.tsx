@@ -5,7 +5,7 @@ import { ResultCard } from "@/components/page/ResultCard";
 import { ResultState } from "@/components/page/ResultState";
 import { terminalQueries } from "../terminal-queries";
 import type { TerminalDialogs } from "../hooks/use-terminal-dialogs";
-import type { TerminalListFilter } from "../types";
+import type { TerminalListFilter, TerminalRow } from "../types";
 import { TerminalTable } from "./TerminalTable";
 
 type Props = {
@@ -13,9 +13,10 @@ type Props = {
   dialogs: TerminalDialogs;
   canManage: boolean;
   onPageChange: (page: number, pageSize: number) => void;
+  onStaticQr: (row: TerminalRow) => void;
 };
 
-export function TerminalResults({ filter, dialogs, canManage, onPageChange }: Props) {
+export function TerminalResults({ filter, dialogs, canManage, onPageChange, onStaticQr }: Props) {
   const list = useQuery(terminalQueries.list(filter));
 
   return (
@@ -37,6 +38,7 @@ export function TerminalResults({ filter, dialogs, canManage, onPageChange }: Pr
           onEdit={canManage ? (row) => dialogs.openFor("edit", row) : undefined}
           onLock={canManage ? (row) => dialogs.openFor("lock", row) : undefined}
           onUnlock={canManage ? (row) => dialogs.openFor("unlock", row) : undefined}
+          onStaticQr={onStaticQr}
         />
       )}
     </ResultCard>

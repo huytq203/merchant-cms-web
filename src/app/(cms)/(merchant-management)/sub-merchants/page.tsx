@@ -26,7 +26,14 @@ export default async function SubMerchantsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <SubMerchantsContainer filter={filter} canLock={hasAnyPermission(session.permissions, PERMISSION_GATES.subMerchantLock)} />
+      <SubMerchantsContainer
+        filter={filter}
+        canLock={hasAnyPermission(session.permissions, PERMISSION_GATES.subMerchantLock)}
+        staticQr={{
+          canView: hasAnyPermission(session.permissions, PERMISSION_GATES.terminalRead),
+          canManage: hasAnyPermission(session.permissions, PERMISSION_GATES.terminalWrite),
+        }}
+      />
     </HydrationBoundary>
   );
 }

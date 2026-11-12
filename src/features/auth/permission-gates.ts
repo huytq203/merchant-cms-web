@@ -7,6 +7,11 @@ import type { MerchantPermission } from "@/features/auth/permissions";
 export const PERMISSION_GATES = {
   terminalRead: ["VIEW_TERMINAL", "MANAGE_TERMINAL"],
   terminalWrite: ["MANAGE_TERMINAL"],
+  /**
+   * Mở màn "Hiển thị QR tĩnh" cho khách (chốt 12/11/2026): thu ngân chỉ có CREATE_ORDER vẫn mở được;
+   * phải khớp quyền BE của `POST /static-qrs/{id}/customer-display`.
+   */
+  staticQrDisplay: ["CREATE_ORDER", "VIEW_ORDER", "VIEW_TERMINAL", "MANAGE_TERMINAL"],
   subMerchantManage: ["MANAGE_SUB_MERCHANT"],
   subMerchantLock: ["LOCK_SUB_MERCHANT"],
   bankAccountRead: ["VIEW_BANK_ACCOUNT", "MANAGE_BANK_ACCOUNT", "CREATE_WITHDRAWAL"],

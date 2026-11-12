@@ -6,7 +6,7 @@ import {
   unsupportedResult,
 } from "../api-mode";
 
-const MODULES = ["refund"] as const;
+const MODULES = ["refund", "customer-display"] as const;
 
 afterEach(() => {
   vi.unstubAllEnvs();

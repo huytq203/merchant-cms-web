@@ -158,6 +158,27 @@ describe("order actions by status", () => {
     expect(screen.queryByRole("button", { name: /Xác nhận thanh toán/ })).not.toBeInTheDocument();
   });
 
+  it("opens the customer display of an ACTIVE order in a new tab, from the row and from the QR dialog", async () => {
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Hiển thị cho khách đơn INV-1/ }));
+    expect(open).toHaveBeenLastCalledWith(`/customer-display/order/${activeOrder.id}`, "_blank", "noopener");
+    await userEvent.click(screen.getByRole("button", { name: /Xem mã QR đơn INV-1/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Hiển thị cho khách" }));
+    expect(open).toHaveBeenCalledTimes(2);
+  });
+
+  it("hides the customer display without CREATE_ORDER or for a paid order", async () => {
+    renderContainer({ abilities: { ...abilities, canCreate: false } });
+    await screen.findByText("INV-1");
+    expect(screen.queryByRole("button", { name: /Hiển thị cho khách/ })).not.toBeInTheDocument();
+    cleanup();
+    listReturns([makeOrder({ status: "SUCCESS" })]);
+    renderContainer();
+    await screen.findByText("INV-1");
+    expect(screen.queryByRole("button", { name: /Hiển thị cho khách/ })).not.toBeInTheDocument();
+  });
+
   it("hides an expired QR and shows the new one after refreshing", async () => {
     const expired = makeOrder({ expiredAt: "2000-01-01T00:00:00", qrCode: "old-qr" });
     listReturns([expired]);

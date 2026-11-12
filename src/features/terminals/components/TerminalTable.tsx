@@ -15,6 +15,7 @@ type Props = {
   onEdit?: (row: TerminalRow) => void;
   onLock?: (row: TerminalRow) => void;
   onUnlock?: (row: TerminalRow) => void;
+  onStaticQr?: (row: TerminalRow) => void;
 };
 
 export function TerminalTable(props: Props) {
