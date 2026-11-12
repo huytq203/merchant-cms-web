@@ -45,7 +45,10 @@ function listReturns(rows: Order[]) {
 beforeEach(() => {
   listReturns([activeOrder]);
   mswServer.use(http.get(`${base}/${activeOrder.id}`, () => HttpResponse.json(activeOrder)));
-  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])));
+  // Every Merchant has at least its default Sub-merchant, which the order form preselects.
+  mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+    { id: "11111111-1111-4111-8111-111111111111", code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: true },
+  ])));
   mswServer.use(http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: [], total: 0 })));
 });
 afterEach(() => {
@@ -192,17 +195,61 @@ describe("create order flow", () => {
   const subId = "11111111-1111-4111-8111-111111111111";
   const terminalId = "55555555-5555-4555-8555-555555555555";
 
-  function sellerHas(terminals: { id: string; tid: string; name: string }[]) {
+  const otherSubId = "66666666-6666-4666-8666-666666666666";
+  type TerminalStub = { id: string; tid: string; name: string; subMerchantId: string };
+
+  function sellerHas(terminals: TerminalStub[], onTerminalQuery?: (url: URL) => void) {
     mswServer.use(
       http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
         { id: subId, code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: true },
       ])),
-      http.get("/api/v1/admin/terminals", () => HttpResponse.json({ rows: terminals, total: terminals.length })),
+      http.get("/api/v1/admin/terminals", ({ request }) => {
+        onTerminalQuery?.(new URL(request.url));
+        return HttpResponse.json({ rows: terminals, total: terminals.length });
+      }),
     );
   }
 
+  it("asks only for the Terminals of the chosen Sub-merchant and never offers another Sub's Terminal", async () => {
+    // A BE that ignores the Sub filter still returns every Terminal of the Merchant; the form must not offer them.
+    const queries: URL[] = [];
+    sellerHas([
+      { id: terminalId, tid: "TML000001", name: "Quầy 1", subMerchantId: subId },
+      { id: "77777777-7777-4777-8777-777777777777", tid: "TML000068", name: "Quầy Sub khác", subMerchantId: otherSubId },
+    ], (url) => queries.push(url));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("combobox", { name: /Terminal/ }));
+    expect(await screen.findByRole("option", { name: /TML000001/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /TML000068/ })).not.toBeInTheDocument();
+    expect(queries.at(-1)?.searchParams.get("subMerchantId")).toBe(subId);
+  });
+
+  it("requires a Sub-merchant before a Terminal when none is the default", async () => {
+    mswServer.use(
+      http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([
+        { id: subId, code: "MC1-S001", name: "Halo tech", status: "ACTIVE", isDefault: false },
+        { id: otherSubId, code: "MC1-S002", name: "Halo shop", status: "ACTIVE", isDefault: false },
+      ])),
+    );
+    const posts = vi.fn();
+    mswServer.use(http.post(base, () => {
+      posts();
+      return HttpResponse.json(makeOrder({}), { status: 201 });
+    }));
+    renderContainer();
+    await userEvent.click(screen.getByRole("button", { name: /Tạo đơn hàng/ }));
+    const dialog = await fillValidForm();
+    expect(within(dialog).getByRole("combobox", { name: /Terminal/ })).toBeDisabled();
+    expect(within(dialog).getByText("Chọn Sub-merchant trước.")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tạo đơn hàng" }));
+    expect(await within(dialog).findByText("Chọn Sub-merchant nhận tiền")).toBeInTheDocument();
+    expect(posts).not.toHaveBeenCalled();
+  });
+
   it("offers the Terminals of the default Sub-merchant and sends the chosen one", async () => {
-    sellerHas([{ id: terminalId, tid: "TML000001", name: "Quầy 1" }]);
+    sellerHas([{ id: terminalId, tid: "TML000001", name: "Quầy 1", subMerchantId: subId }]);
     const bodies: unknown[] = [];
     mswServer.use(http.post(base, async ({ request }) => {
       bodies.push(await request.json());
@@ -214,7 +261,8 @@ describe("create order flow", () => {
     await chooseOption(dialog, /Terminal/, /TML000001/);
     await userEvent.click(within(dialog).getByRole("button", { name: "Tạo đơn hàng" }));
     await screen.findByTitle(/Mã QR đơn INV-9/);
-    expect(bodies[0]).toMatchObject({ terminalId });
+    // The Sub the Terminal belongs to goes with it, so BE never pairs it with another Sub.
+    expect(bodies[0]).toMatchObject({ terminalId, subMerchantId: subId });
   });
 
   it("groups the amount with thousand separators while keeping the digits", async () => {

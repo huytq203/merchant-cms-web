@@ -27,15 +27,16 @@ type Props = {
 const groupDigits = (digits: string) => (digits ? new Intl.NumberFormat("vi-VN").format(Number(digits)) : "");
 
 export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverErrors }: Props) {
-  const form = useOrderForm(onSubmit);
-  const now = useNow(true);
   const subMerchants = useSubMerchantOptions();
+  const subs = subMerchants.data ?? [];
+  // Preselect the only Sub-merchant in scope, or the default one; with several and no default the user must pick.
+  const fallbackSubMerchantId = subs.length === 1 ? subs[0]!.id : (subs.find((sub) => sub.isDefault)?.id ?? "");
+  const form = useOrderForm(onSubmit, fallbackSubMerchantId);
+  const now = useNow(true);
   const [checkedCode, setCheckedCode] = useState("");
   const duplicate = useDuplicateOrder(checkedCode);
-  const subs = subMerchants.data ?? [];
-  // Left blank, BE uses the only Sub-merchant in scope, or the default one; Terminals follow that choice.
-  const subMerchantId =
-    form.values.subMerchantId || (subs.length === 1 ? subs[0]!.id : (subs.find((sub) => sub.isDefault)?.id ?? ""));
+  // Terminals are listed only for this Sub, so a Terminal can never be picked before its Sub is known.
+  const subMerchantId = form.values.subMerchantId || fallbackSubMerchantId;
   const terminals = useTerminalOptions(subMerchantId);
   const terminalOptions = terminals.data ?? [];
   const errors: Record<string, string | undefined> = { ...serverErrors, ...form.errors };
@@ -59,7 +60,7 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
               value: sub.id,
               label: `${sub.code} — ${sub.name}${sub.isDefault ? " (mặc định)" : ""}`,
             }))}
-            placeholder="Mặc định"
+            placeholder="Chọn Sub-merchant"
             clearable={false}
             error={errors.subMerchantId}
           />
@@ -69,7 +70,7 @@ export function OrderFormBody({ onCancel, onSubmit, isSubmitting, error, serverE
             onChange={(value) => form.change("terminalId", value)}
             options={terminalOptions}
             placeholder="Không gắn Terminal"
-            disabled={terminalOptions.length === 0}
+            disabled={!subMerchantId || terminalOptions.length === 0}
             description={
               !subMerchantId
                 ? "Chọn Sub-merchant trước."

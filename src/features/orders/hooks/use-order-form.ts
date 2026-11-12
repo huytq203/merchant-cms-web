@@ -14,6 +14,8 @@ export type OrderFormFields = {
   orderDescription: string;
 };
 
+const SUB_REQUIRED = "Chọn Sub-merchant nhận tiền";
+
 export type OrderFormErrors = Partial<Record<keyof OrderFormFields, string>>;
 
 const BLANK: OrderFormFields = {
@@ -40,7 +42,12 @@ function toSchemaInput(values: OrderFormFields) {
   };
 }
 
-export function useOrderForm(onSubmit: (values: OrderFormData) => Promise<void>) {
+/**
+ * @param fallbackSubMerchantId Sub shown as chosen when the user has not picked one (the only Sub in
+ *   scope, or the default one). It is sent with the order so the Terminal list and the order always
+ *   refer to the same Sub; empty means no Sub can be assumed and the user must pick one.
+ */
+export function useOrderForm(onSubmit: (values: OrderFormData) => Promise<void>, fallbackSubMerchantId = "") {
   const [values, setValues] = useState<OrderFormFields>(() => ({ ...BLANK, bankCode: readLastBank() }));
   const [errors, setErrors] = useState<OrderFormErrors>({});
 
@@ -54,14 +61,21 @@ export function useOrderForm(onSubmit: (values: OrderFormData) => Promise<void>)
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = orderFormSchema.safeParse(toSchemaInput(values));
+    const subMerchantId = values.subMerchantId || fallbackSubMerchantId;
+    const parsed = orderFormSchema.safeParse(toSchemaInput({ ...values, subMerchantId }));
     if (!parsed.success) {
       const next: OrderFormErrors = {};
       for (const issue of parsed.error.issues) {
         const field = issue.path[0];
         if (typeof field === "string" && !(field in next)) next[field as keyof OrderFormFields] = issue.message;
       }
+      if (!subMerchantId && !next.subMerchantId) next.subMerchantId = SUB_REQUIRED;
       setErrors(next);
+      return;
+    }
+    // Every order needs a known Sub first: it decides where the money goes and which Terminals fit.
+    if (!subMerchantId) {
+      setErrors({ subMerchantId: SUB_REQUIRED });
       return;
     }
     setErrors({});
