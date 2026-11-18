@@ -74,10 +74,21 @@ describe("bank account collection route", () => {
     expect(listBankAccounts).not.toHaveBeenCalled();
   });
 
-  it("rejects assigning a Sub outside the session scope", async () => {
-    const foreignBranch = "44444444-4444-4444-8444-444444444444";
-    expect((await POST(post({ ...values, assignSubMerchantIds: [subMerchantId, foreignBranch] }))).status).toBe(403);
+  it("lets a Master-wide session assign a Sub missing from the session list (e.g. a locked Sub); BE checks the Master (5757)", async () => {
+    createBankAccount.mockResolvedValue({ success: true, data: { account: {} } });
+    const lockedSub = "44444444-4444-4444-8444-444444444444";
+    expect((await POST(post({ ...values, assignSubMerchantIds: [subMerchantId, lockedSub] }))).status).toBe(201);
+    expect(createBankAccount).toHaveBeenCalledWith(expect.objectContaining({ assignSubMerchantIds: [subMerchantId, lockedSub] }));
+  });
+
+  it("lets a session limited to Subs read the accounts of its Subs, without a Master, but not write", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [subMerchantId], permissions: ["MANAGE_BANK_ACCOUNT"] });
+    listBankAccounts.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
+    expect((await GET(get(""))).status).toBe(200);
+    expect((await POST(post({ ...values }))).status).toBe(403);
     expect(createBankAccount).not.toHaveBeenCalled();
+    getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [], permissions: ["MANAGE_BANK_ACCOUNT"] });
+    expect((await GET(get(""))).status).toBe(403);
   });
 
   it("forwards the Subs to assign together with the Master of the session", async () => {

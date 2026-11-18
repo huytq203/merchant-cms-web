@@ -44,6 +44,14 @@ beforeEach(() => {
 });
 
 describe("bank account detail route", () => {
+  it("shows a session limited to Subs only the accounts assigned to its Subs", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [subMerchantId], permissions: ["VIEW_BANK_ACCOUNT"] });
+    getBankAccount.mockResolvedValue({ success: true, data: { ...account, assignedSubMerchants: [{ id: subMerchantId, code: "S", name: "S" }] } });
+    expect((await GET(send("GET"), context)).status).toBe(200);
+    getBankAccount.mockResolvedValue({ success: true, data: account });
+    expect((await GET(send("GET"), context)).status).toBe(404);
+  });
+
   it("answers 404 for an id that is not a UUID without touching BE", async () => {
     const bad = { params: Promise.resolve({ id: "..%2fusers" }) };
     expect((await GET(send("GET"), bad)).status).toBe(404);
@@ -82,10 +90,9 @@ describe("bank account detail route", () => {
   });
 
   // SRS v2: đổi danh sách Sub cũng phải có OTP; [] (gỡ hết) cũng là thay đổi.
-  it("requires an OTP for a Sub list, forwards it with the OTP, and refuses a Sub outside the session", async () => {
+  it("requires an OTP for a Sub list and forwards it with the OTP; BE checks the Subs belong to the Master", async () => {
     getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [subMerchantId], permissions: ["MANAGE_BANK_ACCOUNT"] });
     expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: [] }), context)).status).toBe(400);
-    expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: ["44444444-4444-4444-8444-444444444444"], otp }), context)).status).toBe(403);
     expect(updateBankAccount).not.toHaveBeenCalled();
     updateBankAccount.mockResolvedValue({ success: true, data: { account } });
     expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: [subMerchantId, subMerchantId], otp }), context)).status).toBe(200);

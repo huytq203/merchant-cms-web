@@ -6,7 +6,6 @@ import { deleteBankAccount, updateBankAccount } from "@/server/modules/bank-acco
 import {
   badRequest,
   bankErrorResponse,
-  checkSubMerchantScope,
   requireBankAccountAccess,
   requireOwnedBankAccount,
 } from "@/server/modules/bank-accounts/require-bank-account-access";
@@ -41,8 +40,7 @@ export async function PUT(request: Request, context: Context) {
   // Hợp đồng PUT v2: OTP bắt buộc khi đổi danh tính TK hoặc gửi danh sách Sub (client chỉ gửi danh sách khi đã đổi).
   const reassigning = body.data.assignSubMerchantIds !== undefined;
   if ((changed || reassigning) && !body.data.otp) return badRequest("Cần mã OTP để thay đổi thông tin tài khoản");
-  const outOfScope = checkSubMerchantScope(access.user, body.data.assignSubMerchantIds);
-  if (outOfScope) return outOfScope;
+  // Người có quyền toàn Master gán được mọi Sub của Master; BE kiểm Sub thuộc Master (5757).
   const result = await updateBankAccount(id, body.data);
   return result.success ? NextResponse.json(result.data) : bankErrorResponse(result.error);
 }

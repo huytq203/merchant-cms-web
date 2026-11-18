@@ -19,9 +19,17 @@ export function bankErrorResponse(error: BeError): NextResponse {
   return json(domainErrorMessage(error), toDomainHttpStatus(error), error.code);
 }
 
-export function requireBankAccountAccess(mode: "read" | "write"): Promise<PermissionAccess> {
-  const gate = mode === "read" ? PERMISSION_GATES.bankAccountRead : PERMISSION_GATES.bankAccountWrite;
-  return requirePermission(gate, { requireMerchant: true });
+/**
+ * Đọc: user chỉ được gán Sub (không có Master trong phiên) vẫn xem được TK đang gán cho Sub của mình — BE tự giới hạn
+ * phạm vi (thiết kế TK NH v2 §6). Ghi: chỉ người có quyền toàn Master (BE cũng chặn), nên vẫn đòi Master trong phiên.
+ */
+export async function requireBankAccountAccess(mode: "read" | "write"): Promise<PermissionAccess> {
+  if (mode === "write") return requirePermission(PERMISSION_GATES.bankAccountWrite, { requireMerchant: true });
+  const access = await requirePermission(PERMISSION_GATES.bankAccountRead);
+  if (access.ok && access.user.merchantIds.length === 0 && access.user.subMerchantIds.length === 0) {
+    return { ok: false, response: json("Không có quyền truy cập", 403) };
+  }
+  return access;
 }
 
 /** The Master is always taken from the session; a requested one must belong to it. */
@@ -30,19 +38,13 @@ export function selectMerchantId(user: SessionUser, requested: string | undefine
   return requested ?? user.merchantIds[0] ?? "";
 }
 
-/**
- * Gán Sub cho TK (SRS v2): mọi Sub trong danh sách phải thuộc phạm vi phiên. BE còn kiểm Sub thuộc Master (5757) và chỉ
- * cho người có quyền toàn Master ghi; chặn ở đây để không gửi id Sub lạ lên BE.
- */
-export function checkSubMerchantScope(user: SessionUser, subMerchantIds: readonly string[] | undefined): NextResponse | null {
-  const outside = (subMerchantIds ?? []).some((id) => !user.subMerchantIds.includes(id));
-  return outside ? json("Không có quyền truy cập", 403) : null;
-}
-
 export async function requireOwnedBankAccount(id: string, user: SessionUser): Promise<BankAccount | NextResponse> {
   const result = await getBankAccount(id);
   if (!result.success) return bankErrorResponse(result.error);
-  if (!user.merchantIds.includes(result.data.merchantId)) {
+  // User chỉ được gán Sub: chỉ thấy TK đang gán cho Sub của mình (BE cũng giới hạn như vậy).
+  const ownsMaster = user.merchantIds.includes(result.data.merchantId);
+  const usedByOwnSub = (result.data.assignedSubMerchants ?? []).some((sub) => user.subMerchantIds.includes(sub.id));
+  if (!ownsMaster && !usedByOwnSub) {
     return json("Không tìm thấy tài khoản ngân hàng", 404);
   }
   return result.data;

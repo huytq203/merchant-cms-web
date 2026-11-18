@@ -6,8 +6,17 @@ import type { BankOtpChallenge, BankUpdateResponse, CreateBankRequest, UpdateBan
 
 type ReasonInput = { id: string; reason?: string };
 
+/**
+ * Gán/chuyển Sub đổi TK nhận tiền của Sub (SRS v2), nên làm mới cả danh sách Sub (badge "Tài khoản rút tiền bị khóa",
+ * TK đang dùng) và TK nhận tiền ở màn rút, không chỉ danh sách TK.
+ */
 async function refreshAccounts(client: QueryClient, id?: string): Promise<void> {
-  await client.invalidateQueries({ queryKey: ["bank-accounts", "list"] });
+  await Promise.all([
+    client.invalidateQueries({ queryKey: ["bank-accounts", "list"] }),
+    client.invalidateQueries({ queryKey: ["sub-merchants"] }),
+    client.invalidateQueries({ queryKey: ["withdrawals", "receiving-account"] }),
+    client.invalidateQueries({ queryKey: ["withdrawals", "balance"] }),
+  ]);
   if (id) await client.invalidateQueries({ queryKey: ["bank-accounts", "detail", id] });
 }
 

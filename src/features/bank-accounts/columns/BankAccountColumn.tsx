@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge/Badge";
+import { DateTimeCell } from "@/components/page/DateTimeCell";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge } from "@/components/page/StatusBadge";
@@ -27,6 +28,8 @@ function defaultDisabledReason(account: BankAccount): string {
  * SRS v2: mọi thay đổi áp dụng ngay sau OTP (không còn đề xuất chờ Flexpay duyệt), nên Sửa luôn mở được. Portal không
  * có khóa/mở khóa TK — đó là thao tác của Admin.
  */
+export const DELETE_ASSIGNED_REASON = "Tài khoản đang được Sub-merchant sử dụng, hãy gỡ Sub-merchant trước khi xoá";
+
 function BankAccountRowActions({ account, options }: { account: BankAccount; options: BankAccountColumnOptions }) {
   const { onEdit, onSetDefault, onDelete } = options;
   return (
@@ -43,7 +46,15 @@ function BankAccountRowActions({ account, options }: { account: BankAccount; opt
           disabledReason: defaultDisabledReason(account),
           onClick: () => onSetDefault?.(account),
         },
-        { label: "Xoá tài khoản", icon: <Trash2 size={16} />, visible: !!onDelete, onClick: () => onDelete?.(account) },
+        {
+          label: "Xoá tài khoản",
+          icon: <Trash2 size={16} />,
+          visible: !!onDelete,
+          // BE từ chối xóa TK đang gán Sub (5756): báo trước, không để người dùng đi tới bước xác nhận mới biết.
+          disabled: account.assignedSubMerchants.length > 0,
+          disabledReason: DELETE_ASSIGNED_REASON,
+          onClick: () => onDelete?.(account),
+        },
       ]}
     />
   );
@@ -84,6 +95,13 @@ export function getBankAccountColumns(options: BankAccountColumnOptions, page: n
           tone={bankAccountStatusTone(row.original.accountStatus)}
         />
       ),
+    },
+    {
+      id: "updatedAt",
+      header: "Cập nhật lần cuối",
+      cell: ({ row }) => (row.original.updatedAt
+        ? <DateTimeCell value={row.original.updatedAt} />
+        : <span className="text-muted-foreground">—</span>),
     },
     {
       id: "actions",

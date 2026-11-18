@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
+import { bankAccountQueries } from "../bank-account-queries";
+import { movingSubIds, subAccountMap } from "../utils/bank-assignment";
 import { Button } from "@/components/ui/button/Button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
 import { bankAccountFormSchema } from "../schemas/bank-account-form.schema";
@@ -9,6 +13,10 @@ import type { BankErrorView } from "../utils/bank-errors";
 import type { BankAccount, BankAccountFormValues } from "../types";
 import { BankAccountFields } from "./BankAccountFields";
 import { BankFailureAlert } from "./BankFailureAlert";
+import { BankMoveConfirm, MOVE_CONFIRM_REQUIRED } from "./BankMoveConfirm";
+
+/** Đủ cho danh mục TK của một Master (BE giới hạn trang 100); dùng để biết Sub nào đang dùng TK nào. */
+const ALL_ACCOUNTS = { page: 1, pageSize: 100 } as const;
 
 type Props = {
   open: boolean;
@@ -66,6 +74,20 @@ export function BankAccountFormModal(props: Props) {
   const holderFailure = failure?.kind === "holderName" && failure !== dismissedFailure ? failure.message : "";
   // OTP khi thêm mới, đổi ngân hàng/số TK/chủ TK, hoặc đổi danh sách Sub (hợp đồng PUT v2).
   const needsOtp = !account || needsBankOtp(account, values);
+  // Sub đang dùng TK khác sẽ bị chuyển khi lưu: liệt kê và bắt xác nhận trước (hợp đồng TK NH v2).
+  const allAccounts = useQuery({ ...bankAccountQueries.list(ALL_ACCOUNTS), enabled: open });
+  const subOptions = useSubMerchantOptions();
+  const currentAccounts = useMemo(() => subAccountMap(allAccounts.data?.rows ?? [], account?.id), [allAccounts.data, account?.id]);
+  const originalSubIds = useMemo(() => account?.assignedSubMerchants.map((sub) => sub.id) ?? [], [account]);
+  const moving = movingSubIds(values.assignSubMerchantIds, currentAccounts, originalSubIds);
+  const movingKey = moving.join(",");
+  // Xác nhận gắn với đúng tập Sub sẽ chuyển: chọn thêm/bỏ Sub thì phải xác nhận lại.
+  const [confirmedMoveKey, setConfirmedMoveKey] = useState<string | null>(null);
+  const moveConfirmed = moving.length === 0 || confirmedMoveKey === movingKey;
+  const subLabel = (id: string) => {
+    const option = subOptions.data?.find((item) => item.id === id);
+    return option ? `${option.code} - ${option.name}` : id;
+  };
 
   const change = <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -77,9 +99,10 @@ export function BankAccountFormModal(props: Props) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const found = issuesByField(values, account);
-    setIssues(found ?? {});
-    if (!found) onSubmit(values);
+    const found = issuesByField(values, account) ?? {};
+    if (!moveConfirmed) found.moveConfirm = MOVE_CONFIRM_REQUIRED;
+    setIssues(found);
+    if (Object.keys(found).length === 0) onSubmit(values);
   };
 
   return (
@@ -97,6 +120,17 @@ export function BankAccountFormModal(props: Props) {
             issues={holderFailure && !issues.accountName ? { ...issues, accountName: holderFailure } : issues}
             mode={account ? "edit" : "create"}
             onChange={change}
+            currentAccounts={currentAccounts}
+            originalSubIds={originalSubIds}
+            locked={account?.accountStatus === "LOCKED"}
+          />
+          <BankMoveConfirm
+            movingIds={moving}
+            currentAccounts={currentAccounts}
+            subLabel={subLabel}
+            confirmed={moveConfirmed}
+            error={moveConfirmed ? undefined : issues.moveConfirm || undefined}
+            onConfirm={(confirmed) => setConfirmedMoveKey(confirmed ? movingKey : null)}
           />
           <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
             {needsOtp ? otpNotice : branchOnlyNotice}

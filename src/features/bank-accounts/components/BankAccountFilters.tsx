@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { FilterCard } from "@/components/page/FilterCard";
+import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import type { BankAccountFilter } from "../types";
 
 /**
  * SRS v2 (18/11/2026): lọc theo trạng thái gán (TK có Sub nào dùng chưa) và trạng thái TK; bỏ lọc liên kết/sử dụng cũ.
- * Lọc theo Sub trả các TK đang gán cho các Sub đó. Để trống = Tất cả.
+ * Lọc theo Sub trả các TK đang gán cho các Sub đó. Ô tìm kiếm gửi `query` (BE tìm theo tên chủ TK, số TK, ngân hàng).
+ * Để trống = Tất cả.
  */
 type Values = Pick<BankAccountFilter, "assignmentStatus" | "accountStatus" | "subMerchantIds" | "query">;
 type Props = { initial: Values; onSearch: (values: Values) => void };
@@ -27,25 +29,33 @@ export function BankAccountFilters({ initial, onSearch }: Props) {
   const [assignmentStatus, setAssignmentStatus] = useState(initial.assignmentStatus ?? "");
   const [accountStatus, setAccountStatus] = useState(initial.accountStatus ?? "");
   const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
+  const [query, setQuery] = useState(initial.query ?? "");
 
   const search = () => {
     onSearch({
       ...(assignmentStatus ? { assignmentStatus: assignmentStatus as Values["assignmentStatus"] } : {}),
       ...(accountStatus ? { accountStatus: accountStatus as Values["accountStatus"] } : {}),
       ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
-      // Ô tìm chưa có trên màn: giữ nguyên `query` đến từ link để bấm Tìm kiếm không làm mất nó.
-      ...(initial.query ? { query: initial.query } : {}),
+      ...(query.trim() ? { query: query.trim() } : {}),
     });
   };
   const clear = () => {
     setAssignmentStatus("");
     setAccountStatus("");
     setSubMerchantIds([]);
+    setQuery("");
     onSearch({});
   };
 
   return (
-    <FilterCard fieldCount={3} onSubmit={search} onClear={clear}>
+    <FilterCard fieldCount={4} onSubmit={search} onClear={clear}>
+      <Input
+        label="Tìm kiếm"
+        placeholder="Số tài khoản, chủ tài khoản, ngân hàng"
+        value={query}
+        maxLength={100}
+        onChange={(event) => setQuery(event.target.value)}
+      />
       <Select
         label="Trạng thái gán"
         placeholder="Tất cả"

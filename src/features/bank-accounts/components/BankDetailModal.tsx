@@ -40,11 +40,12 @@ export function BankDetailModal({ account, onClose }: Props) {
             <Field label="Trạng thái tài khoản">
               <StatusBadge label={bankAccountStatusLabel(account.accountStatus)} tone={bankAccountStatusTone(account.accountStatus)} />
             </Field>
-            {account.accountStatus === "VERIFIED" && account.verifiedAt ? (
+            {/* TK Khóa vẫn giữ mốc xác minh: mở khóa sẽ về Đã xác minh (phụ đính trạng thái TK). */}
+            {account.verifiedAt ? (
               <Field label="Thời điểm xác minh"><DateTimeCell value={account.verifiedAt} /></Field>
             ) : null}
             <Field label="Tài khoản mặc định">{yesNo(account.isDefault)}</Field>
-            <Field label="Nhận được thanh toán">{yesNo(account.payable ?? account.accountStatus !== "LOCKED")}</Field>
+            <Field label="Rút tiền được">{yesNo(account.payable ?? account.accountStatus !== "LOCKED")}</Field>
             <Field label="Sub-merchant đang dùng" wide>
               {account.assignedSubMerchants.length === 0 ? (
                 <span className="font-normal text-muted-foreground">Chưa gán</span>

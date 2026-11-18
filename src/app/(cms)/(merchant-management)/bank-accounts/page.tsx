@@ -15,10 +15,14 @@ export default async function BankAccountsPage({ searchParams }: Props) {
   const user = await getServerSession();
   if (!user) redirect("/api/v1/admin/auth/session-expired");
   const merchantId = user.merchantIds[0];
-  if (!hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountRead) || !merchantId) {
+  // User chỉ được gán Sub (không có Master) vẫn xem TK đang gán cho Sub của mình; BE tự giới hạn phạm vi.
+  const hasScope = Boolean(merchantId) || user.subMerchantIds.length > 0;
+  if (!hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountRead) || !hasScope) {
     return <AccessDenied />;
   }
-  const filter = { ...parseBankAccountSearchParams(await searchParams), merchantId };
+  const filter = { ...parseBankAccountSearchParams(await searchParams), ...(merchantId ? { merchantId } : {}) };
+  // Thêm/sửa/xóa TK chỉ dành cho người có quyền toàn Master (thiết kế TK NH v2 §6).
+  const canManage = Boolean(merchantId) && hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountWrite);
   const state = await prefetchDehydrated(async (client) => {
     await client.prefetchQuery({
       ...bankAccountQueries.list(filter),
@@ -27,7 +31,7 @@ export default async function BankAccountsPage({ searchParams }: Props) {
   });
   return (
     <HydrationBoundary state={state}>
-      <BankAccountsContainer filter={filter} canManage={hasAnyPermission(user.permissions, PERMISSION_GATES.bankAccountWrite)} />
+      <BankAccountsContainer filter={filter} canManage={canManage} />
     </HydrationBoundary>
   );
 }

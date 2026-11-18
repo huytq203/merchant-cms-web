@@ -4,7 +4,6 @@ import { createBankAccount, listBankAccounts } from "@/server/modules/bank-accou
 import {
   badRequest,
   bankErrorResponse,
-  checkSubMerchantScope,
   requireBankAccountAccess,
   selectMerchantId,
 } from "@/server/modules/bank-accounts/require-bank-account-access";
@@ -27,8 +26,8 @@ export async function POST(request: Request) {
   if (!body.success) return badRequest(body.error.issues[0]?.message);
   const merchantId = selectMerchantId(access.user, body.data.merchantId);
   if (merchantId instanceof NextResponse) return merchantId;
-  const outOfScope = checkSubMerchantScope(access.user, body.data.assignSubMerchantIds);
-  if (outOfScope) return outOfScope;
+  // Ghi chỉ dành cho người có quyền toàn Master: được gán mọi Sub của Master (kể cả Sub đã khóa, không có trong
+  // `subMerchantIds` của phiên); BE kiểm Sub thuộc Master (5757).
   const result = await createBankAccount({ ...body.data, merchantId });
   return result.success ? NextResponse.json(result.data, { status: 201 }) : bankErrorResponse(result.error);
 }

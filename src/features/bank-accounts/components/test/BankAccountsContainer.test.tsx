@@ -54,7 +54,7 @@ async function typeCode(code: string) {
   await userEvent.keyboard(code);
 }
 
-async function fillNewAccount(options: { subs?: RegExp[] } = {}) {
+async function fillNewAccount(options: { subs?: RegExp[]; confirmMove?: boolean } = {}) {
   await userEvent.click(screen.getByRole("button", { name: /Thêm tài khoản/ }));
   const dialog = await screen.findByRole("dialog");
   for (const sub of options.subs ?? []) {
@@ -64,6 +64,7 @@ async function fillNewAccount(options: { subs?: RegExp[] } = {}) {
   await userEvent.click(await screen.findByRole("option", { name: "Vietcombank" }));
   await userEvent.type(within(dialog).getByRole("textbox", { name: /Số tài khoản/ }), "1234567890");
   await userEvent.type(within(dialog).getByRole("textbox", { name: /Chủ tài khoản/ }), "CONG TY A");
+  if (options.confirmMove) await userEvent.click(within(dialog).getByRole("checkbox", { name: /Tôi xác nhận chuyển/ }));
   await userEvent.click(within(dialog).getByRole("button", { name: "Lưu tài khoản" }));
 }
 
@@ -180,7 +181,7 @@ describe("bank accounts container", () => {
     }));
     renderContainer();
     await screen.findByText("******7890");
-    await fillNewAccount({ subs: [/SUB01/, /SUB02/] });
+    await fillNewAccount({ subs: [/SUB01/, /SUB02/], confirmMove: true });
     expect(await screen.findByText(/0912•••678/)).toBeInTheDocument();
     await typeCode("123456");
     await userEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
@@ -203,6 +204,49 @@ describe("bank accounts container", () => {
     expect(within(dialog).queryByRole("button", { name: "Cấp Sub-merchant" })).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Áp dụng cho")).not.toBeInTheDocument();
     expect(within(dialog).getByText(/đang dùng tài khoản khác sẽ chuyển sang tài khoản này/)).toBeInTheDocument();
+  });
+
+  it("names the account a Sub already uses and asks to confirm moving it before the OTP", async () => {
+    const otpRequests: unknown[] = [];
+    mswServer.use(http.post(`${base}/otp-challenge`, () => {
+      otpRequests.push(1);
+      return HttpResponse.json(challenge);
+    }));
+    renderContainer();
+    await screen.findByText("******7890");
+    await fillNewAccount({ subs: [/SUB01/] });
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getAllByText(/đang dùng Vietcombank \*{6}7890/).length).toBeGreaterThan(0);
+    expect(await within(dialog).findByText("Vui lòng xác nhận chuyển Sub-merchant trước khi lưu")).toBeInTheDocument();
+    expect(otpRequests).toHaveLength(0);
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /Tôi xác nhận chuyển/ }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Lưu tài khoản" }));
+    expect(await screen.findByText(/0912•••678/)).toBeInTheDocument();
+  });
+
+  it("asks again when the Subs to move change after confirming", async () => {
+    const other = { ...account, id: "66666666-6666-4666-8666-666666666666", accountNumber: "******1111", assignedSubMerchants: assigned(sub2) };
+    listReturns([account, other]);
+    renderContainer();
+    await screen.findByText("******7890");
+    await fillNewAccount({ subs: [/SUB01/], confirmMove: true });
+    expect(await screen.findByText(/0912•••678/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Quay lại|Hủy/ }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByRole("checkbox", { name: /SUB02/ }));
+    expect(within(dialog).getByRole("checkbox", { name: /Tôi xác nhận chuyển/ })).not.toBeChecked();
+  });
+
+  it("does not let a locked account take new Subs, but its Subs can still be removed", async () => {
+    const locked = { ...editable, accountStatus: "LOCKED" as const, payable: false };
+    listReturns([locked]);
+    mswServer.use(http.get(`${base}/${account.id}`, () => HttpResponse.json(locked)));
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Sửa tài khoản/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByRole("checkbox", { name: /SUB01/ })).not.toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByRole("checkbox", { name: /SUB02/ })).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByText(/đang bị khóa nên không gán thêm Sub-merchant/)).toBeInTheDocument();
   });
 
   it("submits right away when a full six-digit code is pasted", async () => {
@@ -366,6 +410,16 @@ describe("bank accounts container", () => {
     expect(within(dialog).queryByText(/chờ Flexpay phê duyệt/)).not.toBeInTheDocument();
   });
 
+  it("keeps the verification time of a locked account and says it cannot withdraw", async () => {
+    listReturns([{ ...account, accountStatus: "LOCKED", payable: false, verifiedAt: "2026-11-18T09:30:00" }]);
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem tài khoản/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("18/11/2026 09:30")).toBeInTheDocument();
+    expect(within(dialog).getByText("Rút tiền được")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Nhận được thanh toán")).not.toBeInTheDocument();
+  });
+
   it("does not show a verification time for an account that is not verified", async () => {
     listReturns([{ ...account, assignedSubMerchants: [] }]);
     renderContainer();
@@ -384,6 +438,16 @@ describe("bank accounts container", () => {
     await userEvent.click(await screen.findByRole("option", { name: "Khóa" }));
     await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
     expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10&assignmentStatus=UNASSIGNED&accountStatus=LOCKED");
+    await userEvent.click(screen.getByRole("button", { name: "Xóa lọc" }));
+    expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10");
+  });
+
+  it("searches by number, holder or bank and clears the search", async () => {
+    renderContainer();
+    await screen.findByText("******7890");
+    await userEvent.type(screen.getByRole("textbox", { name: /Tìm kiếm/ }), " 7890 ");
+    await userEvent.click(screen.getByRole("button", { name: "Tìm kiếm" }));
+    expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10&query=7890");
     await userEvent.click(screen.getByRole("button", { name: "Xóa lọc" }));
     expect(push).toHaveBeenLastCalledWith("/bank-accounts?page=1&pageSize=10");
   });
@@ -438,7 +502,14 @@ describe("bank accounts container", () => {
     await waitFor(() => expect(detailReads).toBe(2));
   });
 
+  it("does not offer to delete an account still used by a Sub", async () => {
+    renderContainer();
+    const remove = await screen.findByRole("button", { name: /Xoá tài khoản/ });
+    expect(remove).toBeDisabled();
+  });
+
   it("deletes an account and keeps a BE refusal visible in the dialog, word for word", async () => {
+    listReturns([{ ...account, assignedSubMerchants: [] }]);
     const message = "Tài khoản đang được gán cho Sub-merchant, hãy gỡ Sub-merchant trước khi xóa";
     mswServer.use(http.delete(`${base}/${account.id}`, () => HttpResponse.json({ message, code: "5756" }, { status: 409 })));
     renderContainer();

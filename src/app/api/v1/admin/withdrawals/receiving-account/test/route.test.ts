@@ -59,7 +59,7 @@ describe("withdrawal receiving account route (SRS v2: one account per Sub)", () 
         accountStatus: "PENDING_VERIFICATION",
       },
     });
-    expect(listBankAccounts).toHaveBeenCalledWith({ page: 1, pageSize: 10, merchantId, subMerchantIds: [subMerchantId] });
+    expect(listBankAccounts).toHaveBeenCalledWith({ page: 1, pageSize: 10, subMerchantIds: [subMerchantId] });
   });
 
   it("still returns a locked account so the screen can say so (BE refuses the payout with 5738)", async () => {
@@ -67,18 +67,25 @@ describe("withdrawal receiving account route (SRS v2: one account per Sub)", () 
     expect((await (await call()).json()).account).toMatchObject({ accountStatus: "LOCKED" });
   });
 
-  it("answers null for a Sub with no account, and ignores rows not assigned to it or of another Master", async () => {
+  it("answers null for a Sub with no account, and ignores rows not assigned to it", async () => {
     listBankAccounts.mockResolvedValue({
       success: true,
       data: {
-        rows: [
-          makeAccount({ id: "66666666-6666-4666-8666-666666666666", assignedSubMerchants: [{ id: otherSubId, code: "SUB2", name: "B" }] }),
-          makeAccount({ id: "77777777-7777-4777-8777-777777777777", merchantId: foreignId }),
-        ],
-        total: 2,
+        rows: [makeAccount({ id: "66666666-6666-4666-8666-666666666666", assignedSubMerchants: [{ id: otherSubId, code: "SUB2", name: "B" }] })],
+        total: 1,
       },
     });
     expect(await (await call()).json()).toEqual({ account: null });
+  });
+
+  it("finds the account of a Sub of the second Master of the session (BE scopes the list, not the first Master)", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [foreignId, merchantId], subMerchantIds: [subMerchantId], permissions: ["CREATE_WITHDRAWAL"] });
+    expect((await (await call()).json()).account).toMatchObject({ id: "55555555-5555-4555-8555-555555555555" });
+  });
+
+  it("serves a session limited to Subs, which has no Master of its own", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [], subMerchantIds: [subMerchantId], permissions: ["CREATE_WITHDRAWAL"] });
+    expect((await (await call()).json()).account).toMatchObject({ id: "55555555-5555-4555-8555-555555555555" });
   });
 
   it("refuses a sub-merchant outside the session scope", async () => {

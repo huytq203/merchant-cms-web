@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { BANK_OPTIONS } from "../constants/bank-options";
 import { normalizeAccountName } from "../utils/bank-mapper";
+import type { SubAccountMap } from "../utils/bank-assignment";
 import type { BankAccountFormValues } from "../types";
 import { BankAccountSubsField } from "./BankAccountSubsField";
 
@@ -21,6 +22,12 @@ type Props = {
   /** Adding an account offers the default checkbox; editing uses the separate "Đặt làm mặc định" action. */
   mode: "create" | "edit";
   onChange: <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => void;
+  /** Sub → TK đang dùng (không gồm TK đang sửa). */
+  currentAccounts: SubAccountMap;
+  /** Sub đã gán TK này trước khi mở form (rỗng khi thêm mới). */
+  originalSubIds: readonly string[];
+  /** TK đang Khóa: không gán thêm Sub. */
+  locked: boolean;
 };
 
 /** Keeps an account at a bank outside the catalogue selectable so editing does not blank it. */
@@ -30,11 +37,17 @@ function bankOptionsFor(bankCode: string): { value: string; label: string }[] {
   return bankCode && !known ? [...options, { value: bankCode, label: bankCode }] : options;
 }
 
-export function BankAccountFields({ values, issues, mode, onChange }: Props) {
+export function BankAccountFields({ values, issues, mode, onChange, currentAccounts, originalSubIds, locked }: Props) {
   return (
     <>
       {/* SRS v2: TK thuộc danh mục Master, gán 0..N Sub; chọn Sub ở cả thêm mới và sửa (thay ô "Áp dụng cho" cũ). */}
-      <BankAccountSubsField value={values.assignSubMerchantIds} onChange={(ids) => onChange("assignSubMerchantIds", ids)} />
+      <BankAccountSubsField
+        value={values.assignSubMerchantIds}
+        onChange={(ids) => onChange("assignSubMerchantIds", ids)}
+        currentAccounts={currentAccounts}
+        originalIds={originalSubIds}
+        locked={locked}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Ngân hàng"
