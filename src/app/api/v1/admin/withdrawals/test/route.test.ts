@@ -17,7 +17,8 @@ const merchantId = "22222222-2222-4222-8222-222222222222";
 const foreignId = "44444444-4444-4444-8444-444444444444";
 const bankAccountId = "55555555-5555-4555-8555-555555555555";
 const otp = { otpSessionId: "sess-1", otp: "123456" };
-const body = { bankAccountId, amount: 250000, idempotencyKey: "key-1", otp };
+const subMerchantId = "11111111-1111-4111-8111-111111111111";
+const body = { subMerchantId, bankAccountId, amount: 250000, idempotencyKey: "key-1", otp };
 const listRequest = (query = "") => new Request(`http://localhost/api/v1/admin/withdrawals${query}`);
 const postRequest = (value: unknown) =>
   new Request("http://localhost/api/v1/admin/withdrawals", { method: "POST", body: JSON.stringify(value) });
@@ -89,7 +90,7 @@ describe("withdrawals create route", () => {
   it("forwards only the contract fields and drops a merchantId or account number from the body", async () => {
     const response = await POST(postRequest({ ...body, reason: "Rút", merchantId: foreignId, bankAccountNumber: "9999", bankCode: "VCB" }));
     expect(response.status).toBe(201);
-    expect(createWithdrawal).toHaveBeenCalledWith({ bankAccountId, amount: 250000, idempotencyKey: "key-1", reason: "Rút", otp });
+    expect(createWithdrawal).toHaveBeenCalledWith({ subMerchantId, bankAccountId, amount: 250000, idempotencyKey: "key-1", reason: "Rút", otp });
   });
 
   it("validates the contract limits before calling the BE", async () => {

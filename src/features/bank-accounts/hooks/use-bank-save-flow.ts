@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describeBankError, type BankErrorView } from "../utils/bank-errors";
-import { isBankIdentityChanged, toCreateBankRequest, toUpdateBankRequest } from "../utils/bank-mapper";
+import { needsBankOtp, toCreateBankRequest, toUpdateBankRequest } from "../utils/bank-mapper";
 import type { BankAccount, BankAccountFormValues, BankOtpChallenge, BankUpdateResponse } from "../types";
 import { useBankOtpChallenge, useCreateBankAccount, useUpdateBankAccount } from "./use-bank-account-mutations";
 
@@ -14,7 +14,8 @@ type OtpAnswer = { otpSessionId: string; otp: string };
 
 /**
  * Orchestrates add/edit: form -> (OTP challenge -> code) -> save.
- * A new account and a change of bank, number or holder need the OTP; other edits save directly.
+ * A new account, a change of bank, number or holder, and a change of the Sub list need the OTP (SRS v2); other edits
+ * (branch only) save directly. Every save is applied at once: there is no Flexpay approval step any more.
  */
 export function useBankSaveFlow({ account, onSaved }: Options) {
   const [draft, setDraft] = useState<BankAccountFormValues | null>(null);
@@ -52,7 +53,7 @@ export function useBankSaveFlow({ account, onSaved }: Options) {
 
   const submit = (values: BankAccountFormValues) => run(async () => {
     setDraft(values);
-    if (account && !isBankIdentityChanged(account, values)) return save(values, null);
+    if (account && !needsBankOtp(account, values)) return save(values, null);
     await askOtp();
   });
 

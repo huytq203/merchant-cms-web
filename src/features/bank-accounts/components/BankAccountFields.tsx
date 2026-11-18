@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select/Select";
 import { BANK_OPTIONS } from "../constants/bank-options";
 import { normalizeAccountName } from "../utils/bank-mapper";
 import type { BankAccountFormValues } from "../types";
-import { BankAccountScopeField } from "./BankAccountScopeField";
+import { BankAccountSubsField } from "./BankAccountSubsField";
 
 /**
  * Quy tắc tên chủ TK (BE BankAccountHolderPolicy, 10/11): so với tên pháp nhân KYB của Master VÀ với tên ngân hàng trả
@@ -18,9 +18,8 @@ export const ACCOUNT_NAME_HINT = "Tên phải trùng tên pháp nhân đã xác 
 type Props = {
   values: BankAccountFormValues;
   issues: Record<string, string>;
-  /** Adding an account offers the default checkbox; editing may ask for a reason instead. */
+  /** Adding an account offers the default checkbox; editing uses the separate "Đặt làm mặc định" action. */
   mode: "create" | "edit";
-  askReason: boolean;
   onChange: <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => void;
 };
 
@@ -31,10 +30,11 @@ function bankOptionsFor(bankCode: string): { value: string; label: string }[] {
   return bankCode && !known ? [...options, { value: bankCode, label: bankCode }] : options;
 }
 
-export function BankAccountFields({ values, issues, mode, askReason, onChange }: Props) {
+export function BankAccountFields({ values, issues, mode, onChange }: Props) {
   return (
     <>
-      {mode === "create" && <BankAccountScopeField values={values} error={issues.subMerchantId || undefined} onChange={onChange} />}
+      {/* SRS v2: TK thuộc danh mục Master, gán 0..N Sub; chọn Sub ở cả thêm mới và sửa (thay ô "Áp dụng cho" cũ). */}
+      <BankAccountSubsField value={values.assignSubMerchantIds} onChange={(ids) => onChange("assignSubMerchantIds", ids)} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Ngân hàng"
@@ -82,16 +82,6 @@ export function BankAccountFields({ values, issues, mode, askReason, onChange }:
           label="Đặt làm tài khoản mặc định"
           checked={Boolean(values.isDefault)}
           onCheckedChange={(checked) => onChange("isDefault", checked === true)}
-        />
-      )}
-      {mode === "edit" && askReason && (
-        <Input
-          label="Lý do thay đổi"
-          placeholder="Nhập lý do thay đổi (10–500 ký tự)"
-          maxLength={500}
-          value={values.reason ?? ""}
-          error={issues.reason || undefined}
-          onChange={(event) => onChange("reason", event.target.value)}
         />
       )}
     </>

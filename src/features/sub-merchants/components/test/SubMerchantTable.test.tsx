@@ -30,14 +30,14 @@ it('disables cascade unlocks and exposes the reason in a tooltip', async () => {
   expect(await screen.findByRole('tooltip')).toHaveTextContent('Không thể mở khóa vì Master đang khóa');
 });
 
-it('shows the overview: business field, terminal split, masked account with link status, 7-day revenue and created date', () => {
+it('shows the overview: business field, terminal split, masked account with its status, 7-day revenue and created date', () => {
   const row: SubMerchantRow = {
     ...base,
     isDefault: true,
     businessField: 'Bán lẻ',
     terminalCount: 2,
     terminalCountByType: { POS: 1, ONLINE: 0, QR: 1 },
-    settlementBankAccount: { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' },
+    settlementBankAccount: { id: '44444444-4444-4444-8444-444444444444', bankCode: 'VPB', maskedAccountNo: '*********2111', accountStatus: 'VERIFIED', locked: false },
     revenue7d: 1748000,
     createdAt: '2026-09-28T10:00:00',
   };
@@ -46,25 +46,27 @@ it('shows the overview: business field, terminal split, masked account with link
   expect(screen.getByText('Mặc định')).toBeInTheDocument();
   expect(screen.getByText('1 QR · 1 POS')).toBeInTheDocument();
   expect(screen.getByText('VPB *********2111')).toBeInTheDocument();
-  expect(screen.getByText('Đã liên kết')).toBeInTheDocument();
+  expect(screen.getByText('Đã xác minh')).toBeInTheDocument();
   expect(screen.getByText(/1\.748\.000/)).toBeInTheDocument();
   expect(screen.getByText('28/09/2026')).toBeInTheDocument();
 });
-it('shows a usable account that is not the default with a "Chưa đặt TK mặc định" warning instead of "Chưa có TK"', () => {
-  // Dev 11/11 (Halo tech): một TK VPB đã liên kết nhưng chưa đặt mặc định; rút tay dùng được, rút tự động thì không.
-  const account = { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' as const, isDefault: false };
+// SRS v2 (18/11): mỗi Sub đúng 1 TK nên không còn cảnh báo "Chưa đặt TK mặc định" hay trạng thái liên kết.
+it('shows a pending account as "Chờ xác minh" without any link or default warning', () => {
+  const account = { id: '44444444-4444-4444-8444-444444444444', bankCode: 'VPB', maskedAccountNo: '*********2111', accountStatus: 'PENDING_VERIFICATION' as const, locked: false };
   render(<SubMerchantTable data={[{ ...base, settlementBankAccount: account }]} {...callbacks()} />);
-  expect(screen.queryByText('Chưa có TK')).not.toBeInTheDocument();
   expect(screen.getByText('VPB *********2111')).toBeInTheDocument();
-  expect(screen.getByText('Chưa đặt TK mặc định')).toBeInTheDocument();
-});
-it('shows no default warning for the default account', () => {
-  const account = { bankCode: 'VPB', maskedAccountNo: '*********2111', linkStatus: 'LINKED' as const, isDefault: true };
-  render(<SubMerchantTable data={[{ ...base, settlementBankAccount: account }]} {...callbacks()} />);
+  expect(screen.getByText('Chờ xác minh')).toBeInTheDocument();
   expect(screen.queryByText('Chưa đặt TK mặc định')).not.toBeInTheDocument();
+  expect(screen.queryByText(/liên kết/)).not.toBeInTheDocument();
+  expect(screen.queryByText('Tài khoản rút tiền bị khóa')).not.toBeInTheDocument();
 });
-it('says "Chưa có TK" and shows zero revenue for a Sub without an account or payments', () => {
+it('shows a red "Tài khoản rút tiền bị khóa" badge when the assigned account is locked', () => {
+  const account = { id: '44444444-4444-4444-8444-444444444444', bankCode: 'VPB', maskedAccountNo: '*********2111', accountStatus: 'LOCKED' as const, locked: true };
+  render(<SubMerchantTable data={[{ ...base, settlementBankAccount: account }]} {...callbacks()} />);
+  expect(screen.getByText('Tài khoản rút tiền bị khóa')).toHaveClass('text-danger');
+});
+it('says "Chưa gán TK" and shows zero revenue for a Sub without an account or payments', () => {
   render(<SubMerchantTable data={[{ ...base, settlementBankAccount: null, terminalCount: 0, revenue7d: 0 }]} {...callbacks()} />);
-  expect(screen.getByText('Chưa có TK')).toBeInTheDocument();
+  expect(screen.getByText('Chưa gán TK')).toBeInTheDocument();
   expect(screen.getByText(/^0 vnđ$/)).toBeInTheDocument();
 });

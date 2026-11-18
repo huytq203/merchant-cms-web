@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   if (!body.success) return badRequest(body.error.issues[0]?.message);
   const merchantId = selectMerchantId(access.user, body.data.merchantId);
   if (merchantId instanceof NextResponse) return merchantId;
-  const outOfScope = checkSubMerchantScope(access.user, body.data.subMerchantId);
+  const outOfScope = checkSubMerchantScope(access.user, body.data.assignSubMerchantIds);
   if (outOfScope) return outOfScope;
   const result = await createBankAccount({ ...body.data, merchantId });
   return result.success ? NextResponse.json(result.data, { status: 201 }) : bankErrorResponse(result.error);

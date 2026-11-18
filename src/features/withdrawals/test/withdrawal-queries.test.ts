@@ -43,10 +43,10 @@ describe("withdrawal search params", () => {
     expect(withdrawalQueries.balance("a", "", false).enabled).toBe(false);
   });
 
-  it("keys bank options by sub-merchant so a change refetches", () => {
-    expect(withdrawalQueries.bankOptions("a").queryKey).not.toEqual(withdrawalQueries.bankOptions("b").queryKey);
-    // Chưa chọn Sub thì không gọi, để không trộn tài khoản của nhiều Sub.
-    expect(withdrawalQueries.bankOptions("").enabled).toBe(false);
-    expect(withdrawalQueries.bankOptions("a").enabled).toBe(true);
+  it("keys the receiving account by sub-merchant so a change refetches", () => {
+    expect(withdrawalQueries.receivingAccount("a").queryKey).not.toEqual(withdrawalQueries.receivingAccount("b").queryKey);
+    // Chưa chọn Sub thì không gọi.
+    expect(withdrawalQueries.receivingAccount("").enabled).toBe(false);
+    expect(withdrawalQueries.receivingAccount("a").enabled).toBe(true);
   });
 });

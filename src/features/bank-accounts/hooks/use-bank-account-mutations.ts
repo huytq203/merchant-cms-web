@@ -11,9 +11,6 @@ async function refreshAccounts(client: QueryClient, id?: string): Promise<void> 
   if (id) await client.invalidateQueries({ queryKey: ["bank-accounts", "detail", id] });
 }
 
-const appliedMessage = (result: BankUpdateResponse, done: string): string =>
-  result.applied ? done : "Đã gửi yêu cầu thay đổi, tài khoản ở trạng thái Chờ duyệt";
-
 export function useBankOtpChallenge() {
   return useMutation({
     mutationFn: (targetId?: string) =>
@@ -27,7 +24,7 @@ export function useCreateBankAccount() {
     mutationFn: (request: CreateBankRequest) => apiClient.post<BankUpdateResponse>(BANK_ACCOUNTS_ENDPOINT, request),
     onSuccess: async () => {
       await refreshAccounts(client);
-      toast.success("Đã gửi liên kết, tài khoản đang chờ xác minh");
+      toast.success("Đã thêm tài khoản, tài khoản đang ở trạng thái Chờ xác minh");
     },
   });
 }
@@ -37,9 +34,10 @@ export function useUpdateBankAccount() {
   return useMutation({
     mutationFn: ({ id, request }: { id: string; request: UpdateBankRequest }) =>
       apiClient.put<BankUpdateResponse>(`${BANK_ACCOUNTS_ENDPOINT}/${id}`, request),
-    onSuccess: async (result, { id }) => {
+    // SRS v2: PUT luôn `applied: true` (không còn đề xuất chờ duyệt) nên chỉ có một câu báo thành công.
+    onSuccess: async (_result, { id }) => {
       await refreshAccounts(client, id);
-      toast.success(appliedMessage(result, "Cập nhật tài khoản thành công"));
+      toast.success("Cập nhật tài khoản thành công");
     },
   });
 }
@@ -49,9 +47,9 @@ export function useSetDefaultBankAccount() {
   return useMutation({
     mutationFn: ({ id, reason }: ReasonInput) =>
       apiClient.put<BankUpdateResponse>(`${BANK_ACCOUNTS_ENDPOINT}/${id}/default`, reason ? { reason } : {}),
-    onSuccess: async (result, { id }) => {
+    onSuccess: async (_result, { id }) => {
       await refreshAccounts(client, id);
-      toast.success(appliedMessage(result, "Đã đặt làm tài khoản mặc định"));
+      toast.success("Đã đặt làm tài khoản mặc định");
     },
   });
 }

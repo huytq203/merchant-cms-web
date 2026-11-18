@@ -1,7 +1,7 @@
 import type { BankAccount } from "@/features/bank-accounts/types";
 import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import type { Withdrawal, WithdrawalCreateBody, WithdrawalStatus } from "../schemas/withdrawal.schema";
-import type { WithdrawalBankOption } from "../types/types";
+import type { WithdrawalReceivingAccount } from "../types/types";
 
 /** The portal only creates requests; a PENDING one still waits for the checker. */
 export function isAwaitingApproval(status: WithdrawalStatus): boolean {
@@ -38,10 +38,14 @@ export function withdrawalBreakdown(
   };
 }
 
-/** BE reads merchant, bank and account holder from the stored account, so only these fields leave the browser. */
+/**
+ * BE reads merchant, bank and account holder from the stored account, so only these fields leave the browser. SRS v2:
+ * the Sub names the request (an account may serve several Subs); the account id is sent only when known.
+ */
 export function toWithdrawalCreateRequest(body: WithdrawalCreateBody) {
   return {
-    bankAccountId: body.bankAccountId,
+    subMerchantId: body.subMerchantId,
+    ...(body.bankAccountId ? { bankAccountId: body.bankAccountId } : {}),
     amount: body.amount,
     idempotencyKey: body.idempotencyKey,
     sensitiveOtp: body.otp,
@@ -50,28 +54,19 @@ export function toWithdrawalCreateRequest(body: WithdrawalCreateBody) {
   };
 }
 
-type PayableAccount = Pick<BankAccount, "linkStatus" | "status" | "payable">;
-
-/** The merchant portal pays out per Sub: BE refuses a Master account with 400 VALIDATION_ERROR. */
-export function isSubMerchantAccount(account: BankAccount): account is BankAccount & { subMerchantId: string } {
-  return Boolean(account.subMerchantId);
-}
-
-/** BE refuses a payout to an account that is not linked, is stopped or is not payable. */
-export function isWithdrawableAccount(account: PayableAccount): boolean {
-  return account.linkStatus === "LINKED"
-    && account.status !== "INACTIVE"
-    && account.payable !== false;
-}
-
-export function toBankOption(account: BankAccount & { subMerchantId: string }): WithdrawalBankOption {
+/**
+ * The account shown (not chosen) in the create form. SRS v2 drops every FE check on the account state: a pending
+ * account pays out, and a locked one is refused by BE (5738) with a Vietnamese message the screen shows as is.
+ */
+export function toReceivingAccount(
+  account: Pick<BankAccount, "id" | "bankCode" | "accountNumber" | "accountName" | "accountStatus">,
+): WithdrawalReceivingAccount {
   return {
     id: account.id,
     bankCode: account.bankCode,
     accountNumberMasked: account.accountNumber,
     accountName: account.accountName,
-    isDefault: account.isDefault,
-    subMerchantId: account.subMerchantId,
+    accountStatus: account.accountStatus,
   };
 }
 

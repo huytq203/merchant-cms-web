@@ -4,9 +4,8 @@ import { Badge } from "@/components/ui/badge/Badge";
 import { createIndexColumn } from "@/components/page/IndexColumn";
 import { RowActions } from "@/components/page/RowActions";
 import { StatusBadge } from "@/components/page/StatusBadge";
-import { BankAccountScopeLabel } from "../components/BankAccountScopeLabel";
-import { BankChangeRequestBadge } from "../components/BankChangeRequestBadge";
-import { bankAccountTitle, bankDisplayName, bankLinkLabel, canChangeBank } from "../utils/bank-mapper";
+import { BankAccountSubsCell } from "../components/BankAccountSubsCell";
+import { bankAccountStatusLabel, bankAccountStatusTone, bankAccountTitle, bankDisplayName } from "../utils/bank-mapper";
 import type { BankAccount } from "../types";
 
 export type BankAccountColumnOptions = {
@@ -17,52 +16,31 @@ export type BankAccountColumnOptions = {
   onDelete?: (account: BankAccount) => void;
 };
 
-function StatusCell({ account }: { account: BankAccount }) {
-  const pending = account.pendingChangeRequest;
-  return (
-    <div className="flex flex-wrap items-center gap-1">
-      <StatusBadge
-        label={bankLinkLabel(account)}
-        tone={account.linkStatus === "LINKED" ? "success" : account.linkStatus === "PENDING_VERIFICATION" ? "warning" : "danger"}
-      />
-      {account.status === "INACTIVE" && <Badge variant="outline">Ngừng sử dụng</Badge>}
-      {pending && <BankChangeRequestBadge request={pending} />}
-    </div>
-  );
-}
-
-function editLabel(account: BankAccount, editable: boolean): string {
-  if (editable) return `Sửa tài khoản ${bankAccountTitle(account)}`;
-  return `Không thể sửa ${bankAccountTitle(account)} vì đang chờ duyệt hoặc đã ngừng sử dụng`;
-}
-
-function defaultLabel(account: BankAccount): string {
+/** BE từ chối đặt mặc định cho TK Khóa (409 5738), nên khóa nút sẵn và nói lý do. */
+function defaultDisabledReason(account: BankAccount): string {
   if (account.isDefault) return `${bankAccountTitle(account)} đang là tài khoản mặc định`;
+  if (account.accountStatus === "LOCKED") return `${bankAccountTitle(account)} đang bị khóa, không thể đặt làm mặc định`;
   return `Đặt ${bankAccountTitle(account)} làm tài khoản mặc định`;
 }
 
+/**
+ * SRS v2: mọi thay đổi áp dụng ngay sau OTP (không còn đề xuất chờ Flexpay duyệt), nên Sửa luôn mở được. Portal không
+ * có khóa/mở khóa TK — đó là thao tác của Admin.
+ */
 function BankAccountRowActions({ account, options }: { account: BankAccount; options: BankAccountColumnOptions }) {
   const { onEdit, onSetDefault, onDelete } = options;
-  const editable = canChangeBank(account);
   return (
     <RowActions
       subject={bankAccountTitle(account)}
       actions={[
         { label: "Xem tài khoản", icon: <Eye size={16} />, onClick: () => options.onView(account) },
-        {
-          label: "Sửa tài khoản",
-          icon: <Pencil size={16} />,
-          visible: !!onEdit,
-          disabled: !editable,
-          disabledReason: editLabel(account, editable),
-          onClick: () => onEdit?.(account),
-        },
+        { label: "Sửa tài khoản", icon: <Pencil size={16} />, visible: !!onEdit, onClick: () => onEdit?.(account) },
         {
           label: "Đặt làm mặc định",
           icon: <Star size={16} />,
           visible: !!onSetDefault,
-          disabled: account.isDefault || account.status === "INACTIVE" || account.pendingChangeRequest?.status === "PENDING",
-          disabledReason: defaultLabel(account),
+          disabled: account.isDefault || account.accountStatus === "LOCKED",
+          disabledReason: defaultDisabledReason(account),
           onClick: () => onSetDefault?.(account),
         },
         { label: "Xoá tài khoản", icon: <Trash2 size={16} />, visible: !!onDelete, onClick: () => onDelete?.(account) },
@@ -75,18 +53,15 @@ export function getBankAccountColumns(options: BankAccountColumnOptions, page: n
   return [
     createIndexColumn<BankAccount>({ page, pageSize }),
     {
+      id: "subMerchants",
+      header: "Sub-merchant đang dùng",
+      cell: ({ row }) => <BankAccountSubsCell subs={row.original.assignedSubMerchants} />,
+    },
+    {
       id: "bank",
       header: "Ngân hàng",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2 font-medium">
-          {bankDisplayName(row.original.bankCode)}
-          {row.original.isDefault && <Badge variant="soft-primary">Mặc định</Badge>}
-        </div>
-      ),
+      cell: ({ row }) => <span className="font-medium">{bankDisplayName(row.original.bankCode)}</span>,
     },
-    // TK gắn Sub nào (11/11/2026): trước đây phải mở chi tiết mới biết, giờ hiện ngay ở bảng.
-    { id: "scope", header: "Áp dụng cho", cell: ({ row }) => <BankAccountScopeLabel account={row.original} /> },
-    { id: "branch", header: "Chi nhánh", cell: ({ row }) => row.original.branchName || "--" },
     {
       id: "accountNumber",
       header: "Số tài khoản",
@@ -94,9 +69,21 @@ export function getBankAccountColumns(options: BankAccountColumnOptions, page: n
     },
     { id: "accountName", header: "Chủ tài khoản", cell: ({ row }) => row.original.accountName || "--" },
     {
-      id: "status",
-      header: "Trạng thái",
-      cell: ({ row }) => <StatusCell account={row.original} />,
+      id: "isDefault",
+      header: "Mặc định",
+      cell: ({ row }) => (row.original.isDefault
+        ? <Badge variant="soft-primary">Mặc định</Badge>
+        : <span className="text-muted-foreground">—</span>),
+    },
+    {
+      id: "accountStatus",
+      header: "Trạng thái tài khoản",
+      cell: ({ row }) => (
+        <StatusBadge
+          label={bankAccountStatusLabel(row.original.accountStatus)}
+          tone={bankAccountStatusTone(row.original.accountStatus)}
+        />
+      ),
     },
     {
       id: "actions",

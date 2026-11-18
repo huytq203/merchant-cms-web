@@ -26,8 +26,8 @@ const account = {
   bankCode: "VCB",
   accountNumber: "1234567890",
   accountName: "CONG TY A",
-  status: "ACTIVE",
-  linkStatus: "LINKED",
+  accountStatus: "VERIFIED",
+  assignedSubMerchants: [{ id: "44444444-4444-4444-8444-444444444444", code: "SUB01", name: "Cửa hàng A" }],
   default: true,
 };
 const otp = { otpSessionId: "session-1", otp: "123456" };
@@ -52,9 +52,11 @@ describe("bank account service", () => {
       query = new URL(request.url).searchParams;
       return HttpResponse.json(envelope(page([account], 11)));
     }));
-    const result = await listBankAccounts({ page: 2, pageSize: 10, merchantId, linkStatus: "LINKED" });
-    expect(result).toMatchObject({ success: true, data: { total: 11, rows: [{ id, isDefault: true }] } });
-    expect(Object.fromEntries(query!)).toEqual({ page: "2", size: "10", linkStatus: "LINKED" });
+    const result = await listBankAccounts({
+      page: 2, pageSize: 10, merchantId, assignmentStatus: "ASSIGNED", accountStatus: "VERIFIED", query: "7890",
+    });
+    expect(result).toMatchObject({ success: true, data: { total: 11, rows: [{ id, isDefault: true, assignedSubMerchants: [{ code: "SUB01" }] }] } });
+    expect(Object.fromEntries(query!)).toEqual({ page: "2", size: "10", assignmentStatus: "ASSIGNED", accountStatus: "VERIFIED", query: "7890" });
   });
 
   it("maps an empty Page", async () => {
@@ -86,27 +88,22 @@ describe("bank account service", () => {
       bankCode: "VCB",
       accountNumber: "1234567890",
       accountName: "CONG TY A",
+      assignSubMerchantIds: ["44444444-4444-4444-8444-444444444444"],
       otp,
     });
-    expect(body).toMatchObject({ bankCode: "VCB", otp });
-    expect(result).toMatchObject({ success: true, data: { applied: true, account: { id } } });
+    expect(body).toMatchObject({ merchantId, bankCode: "VCB", assignSubMerchantIds: ["44444444-4444-4444-8444-444444444444"], otp });
+    expect(result).toMatchObject({ success: true, data: { account: { id } } });
   });
 
-  it("updates with version and reports a pending change request", async () => {
+  it("updates with version and the new Sub list, and reads the applied account (no pending request in v2)", async () => {
     let body: unknown;
-    const pendingChangeRequest = {
-      id: "33333333-3333-4333-8333-333333333333",
-      bankAccountId: id,
-      changeType: "UPDATE_ACCOUNT",
-      status: "PENDING",
-    };
     mswServer.use(http.put(`${accountsUrl}/${id}`, async ({ request }) => {
       body = await request.json();
-      return HttpResponse.json(envelope({ account, applied: false, pendingChangeRequest }));
+      return HttpResponse.json(envelope({ account, applied: true, pendingChangeRequest: null }));
     }));
-    const result = await updateBankAccount(id, { version: 3, accountNumber: "9999999999", otp });
-    expect(body).toEqual({ version: 3, accountNumber: "9999999999", otp });
-    expect(result).toMatchObject({ success: true, data: { applied: false, pendingChangeRequest: { status: "PENDING" } } });
+    const result = await updateBankAccount(id, { version: 3, accountNumber: "9999999999", assignSubMerchantIds: [], otp });
+    expect(body).toEqual({ version: 3, accountNumber: "9999999999", assignSubMerchantIds: [], otp });
+    expect(result).toMatchObject({ success: true, data: { account: { id, accountStatus: "VERIFIED" } } });
   });
 
   it("keeps the message and code of a stale version (409)", async () => {
@@ -142,7 +139,7 @@ describe("bank account service", () => {
     mswServer.use(http.put(`${accountsUrl}/${id}/default`, () =>
       HttpResponse.json(envelope({ account, applied: true })),
     ));
-    expect(await setDefaultBankAccount(id)).toMatchObject({ success: true, data: { applied: true } });
+    expect(await setDefaultBankAccount(id)).toMatchObject({ success: true, data: { account: { id } } });
   });
 
   it("requests a bank-change OTP challenge", async () => {

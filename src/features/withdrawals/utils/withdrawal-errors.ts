@@ -16,9 +16,10 @@ const CODES = {
   automaticMode: ["5782", "MERCHANT_WITHDRAWAL_AUTOMATIC_MODE"],
   // A freeze waiting for the ledger may take the available balance a new request would use; retry later.
   freezeProcessing: ["5798", "MERCHANT_WITHDRAWAL_FREEZE_PROCESSING"],
-  // No account chosen and the Sub has no default one, so the fee cannot be priced (BE before 11/11 answered the whole
-  // balance with this 409; newer BE returns the balance with fee/net null instead).
+  // SRS v2 (18/11): the Sub has no bank account assigned, so nothing can be paid out until one is assigned.
   bankAccountRequired: ["5736", "MERCHANT_SUB_BANK_ACCOUNT_NOT_ASSIGNED"],
+  // SRS v2: the account assigned to the Sub is locked by Flexpay; payouts stop until it is unlocked or replaced.
+  accountLocked: ["5738", "MERCHANT_BANK_ACCOUNT_LOCKED"],
 } as const;
 
 export type WithdrawalFailureKind = keyof typeof CODES | "other";

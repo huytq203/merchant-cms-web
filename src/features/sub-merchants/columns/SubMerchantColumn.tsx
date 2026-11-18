@@ -18,10 +18,10 @@ export function statusBadge(row: Pick<SubMerchantRow, 'status' | 'lockSource'>) 
   return <StatusBadge label="Đã khóa" tone="neutral" />;
 }
 
-const linkLabels = {
-  LINKED: { label: 'Đã liên kết', tone: 'success' },
+/** Trạng thái TK theo SRS v2: Chờ xác minh (vẫn rút được) / Đã xác minh; TK Khóa hiện badge riêng bên dưới. */
+const accountStatusLabels = {
   PENDING_VERIFICATION: { label: 'Chờ xác minh', tone: 'warning' },
-  LINK_FAILED: { label: 'Liên kết thất bại', tone: 'danger' },
+  VERIFIED: { label: 'Đã xác minh', tone: 'success' },
 } as const;
 
 /** "2 · 1 QR · 1 POS": the total first, then only the types that exist, in a fixed order. */
@@ -34,13 +34,15 @@ export function terminalBreakdown(row: Pick<SubMerchantRow, 'terminalCount' | 't
 }
 
 function BankAccountCell({ account }: { account: SubMerchantRow['settlementBankAccount'] }) {
-  if (!account) return <span className="text-muted-foreground">Chưa có TK</span>;
-  const link = linkLabels[account.linkStatus];
+  if (!account) return <span className="text-muted-foreground">Chưa gán TK</span>;
+  // FR-MER-0607-08: TK đang gán bị khóa thì báo đỏ để merchant biết Sub không rút được.
+  const locked = account.locked === true || account.accountStatus === 'LOCKED';
+  const status = account.accountStatus && account.accountStatus !== 'LOCKED' ? accountStatusLabels[account.accountStatus] : null;
   return (
     <div className="flex flex-col items-start gap-1">
       <span className="tabular-nums">{[account.bankCode, account.maskedAccountNo].filter(Boolean).join(' ')}</span>
-      <StatusBadge label={link.label} tone={link.tone} />
-      {account.isDefault === false ? <StatusBadge label="Chưa đặt TK mặc định" tone="warning" /> : null}
+      {locked ? <StatusBadge label="Tài khoản rút tiền bị khóa" tone="danger" /> : null}
+      {!locked && status ? <StatusBadge label={status.label} tone={status.tone} /> : null}
     </div>
   );
 }

@@ -9,13 +9,14 @@ describe("describeBankError", () => {
     expect(view.message).not.toMatch(/MERCHANT_/);
   });
 
-  it("treats a stale version (409) as a conflict that needs a reload", () => {
+  it("treats a stale version (5758) as a conflict that needs a reload", () => {
+    expect(describeBankError(new ApiError(409, "x", "5758")).kind).toBe("conflict");
     expect(describeBankError(new ApiError(409, "x", "VERSION_CONFLICT")).kind).toBe("conflict");
   });
 
-  it("does not treat an already pending request as a stale version", () => {
-    const view = describeBankError(new ApiError(409, "x", "MERCHANT_BANK_ACCOUNT_CHANGE_ALREADY_PENDING"));
-    expect(view.kind).toBe("other");
+  // SRS v2 (18/11): các 409 nghiệp vụ mang câu tiếng Việt có hướng xử lý, hiển thị nguyên văn thay vì "tải lại".
+  it.each(["5721", "5722", "5738", "5755", "5756", "5757"])("shows the BE message of business conflict %s word for word", (code) => {
+    expect(describeBankError(new ApiError(409, "Câu tiếng Việt của BE", code))).toEqual({ kind: "other", message: "Câu tiếng Việt của BE" });
   });
 
   it("keeps the server message for other API errors and hides unknown errors", () => {

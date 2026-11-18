@@ -9,7 +9,7 @@ import { WITHDRAWALS_ENDPOINT } from "../withdrawal-queries";
 type Attempt = { signature: string; key: string };
 
 const signatureOf = (values: WithdrawalFormData, confirmZeroNet: boolean) =>
-  JSON.stringify([values.bankAccountId, values.amount, values.reason ?? "", confirmZeroNet]);
+  JSON.stringify([values.subMerchantId, values.bankAccountId ?? "", values.amount, values.reason ?? "", confirmZeroNet]);
 
 /**
  * The same request content keeps the same idempotency key, so retrying after a lost response
@@ -50,7 +50,7 @@ export function useCreateWithdrawal() {
   return { create, isPending: mutation.isPending, error: mutation.error, reset: mutation.reset };
 }
 
-/** Asks BE to email a code tied to one (account, amount) pair; a resend is the same call with the same pair. */
+/** Asks BE to email a code tied to one (Sub, amount) pair; a resend is the same call with the same pair. */
 export function useWithdrawalOtpChallenge() {
   return useMutation({
     mutationFn: (body: WithdrawalOtpChallengeBody): Promise<SensitiveOtpChallenge> =>

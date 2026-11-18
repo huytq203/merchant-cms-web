@@ -21,7 +21,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 
 /** Step 2: read the request back. Continuing sends the email code, which is tied to this account and amount. */
 export function WithdrawalNewStep2({ flow }: { flow: WithdrawalCreateFlow }) {
-  const { values, selectedBank, statement, otpFailure, isRequestingCode, zeroNetRequired, zeroNetAccepted } = flow;
+  const { values, account: selectedBank, statement, otpFailure, isRequestingCode, zeroNetRequired, zeroNetAccepted } = flow;
   const bankText = selectedBank
     ? `${bankDisplayName(selectedBank.bankCode)} ${selectedBank.accountNumberMasked}`
     : EMPTY_VALUE;

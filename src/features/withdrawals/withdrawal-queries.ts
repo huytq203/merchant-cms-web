@@ -6,7 +6,7 @@ import { withdrawalStatusGroupSchema } from "./schemas/withdrawal.schema";
 import type {
   Withdrawal,
   WithdrawalBalance,
-  WithdrawalBankOptions,
+  WithdrawalReceivingAccountResult,
   WithdrawalListFilter,
   WithdrawalListResult,
 } from "./types/types";
@@ -71,17 +71,16 @@ export const withdrawalQueries = {
     queryKey: ["withdrawals", "detail", id] as const,
     queryFn: () => apiClient.get<Withdrawal>(`${WITHDRAWALS_ENDPOINT}/${encodeURIComponent(id)}`),
   }),
-  /** Tài khoản nhận của đúng một Sub: chưa chọn Sub thì không gọi, để không trộn tài khoản của nhiều Sub. */
-  bankOptions: (subMerchantId: string) => queryOptions({
-    queryKey: ["withdrawals", "bank-options", subMerchantId] as const,
-    queryFn: () => apiClient.get<WithdrawalBankOptions>(`${WITHDRAWALS_ENDPOINT}/bank-options`, { query: { subMerchantId } }),
+  /** TK đang gán cho Sub (SRS v2: mỗi Sub đúng 1 TK, chỉ hiển thị). Chưa chọn Sub thì không gọi. */
+  receivingAccount: (subMerchantId: string) => queryOptions({
+    queryKey: ["withdrawals", "receiving-account", subMerchantId] as const,
+    queryFn: () => apiClient.get<WithdrawalReceivingAccountResult>(`${WITHDRAWALS_ENDPOINT}/receiving-account`, { query: { subMerchantId } }),
     enabled: subMerchantId !== "",
   }),
   /**
-   * Per Sub: nothing is asked until a Sub is chosen. `bankAccountId` is the receiving account chosen in the create form
-   * (11/11): BE prices the fee for that account's bank, and it is in the key so another account asks again. Empty = no
-   * account yet (BE uses the Sub's default account, or answers fee/net null with BANK_ACCOUNT_REQUIRED). `ready` = false
-   * while the accounts are still loading, so the default account is not first asked for without its id.
+   * Per Sub: nothing is asked until a Sub is chosen. `bankAccountId` is the account assigned to the Sub (optional, v2):
+   * BE prices the fee for that account's bank. Empty = the Sub has no account; BE then refuses (5736) or answers with a
+   * blocker. `ready` = false while the assigned account is still loading, so the balance is asked once, with its id.
    */
   balance: (subMerchantId: string, bankAccountId = "", ready = true) => queryOptions({
     queryKey: ["withdrawals", "balance", subMerchantId, bankAccountId] as const,

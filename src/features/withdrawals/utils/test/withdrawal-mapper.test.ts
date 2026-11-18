@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   isAwaitingApproval,
-  isSubMerchantAccount,
+  toReceivingAccount,
   toWithdrawalCreateRequest,
   withdrawalBreakdown,
   withdrawalTitle,
 } from "../withdrawal-mapper";
 
 const input = {
+  subMerchantId: "11111111-1111-4111-8111-111111111111",
   bankAccountId: "44444444-4444-4444-8444-444444444444",
   amount: 250000,
   idempotencyKey: "key-1",
@@ -15,9 +16,10 @@ const input = {
 };
 
 describe("toWithdrawalCreateRequest", () => {
-  it("keeps only the account id, amount, idempotency key and the OTP answer under the BE name sensitiveOtp", () => {
+  it("keeps only the Sub, account id, amount, idempotency key and the OTP answer under the BE name sensitiveOtp", () => {
     const request = toWithdrawalCreateRequest(input);
     expect(request).toEqual({
+      subMerchantId: input.subMerchantId,
       bankAccountId: input.bankAccountId,
       amount: 250000,
       idempotencyKey: "key-1",
@@ -38,14 +40,25 @@ describe("toWithdrawalCreateRequest", () => {
   });
 });
 
-describe("isSubMerchantAccount", () => {
-  const subId = "33333333-3333-4333-8333-333333333333";
-  const account = (overrides: object) => ({ id: "a", ...overrides }) as Parameters<typeof isSubMerchantAccount>[0];
+describe("toWithdrawalCreateRequest without an account id", () => {
+  // SRS v2: bankAccountId tùy chọn, BE lấy TK đang gán cho Sub.
+  it("sends the Sub alone when no account id is known", () => {
+    const { bankAccountId: _unused, ...withoutAccount } = input;
+    void _unused;
+    expect(toWithdrawalCreateRequest(withoutAccount)).not.toHaveProperty("bankAccountId");
+    expect(toWithdrawalCreateRequest(withoutAccount)).toMatchObject({ subMerchantId: input.subMerchantId });
+  });
+});
 
-  it("accepts an account that belongs to a Sub and refuses a Master account", () => {
-    expect(isSubMerchantAccount(account({ level: "SUB", subMerchantId: subId }))).toBe(true);
-    expect(isSubMerchantAccount(account({ level: "MASTER" }))).toBe(false);
-    expect(isSubMerchantAccount(account({ level: undefined, subMerchantId: undefined }))).toBe(false);
+describe("toReceivingAccount", () => {
+  it("keeps what the form shows: bank, BE-masked number, holder and status", () => {
+    const account = {
+      id: "a", version: 1, merchantId: "m", bankCode: "VCB", accountNumber: "******1789", accountName: "CONG TY A",
+      isDefault: false, accountStatus: "LOCKED" as const, assignedSubMerchants: [],
+    };
+    expect(toReceivingAccount(account)).toEqual({
+      id: "a", bankCode: "VCB", accountNumberMasked: "******1789", accountName: "CONG TY A", accountStatus: "LOCKED",
+    });
   });
 });
 

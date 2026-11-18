@@ -1,3 +1,4 @@
+import type { BankAccountStatus } from "@/features/bank-accounts/types";
 import type { Withdrawal, WithdrawalBalance, WithdrawalStatus, WithdrawalStatusGroup } from "../schemas/withdrawal.schema";
 
 export type { Withdrawal, WithdrawalBalance, WithdrawalStatus, WithdrawalStatusGroup };
@@ -23,18 +24,17 @@ export interface WithdrawalListResult {
   total: number;
 }
 
-/** Sub-merchant accounts a withdrawal may pay out to. */
-export interface WithdrawalBankOptions {
-  options: WithdrawalBankOption[];
+/** The account assigned to one Sub (SRS v2: exactly one per Sub); null = the Sub has no account yet. */
+export interface WithdrawalReceivingAccountResult {
+  account: WithdrawalReceivingAccount | null;
 }
 
-/** A linked bank account the merchant may withdraw to; the number is already masked. */
-export interface WithdrawalBankOption {
+/** The account a Sub's withdrawal pays out to; the number is already masked by the BE. */
+export interface WithdrawalReceivingAccount {
   id: string;
   bankCode: string;
   accountNumberMasked: string;
   accountName: string;
-  isDefault: boolean;
-  /** The Sub the account belongs to; its balance is what the withdrawal pays. */
-  subMerchantId: string;
+  /** Chờ xác minh still pays out; Khóa does not (BE refuses with 5738). */
+  accountStatus: BankAccountStatus;
 }

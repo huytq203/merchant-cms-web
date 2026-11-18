@@ -92,11 +92,11 @@ describe("sub merchant service", () => {
       createdAt: "2026-09-28T10:00:00",
       terminalCount: 2,
       terminalCountByType: { POS: 1, ONLINE: 0, QR: 1 },
-      settlementBankAccount: { bankCode: "VPB", maskedAccountNo: "*********2111", linkStatus: "LINKED" },
+      settlementBankAccount: { id: "44444444-4444-4444-8444-444444444444", bankCode: "VPB", maskedAccountNo: "*********2111", accountStatus: "LOCKED", locked: true },
       revenue7d: 1748000,
     };
     mswServer.use(http.get(LIST_PATH, () => HttpResponse.json(envelope(page([overview], 1)))));
     const result = await listSubMerchants({ page: 1, pageSize: 10 });
-    expect(result).toMatchObject({ success: true, data: { rows: [{ terminalCount: 2, revenue7d: 1748000, settlementBankAccount: { bankCode: "VPB", linkStatus: "LINKED" } }] } });
+    expect(result).toMatchObject({ success: true, data: { rows: [{ terminalCount: 2, revenue7d: 1748000, settlementBankAccount: { bankCode: "VPB", accountStatus: "LOCKED", locked: true } }] } });
   });
 });

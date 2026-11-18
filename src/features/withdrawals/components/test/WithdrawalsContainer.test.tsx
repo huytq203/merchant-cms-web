@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
 import { WithdrawalsContainer } from "../WithdrawalsContainer";
-import type { Withdrawal, WithdrawalBankOption, WithdrawalListFilter } from "../../types/types";
+import type { Withdrawal, WithdrawalListFilter, WithdrawalReceivingAccount } from "../../types/types";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/withdrawal", useSearchParams: () => new URLSearchParams() }));
@@ -22,13 +22,12 @@ const twoSubs = [
 ];
 const filter: WithdrawalListFilter = { page: 1, pageSize: 10 };
 const abilities = { canCreate: true };
-const bankOption: WithdrawalBankOption = {
+const bankOption: WithdrawalReceivingAccount = {
   id: "44444444-4444-4444-8444-444444444444",
   bankCode: "VCB",
   accountNumberMasked: "xxxx1789",
   accountName: "CONG TY A",
-  isDefault: true,
-  subMerchantId,
+  accountStatus: "PENDING_VERIFICATION",
 };
 const makeWithdrawal = (overrides: Partial<Withdrawal> = {}): Withdrawal => ({
   id: "33333333-3333-4333-8333-333333333333",
@@ -83,19 +82,19 @@ function balanceReturns(balance = makeBalance()) {
   return requests;
 }
 
-/** Ghi lại subMerchantId của mỗi lần gọi bank-options và trả các tài khoản đã cho. */
-function bankOptionsReturn(options: WithdrawalBankOption[] = [bankOption]) {
+/** Ghi lại subMerchantId của mỗi lần hỏi TK đang gán và trả TK đã cho (null = Sub chưa gán TK). */
+function receivingAccountReturns(account: WithdrawalReceivingAccount | null = bankOption) {
   const requests: (string | null)[] = [];
-  mswServer.use(http.get(`${base}/bank-options`, ({ request }) => {
+  mswServer.use(http.get(`${base}/receiving-account`, ({ request }) => {
     requests.push(new URL(request.url).searchParams.get("subMerchantId"));
-    return HttpResponse.json({ options });
+    return HttpResponse.json({ account });
   }));
   return requests;
 }
 
 beforeEach(() => {
   listReturns([pending]);
-  bankOptionsReturn();
+  receivingAccountReturns();
   mswServer.use(
     http.post(`${base}/otp-challenge`, () => HttpResponse.json(challenge)),
     http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([])),
@@ -117,7 +116,7 @@ async function pickSub(dialog: HTMLElement, name: RegExp = /SUB1/) {
   await userEvent.click(await screen.findByRole("option", { name }));
 }
 
-/** Chỉ cần chọn Sub: tài khoản duy nhất của Sub được tự chọn. */
+/** Chỉ cần chọn Sub: TK nhận là TK đang gán cho Sub (SRS v2). */
 async function pickAccount(dialog: HTMLElement) {
   await pickSub(dialog);
 }
@@ -309,7 +308,7 @@ describe("create withdrawal modal: account and balance", () => {
     expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
   });
 
-  it("cannot go to the review step before an account is chosen", async () => {
+  it("cannot go to the review step before a Sub is chosen", async () => {
     renderContainer();
     const dialog = await openCreateModal();
     expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
@@ -333,18 +332,16 @@ describe("create withdrawal modal: account and balance", () => {
   });
 });
 
-describe("create withdrawal modal: Sub first", () => {
-  const second: WithdrawalBankOption = {
-    ...bankOption, id: "66666666-6666-4666-8666-666666666666", accountNumberMasked: "xxxx2222", isDefault: false, bankCode: "TCB",
-  };
+describe("create withdrawal modal: Sub first, its one account shown (SRS v2)", () => {
+  const unassigned = "Sub-merchant chưa được gán tài khoản ngân hàng nhận doanh thu nên chưa tạo được lệnh rút; hãy gán tài khoản tại Danh sách tài khoản ngân hàng";
+  const locked = "Tài khoản ngân hàng của Sub-merchant đang bị khóa nên chưa rút được; vui lòng liên hệ Flexpay hoặc gán tài khoản khác";
 
-  it("lists the Subs the user may see and asks for accounts and balance of the chosen Sub only", async () => {
-    const accountRequests = bankOptionsReturn();
+  it("lists the Subs the user may see and asks for the account and balance of the chosen Sub only", async () => {
+    const accountRequests = receivingAccountReturns();
     const balanceRequests = balanceReturns();
     renderContainer();
     const dialog = await openCreateModal();
     expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
-    expect(within(dialog).queryByRole("combobox", { name: /Tài khoản nhận/ })).not.toBeInTheDocument();
     expect(accountRequests).toEqual([]);
     await pickSub(dialog, /SUB2/);
     await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
@@ -361,113 +358,88 @@ describe("create withdrawal modal: Sub first", () => {
     expect(balanceRequests).toEqual([subMerchantId]);
   });
 
-  it("takes the only account of the Sub and shows it read-only, without a picker", async () => {
+  it("shows the account assigned to the Sub read-only, with its status, and offers no account picker", async () => {
     renderContainer();
     const dialog = await openCreateModal();
     await pickSub(dialog);
-    expect(await within(dialog).findByText(/xxxx1789/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/CONG TY A/)).toBeInTheDocument();
+    const box = await within(dialog).findByLabelText("Tài khoản nhận");
+    expect(within(box).getByText(/xxxx1789/)).toBeInTheDocument();
+    expect(within(box).getByText("CONG TY A")).toBeInTheDocument();
+    // Chờ xác minh vẫn rút được: chỉ hiển thị trạng thái, không chặn.
+    expect(within(box).getByText("Chờ xác minh")).toBeInTheDocument();
     expect(within(dialog).queryByRole("combobox", { name: /Tài khoản nhận/ })).not.toBeInTheDocument();
-    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    await within(dialog).findByText(/5\.993\.500/);
     expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeEnabled();
   });
 
-  it("lists only the accounts of the Sub when there are two and preselects the default one", async () => {
-    bankOptionsReturn([second, bankOption]);
-    renderContainer();
-    const dialog = await openCreateModal();
-    await pickSub(dialog);
-    const picker = await within(dialog).findByRole("combobox", { name: /Tài khoản nhận/ });
-    expect(picker).toHaveTextContent(/Vietcombank/);
-    await userEvent.click(picker);
-    expect(await screen.findByRole("option", { name: /xxxx2222/ })).toBeInTheDocument();
-  });
-
-  it("says the Sub has no linked receiving account and blocks Tiếp tục", async () => {
-    bankOptionsReturn([]);
-    renderContainer();
-    const dialog = await openCreateModal();
-    await pickSub(dialog);
-    expect(await within(dialog).findByText("Sub-merchant chưa có tài khoản nhận tiền đã liên kết")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
-  });
-
-  it("drops the account and balance of the old Sub when another Sub is chosen", async () => {
-    renderContainer();
-    const dialog = await openCreateModal();
-    await pickSub(dialog);
-    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
-    bankOptionsReturn([]);
-    await pickSub(dialog, /SUB2/);
-    expect(await within(dialog).findByText("Sub-merchant chưa có tài khoản nhận tiền đã liên kết")).toBeInTheDocument();
-    expect(within(dialog).queryByText(/xxxx1789/)).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
-  });
-});
-
-describe("create withdrawal modal: fee of the chosen account (11/11)", () => {
-  const second: WithdrawalBankOption = {
-    ...bankOption, id: "66666666-6666-4666-8666-666666666666", accountNumberMasked: "xxxx2222", isDefault: false, bankCode: "VPB",
-  };
-
-  /** Ghi lại bankAccountId của mỗi lần hỏi số dư; phí theo TK để thấy màn hình đổi số khi đổi TK. */
-  function balanceByAccount() {
-    const accounts: (string | null)[] = [];
-    mswServer.use(http.get(`${base}/balance`, ({ request }) => {
-      const account = new URL(request.url).searchParams.get("bankAccountId");
-      accounts.push(account);
-      return HttpResponse.json(account === second.id ? makeBalance({ fee: 7_700, netReceived: 5_991_300 }) : makeBalance());
-    }));
-    return accounts;
-  }
-
-  it("sends the id of the chosen account, once the accounts are known, and prices again when the account changes", async () => {
-    bankOptionsReturn([second, bankOption]);
-    const accounts = balanceByAccount();
-    renderContainer();
-    const dialog = await openCreateModal();
-    await pickSub(dialog);
-    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
-    expect(await within(panel).findByText(/5\.993\.500/)).toBeInTheDocument();
-    // Không hỏi một lần "chưa có TK" rồi lại hỏi theo TK mặc định: chỉ hỏi khi đã biết danh sách TK.
-    expect(accounts).toEqual([bankOption.id]);
-    await userEvent.click(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ }));
-    await userEvent.click(await screen.findByRole("option", { name: /xxxx2222/ }));
-    expect(await within(dialog).findByText(/5\.991\.300/)).toBeInTheDocument();
-    expect(accounts).toEqual([bankOption.id, second.id]);
-  });
-
-  it("without a chosen account and no default, shows the balances and asks to choose an account for the fee", async () => {
-    bankOptionsReturn([{ ...bankOption, isDefault: false }, second]);
+  it("asks the balance with the id of the assigned account, once it is known", async () => {
     const accounts: (string | null)[] = [];
     mswServer.use(http.get(`${base}/balance`, ({ request }) => {
       accounts.push(new URL(request.url).searchParams.get("bankAccountId"));
-      return HttpResponse.json(makeBalance({ fee: null, netReceived: null, blocker: "BANK_ACCOUNT_REQUIRED",
-        blockerMessage: "Chọn tài khoản nhận tiền để xem phí rút và số tiền thực nhận" }));
+      return HttpResponse.json(makeBalance());
     }));
     renderContainer();
     const dialog = await openCreateModal();
     await pickSub(dialog);
-    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
-    expect(accounts).toEqual([null]);
-    expect(within(panel).getByText(/6\.000\.000/)).toBeInTheDocument();
-    expect(within(panel).getByText(/128\.450\.000/)).toBeInTheDocument();
-    expect(within(panel).getAllByText("Chờ chọn tài khoản")).toHaveLength(2);
-    expect(within(panel).getByText("Chọn tài khoản nhận tiền để xem phí rút và số tiền thực nhận")).toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+    await within(dialog).findByText(/5\.993\.500/);
+    expect(accounts).toEqual([bankOption.id]);
   });
 
-  it("an older BE answering 409 5736 does not kill the panel: it asks to choose an account, without a retry", async () => {
-    bankOptionsReturn([{ ...bankOption, isDefault: false }, second]);
-    mswServer.use(http.get(`${base}/balance`, () => codeError("5736",
-      "Sub-merchant chưa được gán tài khoản ngân hàng nhận doanh thu nên chưa tạo được lệnh rút; hãy gán tài khoản tại Danh sách tài khoản ngân hàng")));
+  it("blocks a Sub with no account and shows the BE message (409 5736) word for word", async () => {
+    receivingAccountReturns(null);
+    mswServer.use(http.get(`${base}/balance`, () => codeError("5736", unassigned)));
     renderContainer();
     const dialog = await openCreateModal();
     await pickSub(dialog);
-    expect(await within(dialog).findByText("Chọn tài khoản nhận tiền để xem số tiền rút, phí rút và số tiền thực nhận")).toBeInTheDocument();
+    expect(await within(dialog).findByText(unassigned)).toBeInTheDocument();
+    expect(within(dialog).getByText("Sub-merchant chưa được gán tài khoản ngân hàng")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("combobox", { name: /Tài khoản nhận/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("blocks a Sub with no account even when the balance itself is readable", async () => {
+    receivingAccountReturns(null);
+    balanceReturns(makeBalance({ fee: null, netReceived: null, blocker: "BANK_ACCOUNT_REQUIRED", blockerMessage: unassigned }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    expect(await within(dialog).findByText(unassigned)).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Chưa có tài khoản nhận")).toHaveLength(2);
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("shows a locked account and the BE message (409 5738) word for word", async () => {
+    receivingAccountReturns({ ...bankOption, accountStatus: "LOCKED" });
+    mswServer.use(http.get(`${base}/balance`, () => codeError("5738", locked)));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    expect(await within(dialog).findByText(locked)).toBeInTheDocument();
+    expect(within(await within(dialog).findByLabelText("Tài khoản nhận")).getByText("Khóa")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("shows the account and balance of the new Sub when another Sub is chosen", async () => {
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await within(dialog).findByText(/xxxx1789/);
+    receivingAccountReturns(null);
+    await pickSub(dialog, /SUB2/);
+    expect(await within(dialog).findByText("Sub-merchant chưa được gán tài khoản ngân hàng")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/xxxx1789/)).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  });
+
+  it("goes back to step 1 and shows the BE message when the account is locked meanwhile (5738 on send)", async () => {
+    mswServer.use(http.post(base, () => codeError("5738", locked)));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    receivingAccountReturns({ ...bankOption, accountStatus: "LOCKED" });
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText(locked)).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: /Sub-merchant/ })).toBeInTheDocument();
   });
 });
 
@@ -484,8 +456,8 @@ describe("create withdrawal modal: code and send", () => {
     await userEvent.click(await within(dialog).findByRole("button", { name: "Gửi lại mã" }));
     await waitFor(() => expect(bodies).toHaveLength(2));
     expect(bodies).toEqual([
-      { bankAccountId: bankOption.id, amount: 6_000_000 },
-      { bankAccountId: bankOption.id, amount: 6_000_000 },
+      { subMerchantId, bankAccountId: bankOption.id, amount: 6_000_000 },
+      { subMerchantId, bankAccountId: bankOption.id, amount: 6_000_000 },
     ]);
   });
 
@@ -506,9 +478,9 @@ describe("create withdrawal modal: code and send", () => {
     await userEvent.dblClick(within(dialog).getByRole("button", { name: "Gửi yêu cầu" }));
     expect(await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" })).toBeInTheDocument();
     expect(bodies).toHaveLength(1);
-    expect(Object.keys(bodies[0] as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "otp"]);
+    expect(Object.keys(bodies[0] as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "otp", "subMerchantId"]);
     expect(bodies[0]).toMatchObject({
-      bankAccountId: bankOption.id, amount: 6_000_000, otp: { otpSessionId: "session-1", otp: "123456" },
+      subMerchantId, bankAccountId: bankOption.id, amount: 6_000_000, otp: { otpSessionId: "session-1", otp: "123456" },
     });
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });

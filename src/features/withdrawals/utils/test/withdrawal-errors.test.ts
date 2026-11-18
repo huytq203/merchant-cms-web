@@ -102,3 +102,17 @@ describe("readFieldErrors", () => {
     expect(readFieldErrors(new Error("x"))).toEqual({});
   });
 });
+
+// SRS v2 (18/11/2026): Sub chưa gán TK (5736) và TK đang gán bị Khóa (5738) mang câu tiếng Việt có hướng xử lý.
+describe("receiving account refusals (SRS v2)", () => {
+  const unassigned = "Sub-merchant chưa được gán tài khoản ngân hàng nhận doanh thu nên chưa tạo được lệnh rút";
+  const locked = "Tài khoản ngân hàng của Sub-merchant đang bị khóa, vui lòng liên hệ Flexpay";
+
+  it("recognises 5736 and 5738 by number or name and shows the BE message word for word", () => {
+    expect(withdrawalFailureKind(new ApiError(409, unassigned, "5736"))).toBe("bankAccountRequired");
+    expect(withdrawalFailureKind(new ApiError(409, locked, "5738"))).toBe("accountLocked");
+    expect(withdrawalFailureKind(new ApiError(409, locked, "MERCHANT_BANK_ACCOUNT_LOCKED"))).toBe("accountLocked");
+    expect(describeWithdrawalError(new ApiError(409, unassigned, "5736"))).toBe(unassigned);
+    expect(describeWithdrawalError(new ApiError(409, locked, "5738"))).toBe(locked);
+  });
+});

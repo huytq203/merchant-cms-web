@@ -6,56 +6,61 @@ import { Select } from "@/components/ui/select/Select";
 import { SubMerchantMultiFilter } from "@/features/sub-merchants/components/SubMerchantMultiFilter";
 import type { BankAccountFilter } from "../types";
 
-/** Lọc theo một hoặc nhiều Sub (12/11/2026): BE trả TK của các Sub đó; TK cấp Master không thuộc Sub nào nên không hiện. */
-type Values = Pick<BankAccountFilter, "linkStatus" | "status" | "subMerchantIds">;
+/**
+ * SRS v2 (18/11/2026): lọc theo trạng thái gán (TK có Sub nào dùng chưa) và trạng thái TK; bỏ lọc liên kết/sử dụng cũ.
+ * Lọc theo Sub trả các TK đang gán cho các Sub đó. Để trống = Tất cả.
+ */
+type Values = Pick<BankAccountFilter, "assignmentStatus" | "accountStatus" | "subMerchantIds" | "query">;
 type Props = { initial: Values; onSearch: (values: Values) => void };
 
-const linkOptions = [
-  { value: "LINKED", label: "Đã liên kết" },
-  { value: "PENDING_VERIFICATION", label: "Chờ xác minh" },
-  { value: "LINK_FAILED", label: "Liên kết thất bại" },
+const assignmentOptions = [
+  { value: "ASSIGNED", label: "Đã gán" },
+  { value: "UNASSIGNED", label: "Chưa gán" },
 ];
-const usageOptions = [
-  { value: "ACTIVE", label: "Đang dùng" },
-  { value: "INACTIVE", label: "Ngừng sử dụng" },
+const accountStatusOptions = [
+  { value: "PENDING_VERIFICATION", label: "Chờ xác minh" },
+  { value: "VERIFIED", label: "Đã xác minh" },
+  { value: "LOCKED", label: "Khóa" },
 ];
 
 export function BankAccountFilters({ initial, onSearch }: Props) {
-  const [linkStatus, setLinkStatus] = useState(initial.linkStatus ?? "");
-  const [status, setStatus] = useState(initial.status ?? "");
+  const [assignmentStatus, setAssignmentStatus] = useState(initial.assignmentStatus ?? "");
+  const [accountStatus, setAccountStatus] = useState(initial.accountStatus ?? "");
   const [subMerchantIds, setSubMerchantIds] = useState<string[]>(initial.subMerchantIds ?? []);
 
   const search = () => {
     onSearch({
-      ...(linkStatus ? { linkStatus: linkStatus as Values["linkStatus"] } : {}),
-      ...(status ? { status: status as Values["status"] } : {}),
+      ...(assignmentStatus ? { assignmentStatus: assignmentStatus as Values["assignmentStatus"] } : {}),
+      ...(accountStatus ? { accountStatus: accountStatus as Values["accountStatus"] } : {}),
       ...(subMerchantIds.length > 0 ? { subMerchantIds } : {}),
+      // Ô tìm chưa có trên màn: giữ nguyên `query` đến từ link để bấm Tìm kiếm không làm mất nó.
+      ...(initial.query ? { query: initial.query } : {}),
     });
   };
   const clear = () => {
-    setLinkStatus("");
-    setStatus("");
+    setAssignmentStatus("");
+    setAccountStatus("");
     setSubMerchantIds([]);
     onSearch({});
   };
 
   return (
     <FilterCard fieldCount={3} onSubmit={search} onClear={clear}>
-        <Select
-          label="Trạng thái liên kết"
-          placeholder="Tất cả trạng thái"
-          value={linkStatus}
-          options={linkOptions}
-          onChange={setLinkStatus}
-        />
-        <Select
-          label="Trạng thái sử dụng"
-          placeholder="Tất cả trạng thái"
-          value={status}
-          options={usageOptions}
-          onChange={setStatus}
-        />
-        <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
+      <Select
+        label="Trạng thái gán"
+        placeholder="Tất cả"
+        value={assignmentStatus}
+        options={assignmentOptions}
+        onChange={setAssignmentStatus}
+      />
+      <Select
+        label="Trạng thái tài khoản"
+        placeholder="Tất cả trạng thái"
+        value={accountStatus}
+        options={accountStatusOptions}
+        onChange={setAccountStatus}
+      />
+      <SubMerchantMultiFilter value={subMerchantIds} onChange={setSubMerchantIds} />
     </FilterCard>
   );
 }

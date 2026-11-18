@@ -6,25 +6,18 @@ import { describeWithdrawalError, readFieldErrors, withdrawalFailureKind } from 
 import { withdrawalBlocker } from "../utils/withdrawal-limits";
 import { withdrawalQueries } from "../withdrawal-queries";
 import { useCreateWithdrawal, useWithdrawalOtpChallenge } from "./use-withdrawal-mutations";
-import type { Withdrawal, WithdrawalBalance, WithdrawalBankOption } from "../types/types";
+import type { Withdrawal, WithdrawalBalance } from "../types/types";
 
 /** Một Sub mà người dùng được chọn để rút (đã lọc theo phạm vi gán của phiên). */
 export type WithdrawalSubChoice = { id: string; label: string };
 
 /**
- * Tài khoản nhận hiệu lực của Sub: tài khoản người dùng đã chọn nếu còn trong danh sách; Sub chỉ có đúng một
- * tài khoản thì lấy luôn; nhiều tài khoản thì lấy tài khoản mặc định. Không có thì để người dùng tự chọn.
+ * SRS v2 (18/11/2026): mỗi Sub đúng 1 TK nên form chỉ chọn Sub; TK nhận là TK đang gán cho Sub, hiển thị chứ không
+ * chọn. Không còn chặn phía FE theo trạng thái TK: Chờ xác minh vẫn rút được, Sub chưa gán TK (5736) hay TK Khóa (5738)
+ * do BE trả lời bằng câu tiếng Việt và màn hình hiện nguyên văn.
  */
-function resolveBank(options: readonly WithdrawalBankOption[], chosenId: string): WithdrawalBankOption | undefined {
-  return (
-    options.find((option) => option.id === chosenId) ??
-    (options.length === 1 ? options[0] : options.find((option) => option.isDefault))
-  );
-}
-
 export type WithdrawalFormFields = {
   subMerchantId: string;
-  bankAccountId: string;
   reason: string;
 };
 
@@ -37,12 +30,13 @@ export type WithdrawalStatement = Pick<WithdrawalBalance, "readyAmount" | "setof
   netReceived: number;
 };
 
-const BLANK: WithdrawalFormFields = { subMerchantId: "", bankAccountId: "", reason: "" };
+const BLANK: WithdrawalFormFields = { subMerchantId: "", reason: "" };
 
-/** BE takes the amount from the Sub's ready rows; the user never types it. */
-function parseFields(values: WithdrawalFormFields, amount: number) {
+/** BE takes the amount from the Sub's ready rows; the user never types it. The assigned account id goes along when known. */
+function parseFields(values: WithdrawalFormFields, bankAccountId: string | undefined, amount: number) {
   return withdrawalFormSchema.safeParse({
-    bankAccountId: values.bankAccountId,
+    subMerchantId: values.subMerchantId,
+    ...(bankAccountId ? { bankAccountId } : {}),
     amount,
     ...(values.reason.trim() ? { reason: values.reason } : {}),
   });
@@ -52,7 +46,7 @@ function parseFields(values: WithdrawalFormFields, amount: number) {
 export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice[] = []) {
   const [step, setStep] = useState<WithdrawalCreateStep>("form");
   // Người dùng chỉ được gán đúng một Sub thì chọn sẵn, không bắt chọn lại.
-  const [rawValues, setValues] = useState<WithdrawalFormFields>({
+  const [values, setValues] = useState<WithdrawalFormFields>({
     ...BLANK,
     subMerchantId: subChoices.length === 1 ? (subChoices[0]?.id ?? "") : "",
   });
@@ -63,21 +57,19 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
   const [challenge, setChallenge] = useState<SensitiveOtpChallenge | null>(null);
   const [otpFailure, setOtpFailure] = useState<string | null>(null);
   const [created, setCreated] = useState<Withdrawal | null>(null);
-  const bankOptions = useQuery(withdrawalQueries.bankOptions(rawValues.subMerchantId));
-  const selectedBank = resolveBank(bankOptions.data?.options ?? [], rawValues.bankAccountId);
-  // Các bước sau đọc tài khoản hiệu lực (kể cả tài khoản tự chọn), không đọc lựa chọn thô.
-  const values: WithdrawalFormFields = { ...rawValues, bankAccountId: selectedBank?.id ?? "" };
-  // Phí xem trước theo TK đang chọn (11/11): gửi id TK hiệu lực, đổi TK thì tính lại. Chờ danh sách TK về rồi mới hỏi,
-  // để không hỏi một lần "chưa có TK" ngay trước lần hỏi theo TK mặc định được chọn sẵn.
-  const balance = useQuery(withdrawalQueries.balance(values.subMerchantId, values.bankAccountId, !bankOptions.isPending));
+  const receivingAccount = useQuery(withdrawalQueries.receivingAccount(values.subMerchantId));
+  const account = receivingAccount.data?.account ?? null;
+  const accountId = account?.id;
+  // Phí xem trước theo ngân hàng của TK đang gán. Chờ biết TK rồi mới hỏi số dư, để chỉ hỏi một lần và kèm id TK.
+  const balance = useQuery(withdrawalQueries.balance(values.subMerchantId, accountId ?? "", !receivingAccount.isPending));
   const requestOtp = useWithdrawalOtpChallenge();
   const creation = useCreateWithdrawal();
   const blocker = withdrawalBlocker(balance.data);
   const zeroNetRequired = Boolean(statement?.zeroNet) || zeroNetAsked;
 
   const change = <K extends keyof WithdrawalFormFields>(field: K, value: WithdrawalFormFields[K]) => {
-    // Đổi Sub thì bỏ tài khoản đã chọn; tài khoản và số dư của Sub cũ không còn hiển thị (query theo Sub mới).
-    setValues((current) => ({ ...current, [field]: value, ...(field === "subMerchantId" ? { bankAccountId: "" } : {}) }));
+    // Đổi Sub thì TK và số dư hiển thị theo Sub mới (query theo Sub), không giữ gì của Sub cũ.
+    setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
     setOtpFailure(null);
     creation.reset();
@@ -85,10 +77,10 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
 
   const review = (event: FormEvent) => {
     event.preventDefault();
-    const parsed = parseFields(values, balance.data?.readyAmount ?? 0);
+    const parsed = parseFields(values, accountId, balance.data?.readyAmount ?? 0);
     if (!values.subMerchantId) return setErrors({ subMerchantId: "Chọn Sub-merchant" });
-    if (!values.bankAccountId) return setErrors({ bankAccountId: "Chọn tài khoản ngân hàng nhận tiền" });
-    if (!balance.data || blocker || !parsed.success) return;
+    // Sub chưa gán TK: không có nơi nhận tiền, BE đã/ sẽ báo 5736 ở khung số dư.
+    if (!account || !balance.data || blocker || !parsed.success) return;
     const { readyAmount, setoff, fee, netReceived, zeroNet, escrowShortfallAfter } = balance.data;
     // Phí chưa biết (chưa có TK) luôn đi kèm blocker nên không tới đây; giữ chặn để bước xem lại không hiện số đoán.
     if (fee === null || netReceived === null) return;
@@ -100,12 +92,15 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
     setStep("confirm");
   };
 
-  /** Asks BE to email a code for this account and amount, then shows the code step. A failure stays on the review step. */
+  /** The code is tied to (Sub, amount); the assigned account id rides along so BE can check it is still the Sub's account. */
+  const challengeBody = (amount: number) => ({ subMerchantId: values.subMerchantId, ...(accountId ? { bankAccountId: accountId } : {}), amount });
+
+  /** Asks BE to email a code for this Sub and amount, then shows the code step. A failure stays on the review step. */
   const sendCode = async () => {
     if (!statement || (zeroNetRequired && !zeroNetAccepted)) return;
     setOtpFailure(null);
     try {
-      setChallenge(await requestOtp.mutateAsync({ bankAccountId: values.bankAccountId, amount: statement.readyAmount }));
+      setChallenge(await requestOtp.mutateAsync(challengeBody(statement.readyAmount)));
       setStep("otp");
     } catch (error) {
       setOtpFailure(describeWithdrawalError(error));
@@ -124,12 +119,17 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
       // 5782: the Sub switched to automatic settlement; reading it again shows the automatic-mode blocker.
       setStep("form");
       await balance.refetch();
+    } else if (kind === "bankAccountRequired" || kind === "accountLocked") {
+      // 5736/5738: the Sub's account was removed or locked meanwhile; back to step 1, which shows the account again
+      // and keeps the BE message on screen.
+      setStep("form");
+      await Promise.all([receivingAccount.refetch(), balance.refetch()]);
     }
   };
 
   const confirm = async (otp: string) => {
     if (!statement || !challenge) return;
-    const parsed = parseFields(values, statement.readyAmount);
+    const parsed = parseFields(values, accountId, statement.readyAmount);
     if (!parsed.success) return;
     setOtpFailure(null);
     try {
@@ -145,7 +145,7 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
     if (!statement) return;
     setOtpFailure(null);
     try {
-      setChallenge(await requestOtp.mutateAsync({ bankAccountId: values.bankAccountId, amount: statement.readyAmount }));
+      setChallenge(await requestOtp.mutateAsync(challengeBody(statement.readyAmount)));
     } catch (error) {
       setOtpFailure(describeWithdrawalError(error));
     }
@@ -162,11 +162,11 @@ export function useWithdrawalCreateFlow(subChoices: readonly WithdrawalSubChoice
     values,
     subChoices,
     errors: { ...readFieldErrors(creation.error), ...errors },
-    bankOptions,
+    receivingAccount,
+    account,
     balance,
     blocker,
     statement,
-    selectedBank,
     challenge,
     created,
     otpFailure,

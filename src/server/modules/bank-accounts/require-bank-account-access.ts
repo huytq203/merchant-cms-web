@@ -30,8 +30,13 @@ export function selectMerchantId(user: SessionUser, requested: string | undefine
   return requested ?? user.merchantIds[0] ?? "";
 }
 
-export function checkSubMerchantScope(user: SessionUser, subMerchantId: string | undefined): NextResponse | null {
-  return subMerchantId && !user.subMerchantIds.includes(subMerchantId) ? json("Không có quyền truy cập", 403) : null;
+/**
+ * Gán Sub cho TK (SRS v2): mọi Sub trong danh sách phải thuộc phạm vi phiên. BE còn kiểm Sub thuộc Master (5757) và chỉ
+ * cho người có quyền toàn Master ghi; chặn ở đây để không gửi id Sub lạ lên BE.
+ */
+export function checkSubMerchantScope(user: SessionUser, subMerchantIds: readonly string[] | undefined): NextResponse | null {
+  const outside = (subMerchantIds ?? []).some((id) => !user.subMerchantIds.includes(id));
+  return outside ? json("Không có quyền truy cập", 403) : null;
 }
 
 export async function requireOwnedBankAccount(id: string, user: SessionUser): Promise<BankAccount | NextResponse> {

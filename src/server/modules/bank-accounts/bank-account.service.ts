@@ -33,8 +33,9 @@ export async function listBankAccounts(filter: BankAccountFilter): Promise<BeRes
       page: filter.page,
       size: filter.pageSize,
       subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
-      linkStatus: filter.linkStatus,
-      status: filter.status,
+      assignmentStatus: filter.assignmentStatus,
+      accountStatus: filter.accountStatus,
+      query: filter.query,
     },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;

@@ -27,18 +27,19 @@ function Frame({ children, busy = false }: { children: ReactNode; busy?: boolean
   );
 }
 
-/** Phí/thực nhận chưa tính được vì chưa có TK nhận (11/11): nói rõ đang chờ, không hiện 0. */
-const AWAITING_ACCOUNT = "Chờ chọn tài khoản";
-/** BE cũ trả cả màn 409 5736 khi chưa có TK: không có số nào để hiện, chỉ nhắc chọn TK (không phải lỗi để thử lại). */
-const CHOOSE_ACCOUNT_FIRST = "Chọn tài khoản nhận tiền để xem số tiền rút, phí rút và số tiền thực nhận";
+/** Phí/thực nhận chưa tính được vì Sub chưa có TK nhận (phí theo ngân hàng của TK): nói rõ, không hiện 0. */
+const AWAITING_ACCOUNT = "Chưa có tài khoản nhận";
 
 /** What one Sub can withdraw now. An unreadable balance is said, never shown as zero. */
 export function WithdrawalBalancePanel({ balance, hasSub, blocker }: Props) {
   if (!hasSub) {
     return <Notice tone="info">Chọn Sub-merchant để xem số tiền sẵn sàng rút.</Notice>;
   }
-  if (balance.isError && withdrawalFailureKind(balance.error) === "bankAccountRequired") {
-    return <Notice tone="info">{CHOOSE_ACCOUNT_FIRST}</Notice>;
+  // SRS v2: Sub chưa gán TK (5736) hoặc TK đang gán bị Khóa (5738) không phải lỗi tạm thời: hiện nguyên văn câu của BE
+  // (đã có hướng xử lý), không có nút thử lại.
+  const kind = balance.isError ? withdrawalFailureKind(balance.error) : null;
+  if (balance.isError && (kind === "bankAccountRequired" || kind === "accountLocked")) {
+    return <Notice tone="warning">{balance.error.message}</Notice>;
   }
   if (balance.isError) {
     return (

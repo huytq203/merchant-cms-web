@@ -10,7 +10,8 @@ import { POST } from "../route";
 
 const bankAccountId = "44444444-4444-4444-8444-444444444444";
 const session = (permissions: string[]) => ({ merchantIds: ["22222222-2222-4222-8222-222222222222"], subMerchantIds: [], permissions });
-const call = (body: unknown = { bankAccountId, amount: 6_000_000 }) =>
+const subMerchantId = "11111111-1111-4111-8111-111111111111";
+const call = (body: unknown = { subMerchantId, bankAccountId, amount: 6_000_000 }) =>
   POST(new Request("http://localhost/api/v1/admin/withdrawals/otp-challenge", { method: "POST", body: JSON.stringify(body) }));
 
 beforeEach(() => {
@@ -32,18 +33,19 @@ describe("withdrawal otp-challenge route", () => {
   });
 
   it("forwards only the account and amount the code is tied to", async () => {
-    const response = await call({ bankAccountId, amount: 6_000_000, operation: "OTHER", merchantId: "x" });
+    const response = await call({ subMerchantId, bankAccountId, amount: 6_000_000, operation: "OTHER", merchantId: "x" });
     expect(response.status).toBe(200);
-    expect(requestWithdrawalOtp).toHaveBeenCalledWith({ bankAccountId, amount: 6_000_000 });
+    expect(requestWithdrawalOtp).toHaveBeenCalledWith({ subMerchantId, bankAccountId, amount: 6_000_000 });
     expect(await response.json()).toMatchObject({ otpSessionId: "s" });
   });
 
   it("answers 400 for a missing, malformed or non-positive body without asking BE", async () => {
     expect((await call(null)).status).toBe(400);
     expect((await call({ amount: 10 })).status).toBe(400);
-    expect((await call({ bankAccountId: "x", amount: 10 })).status).toBe(400);
-    expect((await call({ bankAccountId, amount: 0 })).status).toBe(400);
-    expect((await call({ bankAccountId, amount: 1.5 })).status).toBe(400);
+    expect((await call({ subMerchantId, bankAccountId: "x", amount: 10 })).status).toBe(400);
+    expect((await call({ bankAccountId, amount: 10 })).status).toBe(400);
+    expect((await call({ subMerchantId, bankAccountId, amount: 0 })).status).toBe(400);
+    expect((await call({ subMerchantId, bankAccountId, amount: 1.5 })).status).toBe(400);
     expect(requestWithdrawalOtp).not.toHaveBeenCalled();
   });
 

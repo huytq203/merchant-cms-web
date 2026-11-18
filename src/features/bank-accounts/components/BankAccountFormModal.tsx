@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button/Button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog/Dialog";
 import { bankAccountFormSchema } from "../schemas/bank-account-form.schema";
-import { isBankIdentityChanged } from "../utils/bank-mapper";
+import { needsBankOtp } from "../utils/bank-mapper";
 import type { BankErrorView } from "../utils/bank-errors";
 import type { BankAccount, BankAccountFormValues } from "../types";
 import { BankAccountFields } from "./BankAccountFields";
@@ -29,7 +29,7 @@ const blank: BankAccountFormValues = {
   accountName: "",
   branchName: "",
   isDefault: false,
-  reason: "",
+  assignSubMerchantIds: [],
 };
 
 function initialValues(account: BankAccount | null, draft: BankAccountFormValues | null): BankAccountFormValues {
@@ -40,7 +40,7 @@ function initialValues(account: BankAccount | null, draft: BankAccountFormValues
     accountNumber: account.accountNumber,
     accountName: account.accountName,
     branchName: account.branchName ?? "",
-    reason: "",
+    assignSubMerchantIds: account.assignedSubMerchants.map((sub) => sub.id),
   };
 }
 
@@ -53,7 +53,8 @@ function issuesByField(values: BankAccountFormValues, account: BankAccount | nul
   return issues.length ? Object.fromEntries(issues.map((issue) => [String(issue.path[0]), issue.message])) : null;
 }
 
-const otpNotice = "Bạn sẽ nhận mã OTP qua email để xác nhận trước khi lưu. Thay đổi số tài khoản, ngân hàng hoặc chủ tài khoản sẽ đưa tài khoản về Chờ xác minh. Với tài khoản Sub-merchant, thay đổi cần Flexpay phê duyệt.";
+/** SRS v2 (18/11): thay đổi áp dụng ngay sau OTP, không còn bước chờ Flexpay phê duyệt. */
+const otpNotice = "Bạn sẽ nhận mã OTP qua email để xác nhận. Thay đổi được áp dụng ngay sau khi xác nhận.";
 const branchOnlyNotice = "Chỉ thay đổi chi nhánh nên không cần xác thực OTP.";
 
 export function BankAccountFormModal(props: Props) {
@@ -63,7 +64,8 @@ export function BankAccountFormModal(props: Props) {
   // Lỗi tên chủ TK do BE trả (5803/5804/5729) hiện ở ô Chủ tài khoản tới khi người dùng sửa ngân hàng, số TK hoặc tên.
   const [dismissedFailure, setDismissedFailure] = useState<BankErrorView | null>(null);
   const holderFailure = failure?.kind === "holderName" && failure !== dismissedFailure ? failure.message : "";
-  const needsOtp = !account || isBankIdentityChanged(account, values);
+  // OTP khi thêm mới, đổi ngân hàng/số TK/chủ TK, hoặc đổi danh sách Sub (hợp đồng PUT v2).
+  const needsOtp = !account || needsBankOtp(account, values);
 
   const change = <K extends keyof BankAccountFormValues>(field: K, value: BankAccountFormValues[K]) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -94,7 +96,6 @@ export function BankAccountFormModal(props: Props) {
             values={values}
             issues={holderFailure && !issues.accountName ? { ...issues, accountName: holderFailure } : issues}
             mode={account ? "edit" : "create"}
-            askReason={needsOtp}
             onChange={change}
           />
           <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
@@ -106,7 +107,7 @@ export function BankAccountFormModal(props: Props) {
               Hủy
             </Button>
             <Button type="submit" variant="solid" isLoading={isSubmitting}>
-              {account ? "Lưu thay đổi" : "Gửi liên kết và xác minh"}
+              {account ? "Lưu thay đổi" : "Lưu tài khoản"}
             </Button>
           </DialogFooter>
         </form>

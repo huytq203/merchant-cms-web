@@ -82,10 +82,19 @@ describe("withdrawal response schema", () => {
 });
 
 describe("withdrawal form schema", () => {
-  const form = { bankAccountId, amount: "250000", reason: "Rút doanh thu" };
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  const form = { subMerchantId, bankAccountId, amount: "250000", reason: "Rút doanh thu" };
 
   it("accepts a valid form and coerces the amount", () => {
-    expect(withdrawalFormSchema.parse(form)).toEqual({ bankAccountId, amount: 250000, reason: "Rút doanh thu" });
+    expect(withdrawalFormSchema.parse(form)).toEqual({ subMerchantId, bankAccountId, amount: 250000, reason: "Rút doanh thu" });
+  });
+
+  // SRS v2: mỗi Sub đúng 1 TK nên Sub là bắt buộc, còn id TK là tùy chọn (nếu gửi thì phải đúng UUID).
+  it("requires the Sub and leaves the account optional", () => {
+    expect(withdrawalFormSchema.safeParse({ ...form, subMerchantId: "" }).success).toBe(false);
+    const { bankAccountId: _unused, ...withoutAccount } = form;
+    void _unused;
+    expect(withdrawalFormSchema.safeParse(withoutAccount).success).toBe(true);
   });
 
   it("blocks zero, empty, fractional and unsafe amounts", () => {
@@ -94,8 +103,8 @@ describe("withdrawal form schema", () => {
     }
   });
 
-  it("requires a bank account and limits the reason to 500 characters", () => {
-    expect(withdrawalFormSchema.safeParse({ ...form, bankAccountId: "" }).success).toBe(false);
+  it("refuses a malformed account id and limits the reason to 500 characters", () => {
+    expect(withdrawalFormSchema.safeParse({ ...form, bankAccountId: "x" }).success).toBe(false);
     expect(withdrawalFormSchema.safeParse({ ...form, reason: "a".repeat(501) }).success).toBe(false);
   });
 
@@ -138,17 +147,19 @@ describe("withdrawal balance schema", () => {
 });
 
 describe("withdrawal OTP challenge body schema", () => {
-  it("needs the account and a whole amount of at least 1", () => {
-    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 6_000_000 }).success).toBe(true);
-    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 0 }).success).toBe(false);
-    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 1.5 }).success).toBe(false);
-    expect(withdrawalOtpChallengeBodySchema.safeParse({ amount: 10 }).success).toBe(false);
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  it("needs the Sub and a whole amount of at least 1; the account is optional", () => {
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ subMerchantId, bankAccountId, amount: 6_000_000 }).success).toBe(true);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ subMerchantId, amount: 6_000_000 }).success).toBe(true);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ subMerchantId, bankAccountId, amount: 0 }).success).toBe(false);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ subMerchantId, bankAccountId, amount: 1.5 }).success).toBe(false);
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ bankAccountId, amount: 10 }).success).toBe(false);
   });
 });
 
 describe("withdrawal create body confirmZeroNet", () => {
   it("is optional and must be a boolean", () => {
-    const body = { bankAccountId, amount: 5, idempotencyKey: "k", otp: { otpSessionId: "s", otp: "123456" } };
+    const body = { subMerchantId: "11111111-1111-4111-8111-111111111111", bankAccountId, amount: 5, idempotencyKey: "k", otp: { otpSessionId: "s", otp: "123456" } };
     expect(withdrawalCreateBodySchema.safeParse(body).success).toBe(true);
     expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: true }).success).toBe(true);
     expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: "yes" }).success).toBe(false);

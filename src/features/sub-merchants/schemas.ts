@@ -30,17 +30,17 @@ export const subMerchantSummarySchema = z
     terminalCount: z.number().int().nullish(),
     /** Always POS / ONLINE / QR when present. */
     terminalCountByType: z.record(z.string(), z.number().int()).nullish(),
-    /** The Sub's receiving account with the number already masked by the BE; null when it has none. */
+    /**
+     * TK đang gán cho Sub (SRS v2, 18/11/2026: mỗi Sub đúng 1 TK, số TK đã che ở BE); null = Sub chưa gán TK.
+     * `locked` = TK bị Admin khóa: Sub không rút được tới khi mở khóa hoặc gán TK khác.
+     */
     settlementBankAccount: z
       .object({
+        id: z.uuid().nullish(),
         bankCode: z.string(),
         maskedAccountNo: z.string().nullish(),
-        linkStatus: z.enum(["PENDING_VERIFICATION", "LINKED", "LINK_FAILED"]),
-        /**
-         * false = Sub chưa đặt TK mặc định, đây là TK rút được của Sub (BE 11/11). Rút tay vẫn chọn được, rút tự động
-         * chỉ chi vào TK mặc định. BE cũ không gửi: coi là TK mặc định như trước.
-         */
-        isDefault: z.boolean().optional(),
+        accountStatus: z.enum(["PENDING_VERIFICATION", "VERIFIED", "LOCKED"]).nullish(),
+        locked: z.boolean().nullish(),
       })
       .nullish(),
     /** Gross revenue of the last 7 days from the settlement lines (VND, before fees and refunds). */

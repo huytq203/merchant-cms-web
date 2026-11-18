@@ -71,8 +71,13 @@ export const withdrawalResponseSchema = withdrawalRecordSchema.transform((record
   updatedAt: record.updatedAt ?? null,
 }));
 
+/**
+ * SRS v2 (18/11/2026): mỗi Sub đúng 1 TK nên lệnh rút gắn với Sub (`subMerchantId` bắt buộc — một TK có thể dùng chung
+ * nhiều Sub). `bankAccountId` tùy chọn: nếu gửi phải đúng TK đang gán cho Sub, BE kiểm và trả 400 nếu sai.
+ */
 export const withdrawalFormSchema = z.object({
-  bankAccountId: z.uuid("Chọn tài khoản ngân hàng nhận tiền"),
+  subMerchantId: z.uuid("Chọn Sub-merchant"),
+  bankAccountId: z.uuid("Tài khoản nhận tiền không hợp lệ").optional(),
   amount: z.coerce
     .number<number>("Số tiền không hợp lệ")
     .int("Số tiền phải là số nguyên")
@@ -135,9 +140,10 @@ export const withdrawalBalanceSchema = z.object({
   blockerMessage: z.string().nullish().transform((value) => value ?? null),
 });
 
-/** The code is issued for one (account, amount) pair, so the browser names both. */
+/** The code is issued for one (Sub, amount) pair; the account id is optional (v2: BE reads the Sub's assigned account). */
 export const withdrawalOtpChallengeBodySchema = z.object({
-  bankAccountId: z.uuid("Chọn tài khoản ngân hàng nhận tiền"),
+  subMerchantId: z.uuid("Chọn Sub-merchant"),
+  bankAccountId: z.uuid("Tài khoản nhận tiền không hợp lệ").optional(),
   amount: z.number().int("Số tiền phải là số nguyên").min(1, "Số tiền phải lớn hơn 0").max(Number.MAX_SAFE_INTEGER),
 });
 

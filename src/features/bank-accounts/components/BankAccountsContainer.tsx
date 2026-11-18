@@ -18,8 +18,9 @@ type Props = { filter: BankAccountFilter; canManage: boolean };
 
 function toSearchParams(filter: BankAccountFilter): string {
   const params = new URLSearchParams({ page: String(filter.page), pageSize: String(filter.pageSize) });
-  if (filter.linkStatus) params.set("linkStatus", filter.linkStatus);
-  if (filter.status) params.set("status", filter.status);
+  if (filter.assignmentStatus) params.set("assignmentStatus", filter.assignmentStatus);
+  if (filter.accountStatus) params.set("accountStatus", filter.accountStatus);
+  if (filter.query) params.set("query", filter.query);
   const subMerchantIds = formatSubMerchantIds(filter.subMerchantIds);
   if (subMerchantIds) params.set("subMerchantIds", subMerchantIds);
   return params.toString();
@@ -45,7 +46,7 @@ export function BankAccountsContainer({ filter, canManage }: Props) {
       />
       <div>
         <BankAccountFilters
-          key={`${filter.linkStatus ?? ""}:${filter.status ?? ""}:${(filter.subMerchantIds ?? []).join(",")}`}
+          key={`${filter.assignmentStatus ?? ""}:${filter.accountStatus ?? ""}:${filter.query ?? ""}:${(filter.subMerchantIds ?? []).join(",")}`}
           initial={filter}
           onSearch={(values) => navigate({ page: 1, pageSize: filter.pageSize, ...values })}
         />

@@ -24,10 +24,11 @@ const account = {
   bankCode: "VCB",
   accountNumber: "1234567890",
   accountName: "CONG TY A",
-  status: "ACTIVE",
-  linkStatus: "LINKED",
+  accountStatus: "PENDING_VERIFICATION",
+  assignedSubMerchants: [],
   isDefault: false,
 };
+const subMerchantId = "33333333-3333-4333-8333-333333333333";
 const otp = { otpSessionId: "session-1", otp: "123456" };
 const context = { params: Promise.resolve({ id }) };
 const send = (method: string, body?: unknown) =>
@@ -73,11 +74,28 @@ describe("bank account detail route", () => {
     expect(updateBankAccount).toHaveBeenCalledWith(id, { version: 2, branchName: "Hai Phong" });
   });
 
-  it("forwards an identity change with the OTP and reports a pending request", async () => {
-    updateBankAccount.mockResolvedValue({ success: true, data: { applied: false, pendingChangeRequest: { status: "PENDING" } } });
+  it("forwards an identity change with the OTP", async () => {
+    updateBankAccount.mockResolvedValue({ success: true, data: { account } });
     const response = await PUT(send("PUT", { version: 2, accountNumber: "9999999999", otp }), context);
     expect(updateBankAccount).toHaveBeenCalledWith(id, { version: 2, accountNumber: "9999999999", otp });
-    expect(await response.json()).toMatchObject({ applied: false });
+    expect(response.status).toBe(200);
+  });
+
+  // SRS v2: đổi danh sách Sub cũng phải có OTP; [] (gỡ hết) cũng là thay đổi.
+  it("requires an OTP for a Sub list, forwards it with the OTP, and refuses a Sub outside the session", async () => {
+    getServerSession.mockResolvedValue({ merchantIds: [merchantId], subMerchantIds: [subMerchantId], permissions: ["MANAGE_BANK_ACCOUNT"] });
+    expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: [] }), context)).status).toBe(400);
+    expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: ["44444444-4444-4444-8444-444444444444"], otp }), context)).status).toBe(403);
+    expect(updateBankAccount).not.toHaveBeenCalled();
+    updateBankAccount.mockResolvedValue({ success: true, data: { account } });
+    expect((await PUT(send("PUT", { version: 2, assignSubMerchantIds: [subMerchantId, subMerchantId], otp }), context)).status).toBe(200);
+    expect(updateBankAccount).toHaveBeenCalledWith(id, { version: 2, assignSubMerchantIds: [subMerchantId], otp });
+  });
+
+  it("drops the retired status/reason fields instead of forwarding them", async () => {
+    updateBankAccount.mockResolvedValue({ success: true, data: { account } });
+    await PUT(send("PUT", { version: 2, branchName: "A", status: "INACTIVE", reason: "x" }), context);
+    expect(updateBankAccount).toHaveBeenCalledWith(id, { version: 2, branchName: "A" });
   });
 
   it("requires the version on update", async () => {

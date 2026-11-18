@@ -22,7 +22,7 @@ type Props = {
 const copy = {
   delete: {
     title: "Xoá tài khoản ngân hàng",
-    description: "Chỉ xoá được tài khoản chưa phát sinh giao dịch. Tài khoản đã dùng chỉ có thể ngừng sử dụng.",
+    description: "Chỉ xoá được tài khoản chưa gán Sub-merchant và chưa phát sinh giao dịch.",
     action: "Xoá tài khoản",
   },
   default: {

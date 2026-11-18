@@ -124,10 +124,10 @@ describe("withdrawal service detail and create", () => {
       body = await request.json();
       return HttpResponse.json(envelope(record));
     }));
-    const input = { bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 5_000_000, reason: "Rút", idempotencyKey: "key-1", otp: { otpSessionId: "sess-1", otp: "123456" } };
+    const input = { subMerchantId: "11111111-1111-4111-8111-111111111111", bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 5_000_000, reason: "Rút", idempotencyKey: "key-1", otp: { otpSessionId: "sess-1", otp: "123456" } };
     expect(await createWithdrawal(input)).toMatchObject({ success: true });
     expect(body).toEqual({
-      bankAccountId: input.bankAccountId, amount: 5_000_000, idempotencyKey: "key-1", reason: "Rút",
+      subMerchantId: input.subMerchantId, bankAccountId: input.bankAccountId, amount: 5_000_000, idempotencyKey: "key-1", reason: "Rút",
       sensitiveOtp: { otpSessionId: "sess-1", otp: "123456" },
     });
   });
@@ -138,7 +138,7 @@ describe("withdrawal service detail and create", () => {
       bodies.push((await request.json()) as Record<string, unknown>);
       return HttpResponse.json(envelope(record));
     }));
-    const input = { bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-3", otp: { otpSessionId: "sess-1", otp: "123456" } };
+    const input = { subMerchantId: "11111111-1111-4111-8111-111111111111", bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-3", otp: { otpSessionId: "sess-1", otp: "123456" } };
     await createWithdrawal(input);
     await createWithdrawal({ ...input, confirmZeroNet: true });
     expect(bodies[0]).not.toHaveProperty("confirmZeroNet");
@@ -151,8 +151,8 @@ describe("withdrawal service detail and create", () => {
       body = await request.json();
       return HttpResponse.json(envelope(record));
     }));
-    await createWithdrawal({ bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-2", otp: { otpSessionId: "sess-1", otp: "123456" } });
-    expect(Object.keys(body as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "sensitiveOtp"]);
+    await createWithdrawal({ subMerchantId: "11111111-1111-4111-8111-111111111111", bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-2", otp: { otpSessionId: "sess-1", otp: "123456" } });
+    expect(Object.keys(body as object).sort()).toEqual(["amount", "bankAccountId", "idempotencyKey", "sensitiveOtp", "subMerchantId"]);
   });
 
   it("keeps the BE error when the amount exceeds the balance", async () => {
@@ -160,7 +160,7 @@ describe("withdrawal service detail and create", () => {
       { success: false, message: "Số dư không đủ", errorCode: "BUSINESS_ERROR" },
       { status: 400 },
     )));
-    const input = { bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-1", otp: { otpSessionId: "sess-1", otp: "123456" } };
+    const input = { subMerchantId: "11111111-1111-4111-8111-111111111111", bankAccountId: "44444444-4444-4444-8444-444444444444", amount: 9, idempotencyKey: "key-1", otp: { otpSessionId: "sess-1", otp: "123456" } };
     expect(await createWithdrawal(input)).toMatchObject({
       success: false,
       error: { status: 400, message: "Số dư không đủ" },
@@ -204,7 +204,7 @@ describe("withdrawal balance and OTP", () => {
       body = await request.json();
       return HttpResponse.json(envelope({ otpSessionId: "s", maskedRecipient: "a***@b.vn", expiresInSeconds: 300, canResendAfterSeconds: 60 }));
     }));
-    expect(await requestWithdrawalOtp({ bankAccountId, amount: 6_000_000 })).toMatchObject({ success: true, data: { otpSessionId: "s" } });
-    expect(body).toEqual({ bankAccountId, amount: 6_000_000 });
+    expect(await requestWithdrawalOtp({ subMerchantId, bankAccountId, amount: 6_000_000 })).toMatchObject({ success: true, data: { otpSessionId: "s" } });
+    expect(body).toEqual({ subMerchantId, bankAccountId, amount: 6_000_000 });
   });
 });

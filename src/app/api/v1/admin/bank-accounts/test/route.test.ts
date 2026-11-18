@@ -61,16 +61,29 @@ describe("bank account collection route", () => {
 
   it("always scopes the list to a Master of the session", async () => {
     listBankAccounts.mockResolvedValue({ success: true, data: { rows: [], total: 0 } });
-    expect((await GET(get("?linkStatus=LINKED"))).status).toBe(200);
-    expect(listBankAccounts).toHaveBeenCalledWith({ page: 1, pageSize: 10, linkStatus: "LINKED", merchantId });
+    expect((await GET(get("?assignmentStatus=UNASSIGNED&accountStatus=LOCKED&query=7890"))).status).toBe(200);
+    expect(listBankAccounts).toHaveBeenCalledWith({
+      page: 1, pageSize: 10, assignmentStatus: "UNASSIGNED", accountStatus: "LOCKED", query: "7890", merchantId,
+    });
     expect((await GET(get(`?merchantId=${foreignMerchantId}`))).status).toBe(403);
     expect(listBankAccounts).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects creating an account for a branch outside the session scope", async () => {
+  it("rejects the retired link status as an account status with a 400", async () => {
+    expect((await GET(get("?accountStatus=LINKED"))).status).toBe(400);
+    expect(listBankAccounts).not.toHaveBeenCalled();
+  });
+
+  it("rejects assigning a Sub outside the session scope", async () => {
     const foreignBranch = "44444444-4444-4444-8444-444444444444";
-    expect((await POST(post({ ...values, subMerchantId: foreignBranch }))).status).toBe(403);
+    expect((await POST(post({ ...values, assignSubMerchantIds: [subMerchantId, foreignBranch] }))).status).toBe(403);
     expect(createBankAccount).not.toHaveBeenCalled();
+  });
+
+  it("forwards the Subs to assign together with the Master of the session", async () => {
+    createBankAccount.mockResolvedValue({ success: true, data: { account: {} } });
+    expect((await POST(post({ ...values, assignSubMerchantIds: [subMerchantId] }))).status).toBe(201);
+    expect(createBankAccount).toHaveBeenCalledWith({ ...values, assignSubMerchantIds: [subMerchantId], merchantId });
   });
 
   it("forwards a Sub list to the BE, which drops Subs outside the session scope; a malformed id is a 400", async () => {

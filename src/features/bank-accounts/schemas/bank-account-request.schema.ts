@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
-import { bankLinkStatusSchema } from "./bank-account.schema";
+import { MAX_SUB_MERCHANT_IDS, subMerchantIdsParam } from "@/features/sub-merchants/utils/sub-merchant-ids";
+import { bankAccountStatusSchema } from "./bank-account.schema";
 
 export const OTP_LENGTH = 6;
 
@@ -15,10 +15,15 @@ const bankCode = z.string().trim().min(1, "Chọn ngân hàng").max(50);
 const accountName = z.string().trim().min(1, "Nhập tên chủ tài khoản").max(100);
 const branchName = z.string().trim().max(100);
 const reason = z.string().trim().max(500, "Lý do tối đa 500 ký tự");
+/** Danh sách Sub dùng TK sau khi lưu (SRS v2); trùng lặp được bỏ để BE không nhận một Sub hai lần. */
+const assignSubMerchantIds = z
+  .array(z.uuid("Sub-merchant không hợp lệ"))
+  .max(MAX_SUB_MERCHANT_IDS)
+  .transform((ids) => [...new Set(ids)]);
 
 export const createBankBodySchema = z.object({
   merchantId: z.uuid().optional(),
-  subMerchantId: z.uuid().optional(),
+  assignSubMerchantIds: assignSubMerchantIds.optional(),
   bankCode,
   accountNumber,
   accountName,
@@ -27,14 +32,14 @@ export const createBankBodySchema = z.object({
   otp: bankOtpSchema,
 });
 
+/** PATCH-like: chỉ trường được gửi mới đổi. `assignSubMerchantIds` vắng = giữ nguyên, [] = gỡ hết Sub. */
 export const updateBankBodySchema = z.object({
   version: z.number().int().nonnegative(),
   bankCode: bankCode.optional(),
   accountNumber: accountNumber.optional(),
   accountName: accountName.optional(),
   branchName: branchName.optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
-  reason: reason.optional(),
+  assignSubMerchantIds: assignSubMerchantIds.optional(),
   otp: bankOtpSchema.optional(),
 });
 
@@ -48,6 +53,7 @@ export const bankListQuerySchema = z.object({
   merchantId: z.uuid().optional(),
   // Danh sách Sub nối dấu phẩy; BE giao với phạm vi người dùng nên Sub ngoài phạm vi bị bỏ.
   subMerchantIds: subMerchantIdsParam,
-  linkStatus: bankLinkStatusSchema.optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  assignmentStatus: z.enum(["ASSIGNED", "UNASSIGNED"]).optional(),
+  accountStatus: bankAccountStatusSchema.optional(),
+  query: z.string().trim().max(100).optional().transform((value) => value || undefined),
 });
