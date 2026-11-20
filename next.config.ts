@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // AI-37: không gửi URL trang (vd. ?token= của link đặt mật khẩu) sang site/API khác qua header Referer.
+        source: "/:path*",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
         source: "/api/:path*",
         headers: [
           {
