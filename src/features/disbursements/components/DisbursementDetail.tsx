@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card/Card";
 import { formatAmount } from "@/lib/utils/helper";
 import { formatVnDateTime } from "@/lib/utils/vn-time";
 import type { OrderDetail } from "../types/types";
+import { disbursementFailureReason } from "../utils/disbursement-failure-reason";
 import { channelLabel, fundingSourceLabel } from "../utils/disbursement-status";
 import { DisbursementStatusBadge } from "./DisbursementStatusBadge";
 
@@ -114,7 +115,13 @@ export function DisbursementDetail({ detail, subLabel }: Props) {
         <Section title="Kết quả ngân hàng">
           <dl className="space-y-2">
             <Row label="Mã tham chiếu ngân hàng"><span className="font-mono">{detail.bankReference ?? EMPTY}</span></Row>
-            {failed && detail.failureCode ? <Row label="Mã lỗi"><span className="font-mono">{detail.failureCode}</span></Row> : null}
+            {/* Lý do dịch sang tiếng Việt từ bảng dùng chung; mã giữ nhỏ bên dưới để Merchant gửi khi cần tra soát. */}
+            {failed && detail.failureCode ? (
+              <Row label="Lý do thất bại">
+                <span className="block">{disbursementFailureReason(detail.failureCode)}</span>
+                <span className="block font-mono text-xs font-normal text-muted-foreground">{detail.failureCode}</span>
+              </Row>
+            ) : null}
             {detail.merchantReason ? <Row label="Lý do">{detail.merchantReason}</Row> : null}
           </dl>
         </Section>

@@ -52,7 +52,11 @@ export function describeDisbursementError(error: unknown, context: DisbursementE
   const kind = disbursementFailureKind(error);
   if (kind === "rateLimited") return RATE_LIMITED_TEXT;
   if (kind === "otpIssueFailed") return OTP_ISSUE_FAILED_TEXT;
-  if (kind === "unconfirmed") return UNCONFIRMED_TEXT;
+  // 6323 khi tạo/tra lệnh: câu "gửi lại cùng mã yêu cầu" là chốt chặn chi hai lần. Ở thao tác khác (gửi lô, đọc) câu đó
+  // sai ngữ cảnh nên hiện nguyên câu BE/BFF đã trả (chốt 20/11: hiện nguyên câu lỗi chặn, kể cả 503).
+  if (kind === "unconfirmed") {
+    return context !== "create" && error instanceof ApiError && error.message ? error.message : UNCONFIRMED_TEXT;
+  }
   if (kind === "inquiryUnavailable") return INQUIRY_UNAVAILABLE_TEXT;
   if (!(error instanceof ApiError)) return context === "create" ? UNCONFIRMED_TEXT : GENERIC_TEXT;
   // 5xx: BFF/BE đã bỏ câu gốc, chỉ còn câu chung nên thay bằng câu đúng ngữ cảnh.

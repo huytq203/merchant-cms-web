@@ -117,6 +117,30 @@ describe("useBatchSubmit", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["disbursements"] });
   });
 
+  it("người không tải lô lên bấm Gửi: hiện nguyên câu 403 của BE và không phát OTP (chốt 20/11 điểm 6)", async () => {
+    // DTO lô chưa có người tải lên nên FE không biết trước; BE chặn ở otp-challenge (FORBIDDEN, mã 2002).
+    const text = "Chỉ người tải lên lô này mới được gửi duyệt";
+    requests.batchOtpChallenge.mockRejectedValue(new ApiError(403, text, "FORBIDDEN"));
+    const { result } = renderHook(() => useBatchSubmit(batch), { wrapper });
+    await act(async () => { await result.current.requestCode(); });
+    expect(result.current.failure).toBe(text);
+    expect(result.current.challenge).toBeNull();
+    // Cùng câu khi BE chặn ở bước gửi (ví dụ OTP đã phát trước khi đổi người).
+    requests.batchOtpChallenge.mockResolvedValue(challenge);
+    requests.submitBatch.mockRejectedValue(new ApiError(403, text, "FORBIDDEN"));
+    await act(async () => { await result.current.requestCode(); });
+    await act(async () => { await result.current.submit("123456"); });
+    expect(result.current.failure).toBe(text);
+  });
+
+  it("lỗi 503 BE có câu riêng: hiện nguyên câu, không thay bằng câu lỗi hệ thống chung", async () => {
+    const text = "Chưa đọc được dữ liệu chi hộ từ hệ thống chi, vui lòng thử lại sau ít phút";
+    requests.batchOtpChallenge.mockRejectedValue(new ApiError(503, text, "MERCHANT_DISBURSEMENT_UNAVAILABLE"));
+    const { result } = renderHook(() => useBatchSubmit(batch), { wrapper });
+    await act(async () => { await result.current.requestCode(); });
+    expect(result.current.failure).toBe(text);
+  });
+
   it("does not send without an OTP challenge and rejects a malformed code before calling the BFF", async () => {
     requests.batchOtpChallenge.mockResolvedValue(challenge);
     const { result } = renderHook(() => useBatchSubmit(batch), { wrapper });

@@ -30,10 +30,14 @@ export function requireSubsScope(user: SessionUser, subIds: readonly string[] | 
   return subIds.every((subId) => user.subMerchantIds.includes(subId)) ? null : forbidden();
 }
 
-/** BE 401 ở đây là chuỗi realm từ chối chứ không phải phiên hết hạn nên thành 403 (xem toDomainHttpStatus). */
+/**
+ * BE 401 ở đây là chuỗi realm từ chối chứ không phải phiên hết hạn nên thành 403 (xem toDomainHttpStatus). Lỗi 503 có
+ * câu nghiệp vụ của BE ({@link BeError.backendMessage}) giữ nguyên 503 và câu đó để màn hình hiện đúng lý do chặn.
+ */
 export function disbursementErrorResponse(error: BeError): NextResponse {
   const body = error.fieldErrors ? { message: error.message, details: error.fieldErrors } : { message: error.message };
-  return NextResponse.json({ ...body, code: error.code }, { status: toDomainHttpStatus(error) });
+  const status = error.backendMessage ? error.status : toDomainHttpStatus(error);
+  return NextResponse.json({ ...body, code: error.code }, { status });
 }
 
 /** Lỗi hệ thống (5xx), timeout, mất kết nối: không biết BE đã xử lý hay chưa. */
@@ -60,11 +64,12 @@ export function inquiryErrorResponse(error: BeError): NextResponse {
  * 400 bộ lọc sai, xuất vượt số dòng...) giữ nguyên câu tiếng Việt của BE.
  */
 export function readErrorResponse(error: BeError): NextResponse {
-  if (!isUnreachable(error)) return disbursementErrorResponse(error);
+  // 503 có câu BE (đọc không có tác dụng phụ): câu của BE nói rõ hơn câu chung nên giữ nguyên.
+  if (!isUnreachable(error) || error.backendMessage) return disbursementErrorResponse(error);
   return NextResponse.json({ message: READ_UNAVAILABLE_MESSAGE, code: "6323" }, { status: 503 });
 }
 
 /** Câu hiển thị cho trang server-render khi đọc lỗi: cùng quy tắc với {@link readErrorResponse}. */
 export function readFailureMessage(error: BeError): string {
-  return isUnreachable(error) ? READ_UNAVAILABLE_MESSAGE : domainErrorMessage(error);
+  return isUnreachable(error) && !error.backendMessage ? READ_UNAVAILABLE_MESSAGE : domainErrorMessage(error);
 }

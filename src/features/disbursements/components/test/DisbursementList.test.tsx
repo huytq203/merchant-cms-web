@@ -57,6 +57,14 @@ describe("DisbursementList", () => {
     expect(within(pendingRow).getAllByText("—").length).toBeGreaterThan(0);
   });
 
+  it("a failed order shows its failure reason in Vietnamese under the status (chốt 20/11)", async () => {
+    const failed = { ...orderPageFixture.items[0], operationId: "a7c3a1d0-0000-4000-8000-0000000000f1", merchantRequestCode: "PAY-FAIL", status: "FAILED", statusLabel: "Thất bại", failureCode: "INSUFFICIENT_AVAILABLE" };
+    mswServer.use(http.post(searchPath, () => HttpResponse.json({ ...orderPageFixture, items: [failed], total: 1 })));
+    renderList();
+    const row = (await screen.findByText("PAY-FAIL")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Số dư thu-chi hộ khác không đủ")).toBeInTheDocument();
+  });
+
   it("does not print a UUID fragment the search box could not match", async () => {
     renderList();
     await screen.findByText("PAY-0001");

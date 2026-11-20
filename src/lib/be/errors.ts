@@ -6,6 +6,11 @@ export type BeError = {
   /** Safe to show to the user. */
   message: string;
   fieldErrors?: Record<string, string>;
+  /**
+   * true khi `message` là câu nghiệp vụ BE trả kèm lỗi 503 (xem {@link toBeError}), không phải câu chung của FE.
+   * Route handler dùng cờ này để giữ nguyên câu và mã 503 thay vì thay bằng câu "thử lại sau" chung.
+   */
+  backendMessage?: true;
 };
 
 const SERVER_MESSAGE = "Hệ thống đang gặp sự cố, vui lòng thử lại sau";
@@ -60,7 +65,25 @@ function readFieldErrors(record: Record<string, unknown> | null): Record<string,
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
+/**
+ * Lỗi chặn 503 có câu riêng của BE (chốt 20/11: FE hiện nguyên câu BE cho lỗi chặn, kể cả 503): chỉ nhận đúng phong bì
+ * `RestApiResponse` lỗi nghiệp vụ, tức `message` là tên enum ErrorCode, `status` là mã số nghiệp vụ và `detail` là câu
+ * tiếng Việt do BE soạn. 503 từ load balancer/Spring mặc định không có phong bì này nên vẫn bị che.
+ */
+function businessUnavailable(record: Record<string, unknown> | null): { code: string; message: string } | null {
+  const code = readString(record, "message");
+  const businessStatus = readString(record, "status");
+  const detail = readString(record, "detail");
+  if (!code || !CODE_PATTERN.test(code) || !businessStatus || !/^\d+$/.test(businessStatus) || !detail) return null;
+  return { code: readString(record, "errorCode") ?? code, message: detail };
+}
+
 export function toBeError(status: number, body: unknown): BeError {
+  if (status === 503) {
+    const business = businessUnavailable(asRecord(body));
+    if (business) return { status, code: business.code, message: business.message, backendMessage: true };
+  }
+  // Các 5xx khác (500/502/504) không bao giờ lộ câu: thường là lỗi kỹ thuật, có thể chứa stack/URL nội bộ.
   if (status >= 500) {
     return { status, code: readString(asRecord(body), "errorCode") ?? `HTTP_${status}`, message: SERVER_MESSAGE };
   }

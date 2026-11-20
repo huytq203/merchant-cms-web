@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/http/api-client";
-import { describeDisbursementError, disbursementFailureKind, isOutcomeUnknown } from "../disbursement-errors";
+import { UNCONFIRMED_TEXT, describeDisbursementError, disbursementFailureKind, isOutcomeUnknown } from "../disbursement-errors";
 
 describe("disbursement errors", () => {
   it("disbursementErrorCodesShowBackendVietnameseMessage", () => {
@@ -37,6 +37,17 @@ describe("disbursement errors", () => {
     expect(isOutcomeUnknown(new TypeError("Failed to fetch"))).toBe(true);
     // Bị từ chối bằng 4xx là chắc chắn chưa có lệnh: được đổi mã.
     expect(isOutcomeUnknown(new ApiError(409, "Mã yêu cầu đã dùng", "DISBURSEMENT_REFUSED"))).toBe(false);
+  });
+
+  it("503 ngoài màn tạo lệnh hiện nguyên câu BE (chốt 20/11), màn tạo lệnh vẫn giữ câu 'gửi lại cùng mã'", () => {
+    const read = new ApiError(503, "Chưa đọc được dữ liệu chi hộ từ hệ thống chi, vui lòng thử lại sau ít phút", "6323");
+    expect(describeDisbursementError(read)).toBe(read.message);
+    expect(describeDisbursementError(read, "create")).toBe(UNCONFIRMED_TEXT);
+    const authorization = new ApiError(503, "Không xác định được quyền truy cập", "MERCHANT_AUTHORIZATION_UNAVAILABLE");
+    expect(describeDisbursementError(authorization)).toBe("Không xác định được quyền truy cập");
+    // 403 "chỉ người tải lên" của lô: câu BE nguyên văn.
+    expect(describeDisbursementError(new ApiError(403, "Chỉ người tải lên lô này mới được gửi duyệt", "FORBIDDEN")))
+      .toBe("Chỉ người tải lên lô này mới được gửi duyệt");
   });
 
   it("maps OTP, inquiry-unavailable and not-enabled codes to their kinds", () => {

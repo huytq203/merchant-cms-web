@@ -45,10 +45,22 @@ describe("DisbursementDetail", () => {
     expect(screen.getByText("Mã tham chiếu ngân hàng").nextSibling).toHaveTextContent("—");
   });
 
-  it("shows the failure code of a failed order", () => {
+  it("shows the failure reason of a failed order in Vietnamese, keeping the code for tracing", () => {
     show({ status: "FAILED", statusLabel: "Thất bại", failureCode: "BANK_REJECTED", bankReference: null, merchantReason: "Tài khoản nhận đã đóng" });
     expect(screen.getByText("Tài khoản nhận đã đóng")).toBeInTheDocument();
+    expect(screen.getByText("Lý do thất bại")).toBeInTheDocument();
+    expect(screen.getByText("Ngân hàng từ chối giao dịch")).toBeInTheDocument();
     expect(screen.getByText(/BANK_REJECTED/)).toBeInTheDocument();
+  });
+
+  it("translates a ledger refusal code instead of printing the raw code alone (chốt 20/11)", () => {
+    show({ status: "FAILED", statusLabel: "Thất bại", failureCode: "DAILY_AMOUNT_LIMIT", bankReference: null, merchantReason: null });
+    expect(screen.getByText("Vượt hạn mức chi hộ trong ngày")).toBeInTheDocument();
+  });
+
+  it("an unknown failure code still reads as a sentence with the code", () => {
+    show({ status: "FAILED", statusLabel: "Thất bại", failureCode: "BRAND_NEW_CODE", bankReference: null, merchantReason: null });
+    expect(screen.getByText("Giao dịch thất bại (mã: BRAND_NEW_CODE)")).toBeInTheDocument();
   });
 
   it("detailHidesInternalFields: nothing outside the Portal contract reaches the screen, even if BE sent it", () => {

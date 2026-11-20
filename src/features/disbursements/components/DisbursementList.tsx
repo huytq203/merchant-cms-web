@@ -18,6 +18,7 @@ import { formatVnDateTime } from "@/lib/utils/vn-time";
 import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import { disbursementQueries, downloadDisbursementsCsv } from "../disbursement-queries";
 import type { OrderFilterValues, OrderItem, OrderListFilter } from "../types/types";
+import { disbursementFailureReason } from "../utils/disbursement-failure-reason";
 import { toOrderSearchParams } from "../utils/disbursement-filter-mapper";
 import { channelLabel } from "../utils/disbursement-status";
 import { DisbursementFilters } from "./DisbursementFilters";
@@ -104,7 +105,17 @@ function columns(subLabel: (id: string) => string, page: number, pageSize: numbe
     {
       id: "status",
       header: "Trạng thái",
-      cell: ({ row }) => <DisbursementStatusBadge status={row.original.status} fallbackLabel={row.original.statusLabel} />,
+      // Lệnh Thất bại / Đã hủy có mã lỗi thì hiện lý do tiếng Việt ngay dưới trạng thái (bảng dùng chung với màn chi tiết).
+      cell: ({ row }) => {
+        const failed = row.original.status === "FAILED" || row.original.status === "CANCELLED";
+        const reason = failed ? disbursementFailureReason(row.original.failureCode) : null;
+        return (
+          <div className="space-y-1">
+            <DisbursementStatusBadge status={row.original.status} fallbackLabel={row.original.statusLabel} />
+            {reason ? <p className="max-w-56 text-xs text-muted-foreground">{reason}</p> : null}
+          </div>
+        );
+      },
     },
     {
       id: "times",

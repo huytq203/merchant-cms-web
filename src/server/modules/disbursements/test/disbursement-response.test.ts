@@ -4,7 +4,10 @@ import {
   UNCONFIRMED_MESSAGE,
   createErrorResponse,
   disbursementErrorResponse,
+  READ_UNAVAILABLE_MESSAGE,
   inquiryErrorResponse,
+  readErrorResponse,
+  readFailureMessage,
   requireSubScope,
 } from "../disbursement-response";
 
@@ -54,6 +57,34 @@ describe("disbursementErrorResponse", () => {
   it("includes field errors as details", async () => {
     const response = disbursementErrorResponse({ ...be(400, "VALIDATION"), fieldErrors: { amount: "Số tiền không hợp lệ" } });
     expect(await body(response)).toMatchObject({ details: { amount: "Số tiền không hợp lệ" }, code: "VALIDATION" });
+  });
+});
+
+describe("lỗi 503 có câu của BE (chốt 20/11: hiện nguyên câu lỗi chặn)", () => {
+  const blocked: BeError = { status: 503, code: "MERCHANT_AUTHORIZATION_UNAVAILABLE", message: "Không xác định được quyền truy cập", backendMessage: true };
+
+  it("disbursementErrorResponse giữ 503 và câu BE thay vì 502 câu chung", async () => {
+    const response = disbursementErrorResponse(blocked);
+    expect(response.status).toBe(503);
+    expect(await body(response)).toEqual({ message: "Không xác định được quyền truy cập", code: "MERCHANT_AUTHORIZATION_UNAVAILABLE" });
+  });
+
+  it("đọc dữ liệu: câu BE thắng câu 'thử lại sau' chung", async () => {
+    const response = readErrorResponse(blocked);
+    expect(response.status).toBe(503);
+    expect((await body(response)).message).toBe("Không xác định được quyền truy cập");
+    expect(readFailureMessage(blocked)).toBe("Không xác định được quyền truy cập");
+  });
+
+  it("5xx mất câu (502/timeout) vẫn dùng câu chung như cũ", async () => {
+    expect((await body(readErrorResponse(be(502, "HTTP_502")))).message).toBe(READ_UNAVAILABLE_MESSAGE);
+    expect(disbursementErrorResponse(be(502, "HTTP_502")).status).toBe(502);
+  });
+
+  it("tạo lệnh vẫn đổi mọi 5xx thành 6323 'gửi lại cùng mã' kể cả khi BE có câu: chưa biết lệnh đã lưu chưa", async () => {
+    const response = createErrorResponse(blocked);
+    expect(response.status).toBe(503);
+    expect(await body(response)).toEqual({ message: UNCONFIRMED_MESSAGE, code: "6323" });
   });
 });
 

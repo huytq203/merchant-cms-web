@@ -38,6 +38,30 @@ describe("toBeError", () => {
     expect(JSON.stringify(error)).not.toContain("NullPointerException");
   });
 
+  it("keeps the Vietnamese detail of a 503 RestApiResponse business error (lỗi chặn có câu riêng)", () => {
+    const error = toBeError(503, {
+      success: false,
+      message: "MERCHANT_DISBURSEMENT_UNAVAILABLE",
+      detail: "Chưa đọc được dữ liệu chi hộ từ hệ thống chi, vui lòng thử lại sau ít phút",
+      status: "6323",
+    });
+    expect(error).toEqual({
+      status: 503,
+      code: "MERCHANT_DISBURSEMENT_UNAVAILABLE",
+      message: "Chưa đọc được dữ liệu chi hộ từ hệ thống chi, vui lòng thử lại sau ít phút",
+      backendMessage: true,
+    });
+  });
+
+  it("still hides a 503 body that is not a business error envelope", () => {
+    expect(toBeError(503, { error: "Service Unavailable", message: "upstream connect error" }).message)
+      .toBe("Hệ thống đang gặp sự cố, vui lòng thử lại sau");
+    expect(toBeError(503, undefined).message).toBe("Hệ thống đang gặp sự cố, vui lòng thử lại sau");
+    // 500/502/504 không bao giờ lộ câu, kể cả khi có dạng phong bì nghiệp vụ.
+    expect(toBeError(500, { message: "INTERNAL_ERROR", detail: "NullPointerException", status: "9999" }).message)
+      .toBe("Hệ thống đang gặp sự cố, vui lòng thử lại sau");
+  });
+
   it("falls back to a status message when the body is not JSON", () => {
     expect(toBeError(403, undefined)).toEqual({
       status: 403,
