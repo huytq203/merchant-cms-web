@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { movementExportFilterSchema } from "@/features/sub-balances/movement-schemas";
 import { subBalanceErrorMessage } from "@/features/sub-balances/utils/sub-balance-error";
+import { safeCsvDisposition } from "@/lib/be/safe-csv-disposition";
 import { toDomainHttpStatus } from "@/lib/be/errors";
 import { invalidIdResponse } from "@/lib/be/route-id";
 import { requirePermission } from "@/server/auth/require-permission";
@@ -8,11 +9,11 @@ import { exportSubBalanceMovements } from "@/server/modules/sub-balances/sub-bal
 
 type Context = { params: Promise<{ id: string }> };
 
-const FALLBACK_DISPOSITION = 'attachment; filename="bien-dong-so-du.csv"';
+const FALLBACK_FILE = "bien-dong-so-du.csv";
 
 /**
  * CSV biến động số dư của một Sub. Quyền EXPORT_BALANCE (khác VIEW_BALANCE của danh sách). Byte CSV của BE được chuyển nguyên, kể
- * cả BOM; lỗi giữ mã (6334 vượt 10.000 dòng) và câu tiếng Việt của BE để popup hiện lại đúng.
+ * cả BOM (tên file trong Content-Disposition được lọc lại như route xuất lệnh chi hộ); lỗi giữ mã (6334 vượt 10.000 dòng) và câu tiếng Việt của BE để popup hiện lại đúng.
  */
 export async function GET(request: Request, context: Context) {
   const access = await requirePermission("EXPORT_BALANCE");
@@ -32,7 +33,7 @@ export async function GET(request: Request, context: Context) {
     status: 200,
     headers: {
       "Content-Type": result.data.contentType,
-      "Content-Disposition": result.data.contentDisposition ?? FALLBACK_DISPOSITION,
+      "Content-Disposition": safeCsvDisposition(result.data.contentDisposition, FALLBACK_FILE),
       "Cache-Control": "no-store",
     },
   });

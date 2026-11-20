@@ -43,6 +43,15 @@ describe("sub balance movements export route", () => {
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(csvBody));
   });
 
+  it("lọc tên file BE gửi: tên lạ (đường dẫn, '..') thì dùng tên mặc định", async () => {
+    exportSubBalanceMovements.mockResolvedValue({
+      success: true,
+      data: { body: csvBody, contentType: "text/csv;charset=UTF-8", contentDisposition: 'attachment; filename="../../etc/x.csv"' },
+    });
+    const response = await get("?fromDate=2026-11-01&toDate=2026-11-10");
+    expect(response.headers.get("content-disposition")).toBe('attachment; filename="bien-dong-so-du.csv"');
+  });
+
   it("exportRoutePassesFilters", async () => {
     await get("?pocket=OTHER&type=DISBURSEMENT&fromDate=2026-11-01&toDate=2026-11-10");
     expect(exportSubBalanceMovements).toHaveBeenCalledWith(SUB_ID, { type: "DISBURSEMENT", pocket: "OTHER", fromDate: "2026-11-01", toDate: "2026-11-10" });
