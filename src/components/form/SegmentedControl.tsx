@@ -15,11 +15,13 @@ interface SegmentedControlProps<T extends string> {
   ariaLabel: string;
   /** Stretches the options to share the full width, for a field of its own. */
   fullWidth?: boolean;
+  /** Locks every option, for example while a pending order must not be left. */
+  disabled?: boolean;
   className?: string;
 }
 
 /** A short list of mutually exclusive options shown side by side, so one tap changes the choice. */
-export function SegmentedControl<T extends string>({ options, value, onChange, ariaLabel, fullWidth, className }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, ariaLabel, fullWidth, disabled, className }: SegmentedControlProps<T>) {
   return (
     <div
       role="group"
@@ -33,9 +35,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange, a
             key={option.value}
             type="button"
             aria-pressed={selected}
+            disabled={disabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
               fullWidth && 'flex-1 text-sm',
               selected && 'bg-background font-semibold text-primary shadow-micro',
             )}

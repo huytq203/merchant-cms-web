@@ -48,6 +48,10 @@ const makeWithdrawal = (overrides: Partial<Withdrawal> = {}): Withdrawal => ({
   setoffAmount: 0,
   netReceived: 4_994_500,
   payoutFeeMode: "DEDUCT",
+  pocket: null,
+  pocketLabel: null,
+  fundsTotal: null,
+  funds: null,
   ...overrides,
 });
 const pending = makeWithdrawal();
@@ -689,5 +693,260 @@ describe("withdrawal detail modal", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết yêu cầu rút tiền WD2601/ }));
     expect(await screen.findByText(/Hệ thống đang gửi lệnh chuyển sang ngân hàng/)).toBeInTheDocument();
     expect(screen.queryByText("Cần đối soát")).not.toBeInTheDocument();
+  });
+});
+
+// GĐ6 Task 6.11: chọn nguồn tiền (ngăn) khi rút, cột "Loại lệnh", lọc theo nguồn.
+const pocketView = (pocket: "WALLET" | "OTHER", overrides: Record<string, unknown> = {}) => ({
+  pocket,
+  orderLabel: pocket === "WALLET" ? "Yêu cầu chi tiền" : "Lệnh rút",
+  balanceLabel: pocket === "WALLET" ? "Số dư thu hộ ví" : "Số dư thu-chi hộ khác",
+  available: pocket === "WALLET" ? 3_000_000 : 2_000_000,
+  readyAmount: pocket === "WALLET" ? 3_000_000 : 2_000_000,
+  withdrawableAmount: pocket === "WALLET" ? 3_000_000 : 1_500_000,
+  setoff: 0, fee: 5_500, netReceived: pocket === "WALLET" ? 2_994_500 : 1_494_500, zeroNet: false,
+  escrowShortfallBefore: null, escrowShortfallAfter: null, blocker: null, blockerMessage: null,
+  disbursementReserved: pocket === "OTHER" ? 100_000 : null,
+  overdraft: pocket === "OTHER" ? 500_000 : null,
+  displayBalance: pocket === "OTHER" ? 1_500_000 : null,
+  ...overrides,
+});
+
+/** BE mới: không hỏi ngăn → số cũ + hai ngăn; hỏi một ngăn → số cấp trên là của ngăn đó. Ghi lại ngăn của mỗi lần hỏi. */
+function pocketBalanceReturns(views: Record<string, Record<string, unknown>> = { WALLET: pocketView("WALLET"), OTHER: pocketView("OTHER") }) {
+  const asked: (string | null)[] = [];
+  mswServer.use(http.get(`${base}/balance`, ({ request }) => {
+    const pocket = new URL(request.url).searchParams.get("pocket");
+    asked.push(pocket);
+    const view = pocket ? views[pocket] : undefined;
+    return HttpResponse.json(makeBalance({
+      pockets: views,
+      ...(view ? {
+        pocket, readyAmount: view.withdrawableAmount, setoff: view.setoff, fee: view.fee, netReceived: view.netReceived,
+        zeroNet: view.zeroNet, blocker: view.blocker, blockerMessage: view.blockerMessage,
+      } : {}),
+    }));
+  }));
+  return asked;
+}
+
+describe("withdrawal pockets (GĐ6)", () => {
+  it("showsFundsInsideTheOtherPocketWithdrawable (CC-02)", async () => {
+    pocketBalanceReturns({ WALLET: pocketView("WALLET"), OTHER: pocketView("OTHER", { fundsAmount: 400_000 }) });
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const other = await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ });
+    expect(other).toHaveTextContent("Gồm tiền nạp và hoàn trả");
+    expect(other).toHaveTextContent("400.000");
+    expect(within(dialog).getByRole("radio", { name: /Số dư thu hộ ví/ })).not.toHaveTextContent("Gồm tiền nạp và hoàn trả");
+  });
+
+  it("showsTwoPocketChoicesWithWithdrawableAmounts", async () => {
+    pocketBalanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const wallet = await within(dialog).findByRole("radio", { name: /Số dư thu hộ ví/ });
+    const other = within(dialog).getByRole("radio", { name: /Số dư thu-chi hộ khác/ });
+    expect(wallet).toHaveTextContent("Yêu cầu chi tiền");
+    expect(wallet).toHaveTextContent("3.000.000");
+    expect(other).toHaveTextContent("Lệnh rút");
+    expect(other).toHaveTextContent("1.500.000");
+    // Ngăn khác: tiền đang giữ cho chi hộ và dư nợ Trả sau.
+    expect(other).toHaveTextContent("Đang giữ cho chi hộ");
+    expect(other).toHaveTextContent("100.000");
+    expect(other).toHaveTextContent("Dư nợ Trả sau");
+    expect(other).toHaveTextContent("500.000");
+    expect(wallet).not.toHaveTextContent("Dư nợ Trả sau");
+    // Chưa chọn nguồn thì chưa đi tiếp và chưa hiện số cũ của cả Sub.
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+    expect(within(dialog).queryByRole("region", { name: "Số tiền sẵn sàng rút" })).not.toBeInTheDocument();
+  });
+
+  it("shows a negative display balance of the other pocket", async () => {
+    pocketBalanceReturns({ WALLET: pocketView("WALLET"), OTHER: pocketView("OTHER", { displayBalance: -200_000, withdrawableAmount: 0 }) });
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const other = await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ });
+    expect(other).toHaveTextContent("-200.000");
+  });
+
+  it("pocketWithNothingToWithdrawDisabledWithBackendMessage", async () => {
+    pocketBalanceReturns({
+      WALLET: pocketView("WALLET", { withdrawableAmount: 0 }),
+      OTHER: pocketView("OTHER", { withdrawableAmount: 0, blocker: "NOTHING_READY", blockerMessage: "Không có khoản nào sẵn sàng rút ở ngăn này" }),
+    });
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const wallet = await within(dialog).findByRole("radio", { name: /Số dư thu hộ ví/ });
+    const other = within(dialog).getByRole("radio", { name: /Số dư thu-chi hộ khác/ });
+    expect(wallet).toHaveAttribute("aria-disabled", "true");
+    expect(other).toHaveAttribute("aria-disabled", "true");
+    expect(wallet).toHaveTextContent("Chưa có khoản nào sẵn sàng để rút");
+    expect(other).toHaveTextContent("Không có khoản nào sẵn sàng rút ở ngăn này");
+  });
+
+  it("overdraftBlockerShownOnOtherPocket", async () => {
+    const message = "Số dư thu-chi hộ khác đang dùng để bù dư nợ Trả sau, chưa thể rút";
+    pocketBalanceReturns({
+      WALLET: pocketView("WALLET"),
+      OTHER: pocketView("OTHER", { withdrawableAmount: 0, blocker: "OVERDRAFT_OUTSTANDING", blockerMessage: message }),
+    });
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    const other = await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ });
+    expect(other).toHaveAttribute("aria-disabled", "true");
+    expect(other).toHaveTextContent(message);
+    expect(within(dialog).getByRole("radio", { name: /Số dư thu hộ ví/ })).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("choosing a pocket asks the balance of that pocket and shows its figures", async () => {
+    const asked = pocketBalanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ }));
+    const panel = await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    expect(within(panel).getByText(/1\.500\.000/)).toBeInTheDocument();
+    expect(asked).toContain("OTHER");
+    expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeEnabled();
+  });
+
+  it("switchingPocketRefetchesBalanceAndResetsOtp", async () => {
+    const asked = pocketBalanceReturns();
+    const otpBodies: Record<string, unknown>[] = [];
+    mswServer.use(http.post(`${base}/otp-challenge`, async ({ request }) => {
+      otpBodies.push((await request.json()) as Record<string, unknown>);
+      return HttpResponse.json({ ...challenge, otpSessionId: `session-${otpBodies.length}` });
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu hộ ví/ }));
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByText(/xxxx1789/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    // Quay lại bước 1 và đổi nguồn: số dư đọc lại theo ngăn mới, mã OTP đã phát cho ngăn cũ không còn dùng.
+    await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Quay lại" }));
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ }));
+    await waitFor(() => expect(asked).toContain("OTHER"));
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByText(/xxxx1789/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    expect(otpBodies.map((body) => body.pocket)).toEqual(["WALLET", "OTHER"]);
+    expect(otpBodies[1]).toMatchObject({ amount: 1_500_000 });
+  });
+
+  it("otpRequestedForChosenPocket, and the request carries the same pocket", async () => {
+    pocketBalanceReturns();
+    const otpBodies: unknown[] = [];
+    const createBodies: unknown[] = [];
+    mswServer.use(
+      http.post(`${base}/otp-challenge`, async ({ request }) => {
+        otpBodies.push(await request.json());
+        return HttpResponse.json(challenge);
+      }),
+      http.post(base, async ({ request }) => {
+        createBodies.push(await request.json());
+        return HttpResponse.json(makeWithdrawal({ amount: 1_500_000, pocket: "OTHER", pocketLabel: "Lệnh rút" }), { status: 201 });
+      }),
+    );
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ }));
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByText(/xxxx1789/);
+    // Cấn trừ ký quỹ tính lại khi tạo lệnh: ghi chú ở bước xem lại, cùng tên nguồn đã chọn.
+    expect(within(dialog).getByText(/Cấn trừ ký quỹ tính lại khi tạo lệnh/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Số dư thu-chi hộ khác")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    await sendWithCode(dialog);
+    await screen.findByRole("heading", { name: "Đã gửi yêu cầu rút tiền" });
+    expect(otpBodies).toEqual([{ subMerchantId, bankAccountId: bankOption.id, amount: 1_500_000, pocket: "OTHER" }]);
+    expect(createBodies[0]).toMatchObject({ subMerchantId, amount: 1_500_000, pocket: "OTHER" });
+  });
+
+  it("a new Sub starts without a chosen pocket", async () => {
+    pocketBalanceReturns();
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu hộ ví/ }));
+    await pickSub(dialog, /SUB2/);
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Tiếp tục" })).toBeDisabled());
+    expect(within(dialog).queryByRole("region", { name: "Số tiền sẵn sàng rút" })).not.toBeInTheDocument();
+  });
+
+  it("an older BE without pockets shows no choice and sends no pocket", async () => {
+    const otpBodies: unknown[] = [];
+    mswServer.use(http.post(`${base}/otp-challenge`, async ({ request }) => {
+      otpBodies.push(await request.json());
+      return HttpResponse.json(challenge);
+    }));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await goToCode(dialog);
+    expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
+    expect(otpBodies).toEqual([{ subMerchantId, bankAccountId: bankOption.id, amount: 6_000_000 }]);
+  });
+
+  it("goes back to the first step and shows the BE message when the other pocket pays an overdraft (6331)", async () => {
+    pocketBalanceReturns();
+    mswServer.use(http.post(base, () => codeError("6331", "Số dư thu-chi hộ khác đang dùng để bù dư nợ Trả sau, chưa thể rút")));
+    renderContainer();
+    const dialog = await openCreateModal();
+    await pickSub(dialog);
+    await userEvent.click(await within(dialog).findByRole("radio", { name: /Số dư thu-chi hộ khác/ }));
+    await within(dialog).findByRole("region", { name: "Số tiền sẵn sàng rút" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByText(/xxxx1789/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Tiếp tục" }));
+    await within(dialog).findByRole("textbox", { name: "Digit 1 of 6" });
+    await sendWithCode(dialog);
+    expect(await within(dialog).findByText(/bù dư nợ Trả sau, chưa thể rút/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: /Số dư thu-chi hộ khác/ })).toBeInTheDocument();
+  });
+
+  it("listShowsOrderTypeColumn: pocketLabel, and a dash for an old request", async () => {
+    listReturns([
+      makeWithdrawal({ pocket: "WALLET", pocketLabel: "Yêu cầu chi tiền" }),
+      makeWithdrawal({ id: "55555555-5555-4555-8555-555555555555", transactionCode: "WD2602" }),
+    ]);
+    renderContainer();
+    const withPocket = (await screen.findByText("WD2601")).closest("tr") as HTMLElement;
+    expect(screen.getAllByRole("columnheader").map((cell) => cell.textContent)).toContain("Loại lệnh");
+    expect(within(withPocket).getByText("Yêu cầu chi tiền")).toBeInTheDocument();
+    const legacy = screen.getByText("WD2602").closest("tr") as HTMLElement;
+    expect(within(legacy).getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("filters the list by source and puts it in the URL", async () => {
+    renderContainer();
+    await screen.findByText("WD2601");
+    await userEvent.click(screen.getByRole("combobox", { name: /Nguồn tiền/ }));
+    await userEvent.click(await screen.findByRole("option", { name: /Số dư thu hộ ví/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Tìm kiếm/ }));
+    expect(push).toHaveBeenCalledWith(expect.stringContaining("pocket=WALLET"));
+  });
+
+  it("shows the source of a request in its detail", async () => {
+    listReturns([makeWithdrawal({ pocket: "OTHER", pocketLabel: "Lệnh rút" })]);
+    renderContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Xem chi tiết yêu cầu rút tiền/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Nguồn tiền")).toBeInTheDocument();
+    expect(within(dialog).getByText("Số dư thu-chi hộ khác")).toBeInTheDocument();
   });
 });

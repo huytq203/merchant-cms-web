@@ -9,6 +9,7 @@ import { formatAmount } from "@/lib/utils/helper";
 import { EMPTY_VALUE } from "../constants/Withdrawal.constants";
 import type { WithdrawalCreateFlow } from "../hooks/use-withdrawal-create-flow";
 import { zeroNetExplanation } from "../utils/withdrawal-limits";
+import { pocketSourceLabel } from "../utils/withdrawal-mapper";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -37,6 +38,8 @@ export function WithdrawalNewStep2({ flow }: { flow: WithdrawalCreateFlow }) {
         </p>
       </div>
       <dl>
+        {/* Nguồn tiền của lệnh (GĐ6): hiện khi BE đã tách ngăn. Mã OTP và lệnh gắn với đúng nguồn này. */}
+        {statement.pocket ? <Row label="Nguồn tiền">{pocketSourceLabel(statement.pocket)}</Row> : null}
         <Row label="Tài khoản nhận">{bankText}</Row>
         <Row label="Chủ tài khoản">{selectedBank?.accountName ?? EMPTY_VALUE}</Row>
         <Row label="Ghi chú">{values.reason.trim() || EMPTY_VALUE}</Row>
@@ -52,6 +55,10 @@ export function WithdrawalNewStep2({ flow }: { flow: WithdrawalCreateFlow }) {
             />
           </div>
         </Notice>
+      ) : null}
+      {/* CẦN CHỐT 12: số cấn trừ ở đây tính cho từng nguồn như thể đó là lệnh duy nhất; lệnh tạo sau cấn phần còn thiếu thật. */}
+      {statement.pocket ? (
+        <p className="text-sm text-muted-foreground">Cấn trừ ký quỹ tính lại khi tạo lệnh, theo số ký quỹ còn thiếu lúc đó.</p>
       ) : null}
       <Notice tone="info">
         Yêu cầu ở trạng thái <b>Chờ duyệt</b> cho đến khi người có thẩm quyền của Flexpay duyệt. Bạn theo dõi trạng thái trong danh sách.

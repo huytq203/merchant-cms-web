@@ -20,11 +20,16 @@ const CODES = {
   bankAccountRequired: ["5736", "MERCHANT_SUB_BANK_ACCOUNT_NOT_ASSIGNED"],
   // SRS v2: the account assigned to the Sub is locked by Flexpay; payouts stop until it is unlocked or replaced.
   accountLocked: ["5738", "MERCHANT_BANK_ACCOUNT_LOCKED"],
+  // GĐ6 (chi hộ): rút theo nguồn tiền. BE gán 6336 (không phải 6329 như plan: 6329 thuộc GĐ4).
+  pocketRequired: ["6336", "MERCHANT_WITHDRAWAL_POCKET_REQUIRED"],
+  pocketBalanceUnavailable: ["6330", "MERCHANT_WITHDRAWAL_POCKET_BALANCE_UNAVAILABLE"],
+  overdraftOutstanding: ["6331", "MERCHANT_WITHDRAWAL_OVERDRAFT_OUTSTANDING"],
 } as const;
 
 export type WithdrawalFailureKind = keyof typeof CODES | "other";
 
 const LEDGER_UNAVAILABLE_TEXT = "Chưa đọc được số dư từ sổ cái. Vui lòng thử lại sau ít phút.";
+const POCKET_BALANCE_UNAVAILABLE_TEXT = "Chưa đọc được số dư theo nguồn tiền từ sổ cái. Vui lòng thử lại sau ít phút.";
 const OTP_ISSUE_FAILED_TEXT = "Không gửi được mã OTP, vui lòng thử lại";
 
 /** Which rule BE refused with, so the flow can go back to the right step. A bare BE 503 is the ledger not answering. */
@@ -65,6 +70,8 @@ export function describeWithdrawalError(error: unknown): string {
   if (!(error instanceof ApiError)) return "Không gửi được yêu cầu, vui lòng thử lại";
   const kind = withdrawalFailureKind(error);
   if (kind === "ledgerUnavailable") return LEDGER_UNAVAILABLE_TEXT;
+  // 6330 is a 503: the BFF may drop its body, so the sentence is fixed here instead of read from the BE message.
+  if (kind === "pocketBalanceUnavailable") return POCKET_BALANCE_UNAVAILABLE_TEXT;
   if (kind === "otpIssueFailed") return OTP_ISSUE_FAILED_TEXT;
   // The remaining new codes carry Vietnamese text from BE (the 5781 one names the new total), shown as is.
   if (kind !== "other") return error.message;

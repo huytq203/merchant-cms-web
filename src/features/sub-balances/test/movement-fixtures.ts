@@ -63,3 +63,31 @@ export const orderDetail = {
   ],
   link: { type: "ORDER", id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1", code: "DH2611090070" },
 };
+
+/** A "Chi hộ" row of the thu-chi hộ khác pocket on a Trả sau Sub: the displayed balance went negative (CẦN CHỐT 9 GĐ7). */
+export const disbursementMovement = {
+  id: "cccccccc-cccc-4ccc-8ccc-ccccccccccc1",
+  type: "DISBURSEMENT",
+  kind: "DISBURSEMENT",
+  label: "Chi hộ",
+  reference: "YC2611190001",
+  occurredAt: "2026-11-19T02:00:00Z",
+  amount: -500_000,
+  balanceAfter: -300_000,
+  pocket: "OTHER",
+  overdraftDelta: 300_000,
+  overdraftAfter: 300_000,
+};
+
+export const topupMovement = {
+  ...disbursementMovement,
+  id: "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+  type: "TOPUP",
+  kind: "TOPUP_DISBURSEMENT",
+  label: "Nạp để chi hộ",
+  reference: "MTU2611190001",
+  amount: 800_000,
+  balanceAfter: 500_000,
+  overdraftDelta: -300_000,
+  overdraftAfter: 0,
+};

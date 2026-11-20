@@ -19,6 +19,7 @@ import {
   CalendarClock,
   Undo2,
   Snowflake,
+  SendHorizontal,
 } from "lucide-react";
 
 export interface SubPage {
@@ -220,6 +221,23 @@ export const routesConfig: SidebarSection[] = [
         permission: "VIEW_BALANCE",
         href: "/revenue-freezes",
         icon: <Snowflake className="w-4 h-4" />,
+      },
+      {
+        // Chi hộ (18/11/2026): màn tổng quan đòi VIEW_DISBURSEMENT; nút tạo lệnh/lô đòi thêm CREATE_DISBURSEMENT ngay
+        // trong trang. Không requiresMerchant: phiên chỉ gán Sub vẫn dùng được (BE giới hạn theo phạm vi phiên).
+        title: "Chi hộ",
+        permission: "VIEW_DISBURSEMENT",
+        href: "/disbursements",
+        icon: <SendHorizontal className="w-4 h-4" />,
+        subPages: [
+          { title: "Tạo lệnh chi hộ", href: "/disbursements/new" },
+          { title: "Nạp tiền", href: "/disbursements/topups" },
+          { title: "Chi tiết lô", pattern: "/disbursements/batches/[id]" },
+          // GĐ5 Task 5.15: lịch sử lệnh, chi tiết lệnh (thông báo hộp thư mở thẳng vào đây) và danh sách lô.
+          { title: "Lịch sử chi hộ", href: "/disbursements/orders" },
+          { title: "Chi tiết lệnh", pattern: "/disbursements/orders/[operationId]" },
+          { title: "Lô chi hộ", href: "/disbursements/batches" },
+        ],
       },
     ],
   },

@@ -50,3 +50,21 @@ describe("withdrawal search params", () => {
     expect(withdrawalQueries.receivingAccount("a").enabled).toBe(true);
   });
 });
+
+describe("withdrawal pockets (GĐ6)", () => {
+  it("balanceQueryKeyIncludesPocket: đổi nguồn là hỏi lại số dư", () => {
+    const wallet = withdrawalQueries.balance("a", "acc", true, "WALLET");
+    const other = withdrawalQueries.balance("a", "acc", true, "OTHER");
+    expect(wallet.queryKey).not.toEqual(other.queryKey);
+    expect(wallet.queryKey).not.toEqual(withdrawalQueries.balance("a", "acc").queryKey);
+    expect(wallet.queryKey).toEqual(["withdrawals", "balance", "a", "acc", "WALLET"]);
+  });
+
+  it("listPassesPocketFilter: bộ lọc nguồn nằm trong URL trang, khoá query và bị bỏ khi không hợp lệ", () => {
+    expect(parseWithdrawalSearchParams({ pocket: "OTHER" })).toMatchObject({ pocket: "OTHER" });
+    expect(parseWithdrawalSearchParams({ pocket: "X" })).toEqual({ page: 1, pageSize: 10 });
+    const filter = { page: 1, pageSize: 10, pocket: "WALLET" } as const;
+    expect(toWithdrawalSearchParams(filter).get("pocket")).toBe("WALLET");
+    expect(withdrawalQueries.list(filter).queryKey).not.toEqual(withdrawalQueries.list({ page: 1, pageSize: 10 }).queryKey);
+  });
+});

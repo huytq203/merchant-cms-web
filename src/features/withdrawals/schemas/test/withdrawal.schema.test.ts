@@ -3,6 +3,7 @@ import {
   withdrawalBalanceSchema,
   withdrawalCreateBodySchema,
   withdrawalFormSchema,
+  withdrawalPocketSchema,
   withdrawalOtpChallengeBodySchema,
   withdrawalResponseSchema,
   withdrawalStatusGroupSchema,
@@ -163,5 +164,81 @@ describe("withdrawal create body confirmZeroNet", () => {
     expect(withdrawalCreateBodySchema.safeParse(body).success).toBe(true);
     expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: true }).success).toBe(true);
     expect(withdrawalCreateBodySchema.safeParse({ ...body, confirmZeroNet: "yes" }).success).toBe(false);
+  });
+});
+
+// GĐ6 Task 6.10: hai ngăn tiền (WALLET / OTHER) của Sub.
+describe("withdrawal pockets (GĐ6)", () => {
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  const view = (pocket: "WALLET" | "OTHER", extra: Record<string, unknown> = {}) => ({
+    pocket, orderLabel: pocket === "WALLET" ? "Yêu cầu chi tiền" : "Lệnh rút", balanceLabel: pocket === "WALLET" ? "Số dư thu hộ ví" : "Số dư thu-chi hộ khác",
+    available: 1_000, readyAmount: 900, withdrawableAmount: 800, setoff: 100, fee: 5_500, netReceived: 0, zeroNet: false,
+    escrowShortfallBefore: null, escrowShortfallAfter: null, blocker: null, blockerMessage: null,
+    disbursementReserved: null, overdraft: null, displayBalance: null, ...extra,
+  });
+  const balance = {
+    subMerchantId, availableBalance: 100, heldBalance: 20, pendingSettlement: 30, readyAmount: 6_000_000,
+    setoff: 1_000, fee: 5_500, netReceived: 5_993_500, zeroNet: false, minimumAmount: null,
+    maximumAmount: null, dailyLimitRemaining: null, dailyCountRemaining: null, asOf: "2026-10-26T03:00:00Z",
+  };
+
+  it("balanceParsesPockets", () => {
+    const parsed = withdrawalBalanceSchema.parse({
+      ...balance, pocket: "OTHER",
+      pockets: {
+        WALLET: view("WALLET"),
+        OTHER: view("OTHER", { disbursementReserved: 50, overdraft: 300, displayBalance: -200, blocker: "OVERDRAFT_OUTSTANDING", blockerMessage: "Đang bù dư nợ" }),
+      },
+    });
+    expect(parsed.pocket).toBe("OTHER");
+    expect(parsed.pockets.WALLET).toMatchObject({ orderLabel: "Yêu cầu chi tiền", withdrawableAmount: 800 });
+    expect(parsed.pockets.OTHER).toMatchObject({ overdraft: 300, displayBalance: -200, blocker: "OVERDRAFT_OUTSTANDING", disbursementReserved: 50 });
+    expect(parsed.pockets.WALLET?.overdraft).toBeNull();
+  });
+
+  it("balanceWithoutPocketsStillParses (BE cũ hoặc wallet-core chưa trả ngăn)", () => {
+    expect(withdrawalBalanceSchema.parse(balance)).toMatchObject({ pocket: null, pockets: {} });
+    expect(withdrawalBalanceSchema.parse({ ...balance, pocket: null, pockets: {} })).toMatchObject({ pocket: null, pockets: {} });
+    expect(withdrawalBalanceSchema.parse({ ...balance, pockets: null }).pockets).toEqual({});
+  });
+
+  it("an unknown pocket key or value from a newer BE does not break the balance", () => {
+    const parsed = withdrawalBalanceSchema.parse({ ...balance, pocket: "FUTURE", pockets: { FUTURE: view("OTHER"), OTHER: view("OTHER") } });
+    expect(parsed.pocket).toBeNull();
+    expect(Object.keys(parsed.pockets)).toEqual(["OTHER"]);
+  });
+
+  it("withdrawalParsesPocketAndLabel", () => {
+    expect(withdrawalResponseSchema.parse({ ...response, pocket: "WALLET", pocketLabel: "Yêu cầu chi tiền" }))
+      .toMatchObject({ pocket: "WALLET", pocketLabel: "Yêu cầu chi tiền" });
+  });
+
+  it("withdrawalParsesFundLines and a missing list reads as null", () => {
+    const fund = { lotId: "aaaaaaaa-0000-4000-8000-000000000001", sourceType: "TOPUP", sourceTypeLabel: "Nạp chi hộ", sourceCode: "MTU1", postedAt: "2026-11-19T02:00:00Z", availableAtCreation: 900, included: 800 };
+    const parsed = withdrawalResponseSchema.parse({ ...response, pocket: "OTHER", fundsTotal: 800, funds: [fund] });
+    expect(parsed.fundsTotal).toBe(800);
+    expect(parsed.funds).toEqual([fund]);
+    expect(withdrawalResponseSchema.parse(response)).toMatchObject({ fundsTotal: null, funds: null });
+  });
+
+  it("balanceParsesFundsAmountOfThePocket (null on WALLET and on an older BE)", () => {
+    const parsed = withdrawalBalanceSchema.parse({ ...balance, pockets: { WALLET: view("WALLET", { fundsAmount: null }), OTHER: view("OTHER", { fundsAmount: 300 }) } });
+    expect(parsed.pockets.OTHER?.fundsAmount).toBe(300);
+    expect(parsed.pockets.WALLET?.fundsAmount).toBeNull();
+    expect(withdrawalBalanceSchema.parse({ ...balance, pockets: { OTHER: view("OTHER") } }).pockets.OTHER?.fundsAmount).toBeNull();
+  });
+
+  it("legacyWithdrawalWithoutPocketParses", () => {
+    expect(withdrawalResponseSchema.parse(response)).toMatchObject({ pocket: null, pocketLabel: null });
+    expect(withdrawalResponseSchema.parse({ ...response, pocket: null, pocketLabel: null })).toMatchObject({ pocket: null, pocketLabel: null });
+  });
+
+  it("the form, create body and OTP body carry the chosen pocket and refuse an unknown one", () => {
+    const form = { subMerchantId, amount: 5 };
+    expect(withdrawalFormSchema.parse({ ...form, pocket: "OTHER" }).pocket).toBe("OTHER");
+    expect(withdrawalFormSchema.safeParse({ ...form, pocket: "X" }).success).toBe(false);
+    expect(withdrawalOtpChallengeBodySchema.parse({ subMerchantId, amount: 5, pocket: "WALLET" }).pocket).toBe("WALLET");
+    expect(withdrawalOtpChallengeBodySchema.safeParse({ subMerchantId, amount: 5, pocket: "X" }).success).toBe(false);
+    expect(withdrawalPocketSchema.options).toEqual(["WALLET", "OTHER"]);
   });
 });

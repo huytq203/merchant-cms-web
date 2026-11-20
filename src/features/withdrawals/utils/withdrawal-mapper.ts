@@ -1,6 +1,7 @@
 import type { BankAccount } from "@/features/bank-accounts/types";
 import { bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
-import type { Withdrawal, WithdrawalCreateBody, WithdrawalStatus } from "../schemas/withdrawal.schema";
+import { EMPTY_VALUE, POCKET_ORDER_LABELS, POCKET_SOURCE_LABELS } from "../constants/Withdrawal.constants";
+import type { Withdrawal, WithdrawalCreateBody, WithdrawalPocket, WithdrawalStatus } from "../schemas/withdrawal.schema";
 import type { WithdrawalReceivingAccount } from "../types/types";
 
 /** The portal only creates requests; a PENDING one still waits for the checker. */
@@ -46,6 +47,7 @@ export function toWithdrawalCreateRequest(body: WithdrawalCreateBody) {
   return {
     subMerchantId: body.subMerchantId,
     ...(body.bankAccountId ? { bankAccountId: body.bankAccountId } : {}),
+    ...(body.pocket ? { pocket: body.pocket } : {}),
     amount: body.amount,
     idempotencyKey: body.idempotencyKey,
     sensitiveOtp: body.otp,
@@ -76,4 +78,19 @@ type TitledWithdrawal = Pick<Withdrawal, "transactionCode" | "bankCode" | "bankA
 export function withdrawalTitle(withdrawal: TitledWithdrawal): string {
   const bank = `${bankDisplayName(withdrawal.bankCode)} ${withdrawal.bankAccountMasked}`;
   return withdrawal.transactionCode ?? bank;
+}
+
+/**
+ * Cột "Loại lệnh": tên BE gửi theo ngăn ("Yêu cầu chi tiền" / "Lệnh rút"). Lệnh trước GĐ6 không có ngăn nên hiện dấu "—"
+ * (không đoán), BE gửi ngăn mà thiếu tên thì dùng tên FE biết.
+ */
+export function orderTypeLabel(withdrawal: Pick<Withdrawal, "pocket" | "pocketLabel">): string {
+  const label = withdrawal.pocketLabel?.trim();
+  if (label) return label;
+  return withdrawal.pocket ? POCKET_ORDER_LABELS[withdrawal.pocket] : EMPTY_VALUE;
+}
+
+/** Dòng "Nguồn tiền" của chi tiết lệnh: tên ngăn tiền đã bị trừ; lệnh cũ không phân nguồn hiện "—". */
+export function pocketSourceLabel(pocket: WithdrawalPocket | null): string {
+  return pocket ? POCKET_SOURCE_LABELS[pocket] : EMPTY_VALUE;
 }

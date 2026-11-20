@@ -8,13 +8,15 @@ import { Skeleton } from "@/components/ui/skeleton/Skeleton";
 import { cn } from "@/lib/utils/cn";
 import { formatAmount } from "@/lib/utils/helper";
 import { movementQueries } from "../movement-queries";
-import type { MovementLine } from "../movement-types";
-import { amountToneClass, formatSignedAmount } from "../utils/movement-format";
+import type { MovementLine, MovementPocket } from "../movement-types";
+import { amountToneClass, balanceToneClass, formatBalance, formatSignedAmount } from "../utils/movement-format";
 import { movementBusinessHref } from "../utils/movement-range";
 
 interface Props {
   subMerchantId: string;
   operationId: string;
+  /** The pocket the list was read with: the detail must be read the same way so its figures match the clicked row. */
+  pocket?: MovementPocket;
 }
 
 /** The right-hand value of a line: free text when the BE sends no amount, else the amount (with +/− when `signed`). */
@@ -52,15 +54,23 @@ function linkLabel(type: string | undefined): string {
     case "WITHDRAWAL": return "Mở lệnh rút";
     case "REFUND": return "Mở hoàn tiền";
     case "FREEZE": return "Mở khoản đóng băng";
+    case "DISBURSEMENT": return "Mở lệnh chi hộ";
     case "ESCROW":
     case "ESCROW_RETURN": return "Mở ký quỹ";
     default: return "Mở trang liên quan";
   }
 }
 
+/** The balance after the movement is that of the pocket being viewed; "khả dụng" is the whole available balance as before. */
+function balanceLabel(pocket: MovementPocket | undefined): string {
+  if (pocket === "OTHER") return "Số dư thu-chi hộ khác sau giao dịch";
+  if (pocket === "WALLET") return "Số dư thu hộ ví sau giao dịch";
+  return "Số dư khả dụng sau giao dịch";
+}
+
 /** Detail of one movement: signed amount, balance after it, the BE-built lines and a link to the business page. */
-export function MovementDetail({ subMerchantId, operationId }: Props) {
-  const query = useQuery(movementQueries.detail(subMerchantId, operationId));
+export function MovementDetail({ subMerchantId, operationId, pocket }: Props) {
+  const query = useQuery(movementQueries.detail(subMerchantId, operationId, pocket));
 
   if (query.isPending) {
     return (
@@ -87,7 +97,7 @@ export function MovementDetail({ subMerchantId, operationId }: Props) {
     <div className="grid gap-4">
       <div className="rounded-xl bg-muted p-4">
         <p className={cn("text-2xl font-bold tabular-nums", amountToneClass(detail.amount))}>{formatSignedAmount(detail.amount)}</p>
-        <p className="mt-1 text-sm text-muted-foreground">Số dư khả dụng sau giao dịch {formatAmount(detail.balanceAfter)}</p>
+        <p className={cn("mt-1 text-sm", balanceToneClass(detail.balanceAfter))}>{balanceLabel(pocket)} {formatBalance(detail.balanceAfter)}</p>
       </div>
       <div>{detail.lines.map((line, index) => <Line key={`${line.label}-${index}`} line={line} />)}</div>
       {href ? (

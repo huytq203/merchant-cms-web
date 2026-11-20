@@ -9,7 +9,7 @@ import { WITHDRAWALS_ENDPOINT } from "../withdrawal-queries";
 type Attempt = { signature: string; key: string };
 
 const signatureOf = (values: WithdrawalFormData, confirmZeroNet: boolean) =>
-  JSON.stringify([values.subMerchantId, values.bankAccountId ?? "", values.amount, values.reason ?? "", confirmZeroNet]);
+  JSON.stringify([values.subMerchantId, values.bankAccountId ?? "", values.pocket ?? "", values.amount, values.reason ?? "", confirmZeroNet]);
 
 /**
  * The same request content keeps the same idempotency key, so retrying after a lost response

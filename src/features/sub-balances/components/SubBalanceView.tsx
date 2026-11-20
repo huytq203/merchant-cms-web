@@ -11,6 +11,8 @@ import type { BalanceBucket, SubBalanceReport } from "../types";
 interface Props {
   report: SubBalanceReport;
   canWithdraw: boolean;
+  /** EXPORT_BALANCE: shows "Xuất CSV" in the movements popup. Optional so a caller that does not know it never offers the button. */
+  canExport?: boolean;
 }
 
 function AmountRow({ label, amount, children }: { label: string; amount: number; children?: ReactNode }) {
@@ -37,7 +39,17 @@ function BucketRow({ bucket, link }: { bucket: BalanceBucket; link?: ReactNode }
 const textLink = "font-semibold text-primary hover:underline";
 
 /** What a Sub can withdraw now, then how its revenue splits and what is held. Server-rendered. */
-export function SubBalanceView({ report, canWithdraw }: Props) {
+export function SubBalanceView({ report, canWithdraw, canExport = false }: Props) {
+  // Displayed balance per source for the popup subtitle: the thu-chi hộ khác one is net of the Trả sau debt and may be negative.
+  const pocketBalances = { WALLET: report.availableWallet?.amount ?? null, OTHER: report.otherDisplayBalance };
+  const movementsProps = {
+    subMerchantId: report.subMerchantId,
+    subCode: report.subCode,
+    subName: report.subName,
+    availableBalance: report.availableBalance,
+    canExport,
+    pocketBalances,
+  };
   return (
     <div className="space-y-4">
       <Card padding="md" role="region" aria-labelledby="available-balance" className="flex flex-wrap items-end justify-between gap-6">
@@ -51,12 +63,7 @@ export function SubBalanceView({ report, canWithdraw }: Props) {
         <div className="flex flex-wrap gap-2">
           <RefreshButton />
           {/* The page already requires VIEW_BALANCE, which is the permission the movements endpoints check. */}
-          <SubBalanceMovementsDialog
-            subMerchantId={report.subMerchantId}
-            subCode={report.subCode}
-            subName={report.subName}
-            availableBalance={report.availableBalance}
-          />
+          <SubBalanceMovementsDialog {...movementsProps} />
           {canWithdraw ? (
             <Button variant="solid" nativeButton={false} render={<Link href="/withdrawal" role="link" />}>
               Tạo lệnh rút
@@ -64,6 +71,26 @@ export function SubBalanceView({ report, canWithdraw }: Props) {
           ) : null}
         </div>
       </Card>
+
+      {/* GĐ6 (chi hộ): tách số khả dụng theo hai nguồn tiền. Chỉ vẽ khi BE gửi số theo ngăn — thiếu số là "chưa biết", không phải 0. */}
+      {report.availableWallet && report.availableOther ? (
+        <Card padding="md" role="region" aria-labelledby="pocket-balances">
+          <h2 id="pocket-balances" className="mb-1 text-base font-semibold">Số dư theo nguồn tiền</h2>
+          <dl>
+            {/* Mỗi dòng nguồn mở popup biến động ngay trên nguồn đó (CẦN CHỐT 13 GĐ7). */}
+            <BucketRow bucket={report.availableWallet} link={<SubBalanceMovementsDialog {...movementsProps} initialPocket="WALLET" triggerLabel="Xem biến động" />} />
+            <BucketRow bucket={report.availableOther} link={<SubBalanceMovementsDialog {...movementsProps} initialPocket="OTHER" triggerLabel="Xem biến động" />} />
+            {report.disbursementHold ? <BucketRow bucket={report.disbursementHold} /> : null}
+            {report.overdraftDebt ? <BucketRow bucket={report.overdraftDebt} /> : null}
+            {/* Khả dụng ngăn khác trừ dư nợ Trả sau: âm khi nợ lớn hơn số có. */}
+            {report.otherDisplayBalance !== null ? (
+              <AmountRow label="Số dư thu-chi hộ khác hiển thị" amount={report.otherDisplayBalance}>
+                Khả dụng của nguồn này trừ dư nợ Trả sau; có thể âm.
+              </AmountRow>
+            ) : null}
+          </dl>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card padding="md" role="region" aria-labelledby="revenue-total">

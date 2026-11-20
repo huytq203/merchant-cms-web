@@ -38,6 +38,8 @@ function RefundSections({ refund, subName }: { refund: RevenueRefundDetail; subN
           <DetailItem label="Sub-merchant">{sub}</DetailItem>
           <DetailItem label="Tạo lúc">{when(refund.createdAt)}</DetailItem>
           <DetailItem label="Hoàn phí gốc">{money(refund.feeRefund)}</DetailItem>
+          {/* CC-05: hoàn lấy từ ngăn nào của Sub; yêu cầu cũ BE không xác định được thì ẩn dòng. */}
+          {refund.fundingPocketLabel ? <DetailItem label="Nguồn hoàn">{refund.fundingPocketLabel}</DetailItem> : null}
           <DetailItem label="Chi tiền cho khách">{refund.payoutStatus ? PAYOUT_STATUS_LABEL[refund.payoutStatus] : "—"}</DetailItem>
           <DetailItem label="Lý do hoàn tiền" wide>{refund.reason}</DetailItem>
         </DetailList>

@@ -1,7 +1,14 @@
 import type { BankAccountStatus } from "@/features/bank-accounts/types";
-import type { Withdrawal, WithdrawalBalance, WithdrawalStatus, WithdrawalStatusGroup } from "../schemas/withdrawal.schema";
+import type {
+  PocketWithdrawalView,
+  Withdrawal,
+  WithdrawalBalance,
+  WithdrawalPocket,
+  WithdrawalStatus,
+  WithdrawalStatusGroup,
+} from "../schemas/withdrawal.schema";
 
-export type { Withdrawal, WithdrawalBalance, WithdrawalStatus, WithdrawalStatusGroup };
+export type { PocketWithdrawalView, Withdrawal, WithdrawalBalance, WithdrawalPocket, WithdrawalStatus, WithdrawalStatusGroup };
 
 export interface WithdrawalListFilter {
   page: number;
@@ -14,6 +21,8 @@ export interface WithdrawalListFilter {
   /** Inclusive calendar days as `yyyy-MM-dd`. */
   createdFrom?: string;
   createdTo?: string;
+  /** Lọc theo nguồn tiền của lệnh (GĐ6); vắng = cả hai ngăn và lệnh cũ. */
+  pocket?: WithdrawalPocket;
 }
 
 /** The filters the user edits; page and page size are navigation state. */

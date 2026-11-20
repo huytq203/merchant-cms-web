@@ -28,6 +28,14 @@ describe("notificationHref", () => {
     expect(href(type, null)).toBe(expected);
   });
 
+  it("opens the disbursement order a notification is about (same route as BE InboxTargetLinks)", () => {
+    expect(href("DISBURSEMENT")).toBe(`/disbursements/orders/${ID}`);
+    // Thiếu id thì rơi về danh sách lệnh, giống BE.
+    expect(href("DISBURSEMENT", null)).toBe("/disbursements/orders");
+    // Id lạ không được thoát khỏi đường dẫn.
+    expect(href("DISBURSEMENT", "a/../b")).toBe("/disbursements/orders/a%2F..%2Fb");
+  });
+
   it("filters the freeze list by the sub-merchant of the notification", () => {
     expect(href("FREEZE_LIST", null, SUB)).toBe(`/revenue-freezes?subMerchantId=${SUB}`);
     expect(href("FREEZE_LIST", null, null)).toBe("/revenue-freezes");

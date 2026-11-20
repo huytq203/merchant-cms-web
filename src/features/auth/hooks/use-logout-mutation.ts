@@ -2,7 +2,9 @@
 
 import { useTransition } from "react";
 
+import { useOptionalSession } from "@/features/auth/components/session-provider";
 import { logoutAction } from "@/features/auth/actions/logout-action";
+import { clearUnconfirmedOrdersOfUser } from "@/features/disbursements/utils/unconfirmed-order-store";
 import { unregisterPush } from "@/features/notifications/push/register-push";
 
 /** Quá hạn này thì bỏ qua việc gỡ token push: FCM/mạng treo không được làm chậm đăng xuất. */
@@ -17,8 +19,11 @@ function unregisterPushBounded(): Promise<void> {
 
 export function useLogoutMutation() {
   const [isPending, startTransition] = useTransition();
+  const userId = useOptionalSession()?.userId;
 
   function logout() {
+    // Xoá bản lưu lệnh chi hộ chưa xác nhận (có STK/số tiền người nhận) khỏi trình duyệt dùng chung.
+    if (userId) clearUnconfirmedOrdersOfUser(userId);
     startTransition(async () => {
       // Gỡ token push trước: proxy cần access token, mà logoutAction sẽ xóa cookie phiên.
       await unregisterPushBounded();

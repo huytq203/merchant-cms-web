@@ -39,6 +39,20 @@ describe("sub balance movements list route", () => {
     expect(listSubBalanceMovements).toHaveBeenCalledWith(SUB_ID, { type: "REFUND", fromDate: "2026-11-01", toDate: "2026-11-10", page: 2, size: 50 });
   });
 
+  it("listPassesPocket: forwards WALLET/OTHER and the chi hộ chips; no pocket stays undefined", async () => {
+    await get("?pocket=OTHER&type=DISBURSEMENT");
+    expect(listSubBalanceMovements).toHaveBeenCalledWith(SUB_ID, { type: "DISBURSEMENT", pocket: "OTHER", page: 1, size: 20 });
+    await get("?pocket=WALLET&type=TOPUP");
+    expect(listSubBalanceMovements).toHaveBeenLastCalledWith(SUB_ID, { type: "TOPUP", pocket: "WALLET", page: 1, size: 20 });
+  });
+
+  it("rejects an unknown pocket with 400 and the Vietnamese sentence", async () => {
+    const response = await get("?pocket=ALL");
+    expect(response.status).toBe(400);
+    expect((await response.json()).message).toMatch(/Nguồn số dư không hợp lệ/);
+    expect(listSubBalanceMovements).not.toHaveBeenCalled();
+  });
+
   it("rejects bad parameters with 400 and a Vietnamese message", async () => {
     // ESCROW: the "Ký quỹ" chip is gone (10/11/2026); escrow returns are listed under "Tất cả".
     for (const q of ["?type=OTHER", "?type=ESCROW", "?fromDate=10/11/2026", "?size=101", "?page=-1"]) {

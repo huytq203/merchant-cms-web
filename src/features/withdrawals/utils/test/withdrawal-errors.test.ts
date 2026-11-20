@@ -116,3 +116,25 @@ describe("receiving account refusals (SRS v2)", () => {
     expect(describeWithdrawalError(new ApiError(409, locked, "5738"))).toBe(locked);
   });
 });
+
+describe("pocket refusals (GĐ6)", () => {
+  it("errorsMapPocketCodesToVietnamese: 6330, 6331, 6336 by number or name, text in Vietnamese", () => {
+    const unavailable = new ApiError(503, "Chưa đọc được số dư theo nguồn tiền, vui lòng thử lại sau", "6330");
+    const overdraft = new ApiError(409, "Số dư thu-chi hộ khác đang dùng để bù dư nợ Trả sau, chưa thể rút", "MERCHANT_WITHDRAWAL_OVERDRAFT_OUTSTANDING");
+    const required = new ApiError(400, "Vui lòng chọn nguồn tiền rút: Số dư thu hộ ví hoặc Số dư thu-chi hộ khác", "6336");
+    expect(withdrawalFailureKind(unavailable)).toBe("pocketBalanceUnavailable");
+    expect(withdrawalFailureKind(new ApiError(503, "x", "MERCHANT_WITHDRAWAL_POCKET_BALANCE_UNAVAILABLE"))).toBe("pocketBalanceUnavailable");
+    expect(withdrawalFailureKind(overdraft)).toBe("overdraftOutstanding");
+    expect(withdrawalFailureKind(new ApiError(409, "x", "6331"))).toBe("overdraftOutstanding");
+    expect(withdrawalFailureKind(required)).toBe("pocketRequired");
+    expect(withdrawalFailureKind(new ApiError(400, "x", "MERCHANT_WITHDRAWAL_POCKET_REQUIRED"))).toBe("pocketRequired");
+    expect(describeWithdrawalError(overdraft)).toBe(overdraft.message);
+    expect(describeWithdrawalError(required)).toBe(required.message);
+    // 6330 là 503: BFF có thể làm mất mã, nên câu hiển thị là câu cố định tiếng Việt, không phụ thuộc message BE.
+    expect(describeWithdrawalError(new ApiError(503, "Service Unavailable", "6330"))).toMatch(/nguồn tiền/);
+  });
+
+  it("a bare 503 stays the ledger not answering", () => {
+    expect(withdrawalFailureKind(new ApiError(503, "x", "HTTP_503"))).toBe("ledgerUnavailable");
+  });
+});

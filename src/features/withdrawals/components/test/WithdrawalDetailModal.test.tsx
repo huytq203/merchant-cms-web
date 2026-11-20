@@ -30,6 +30,10 @@ const makeWithdrawal = (bankRefId: string | null): Withdrawal => ({
   setoffAmount: 0,
   netReceived: 4_994_500,
   payoutFeeMode: "DEDUCT",
+  pocket: null,
+  pocketLabel: null,
+  fundsTotal: null,
+  funds: null,
 });
 
 function renderModal(withdrawal: Withdrawal) {
@@ -60,6 +64,33 @@ describe("WithdrawalDetailModal — số tiền", () => {
     renderModal({ ...makeWithdrawal(null), payoutFeeMode: "ADD_ON", netReceived: 5_000_000 });
     expect(await screen.findByText(/Tổng trừ ví/)).toBeInTheDocument();
     expect(screen.getByText("5.005.500 vnđ")).toBeInTheDocument();
+  });
+});
+
+describe("WithdrawalDetailModal — Tiền nạp và hoàn trả (CC-02)", () => {
+  const funds = [
+    { lotId: "aaaaaaaa-0000-4000-8000-000000000001", sourceType: "TOPUP", sourceTypeLabel: "Nạp chi hộ", sourceCode: "MTU2611190001", postedAt: "2026-11-19T02:00:00Z", availableAtCreation: 900_000, included: 800_000 },
+    { lotId: "aaaaaaaa-0000-4000-8000-000000000002", sourceType: "ESCROW_RETURN", sourceTypeLabel: "Hoàn trả ký quỹ", sourceCode: "KQ-01", postedAt: "2026-11-18T02:00:00Z", availableAtCreation: 100_000, included: 100_000 },
+  ];
+
+  it("lệnh ngăn khác có tiền nạp/hoàn trả: hiện mục riêng với từng dòng và tổng", async () => {
+    renderModal({ ...makeWithdrawal(null), pocket: "OTHER", fundsTotal: 900_000, funds });
+    const section = (await screen.findByText("Tiền nạp và hoàn trả")).closest("section") ?? document.body;
+    expect(section).toHaveTextContent("Nạp chi hộ");
+    expect(section).toHaveTextContent("MTU2611190001");
+    expect(section).toHaveTextContent("800.000");
+    expect(section).toHaveTextContent("Hoàn trả ký quỹ");
+    expect(section).toHaveTextContent("900.000");
+  });
+
+  it.each([
+    ["lệnh ngăn ví", { pocket: "WALLET" as const, fundsTotal: null, funds: null }],
+    ["lệnh cũ chưa có trường", {}],
+    ["ngăn khác nhưng không có dòng quỹ", { pocket: "OTHER" as const, fundsTotal: 0, funds: [] }],
+  ])("%s: không hiện mục Tiền nạp và hoàn trả", async (_name, patch) => {
+    renderModal({ ...makeWithdrawal(null), ...patch });
+    expect(await screen.findByText("Chủ tài khoản")).toBeInTheDocument();
+    expect(screen.queryByText("Tiền nạp và hoàn trả")).not.toBeInTheDocument();
   });
 });
 

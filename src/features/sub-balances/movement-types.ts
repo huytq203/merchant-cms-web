@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import type {
   movementDetailSchema, movementFilterSchema, movementLineSchema, movementListResultSchema, movementSchema, movementSummarySchema,
-  movementTypeFilterSchema,
+  movementExportFilterSchema, movementPocketSchema, movementTypeFilterSchema,
 } from "./movement-schemas";
 
 export type Movement = z.infer<typeof movementSchema>;
@@ -12,3 +12,5 @@ export type MovementListResult = z.infer<typeof movementListResultSchema>;
 export type MovementSummary = z.infer<typeof movementSummarySchema>;
 export type MovementTypeFilter = z.infer<typeof movementTypeFilterSchema>;
 export type MovementFilter = z.infer<typeof movementFilterSchema>;
+export type MovementPocket = z.infer<typeof movementPocketSchema>;
+export type MovementExportFilter = z.infer<typeof movementExportFilterSchema>;

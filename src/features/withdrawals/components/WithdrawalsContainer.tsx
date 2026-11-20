@@ -17,7 +17,7 @@ import { WithdrawalFilter } from "./WithdrawalFilter";
 import { WithdrawalResults } from "./WithdrawalResults";
 
 const filterKey = (filter: WithdrawalListFilter) =>
-  [filter.transactionCode, filter.statusGroup, (filter.subMerchantIds ?? []).join(","), filter.createdFrom, filter.createdTo].map((part) => part ?? "").join(":");
+  [filter.transactionCode, filter.statusGroup, (filter.subMerchantIds ?? []).join(","), filter.createdFrom, filter.createdTo, filter.pocket].map((part) => part ?? "").join(":");
 
 type Props = {
   filter: WithdrawalListFilter;

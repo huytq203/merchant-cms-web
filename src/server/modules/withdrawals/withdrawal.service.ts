@@ -14,7 +14,7 @@ import {
   type WithdrawalCreateBody,
   type WithdrawalOtpChallengeBody,
 } from "@/features/withdrawals/schemas/withdrawal.schema";
-import type { WithdrawalListFilter, WithdrawalListResult } from "@/features/withdrawals/types/types";
+import type { WithdrawalListFilter, WithdrawalListResult, WithdrawalPocket } from "@/features/withdrawals/types/types";
 import { toWithdrawalCreateRequest } from "@/features/withdrawals/utils/withdrawal-mapper";
 import { formatSubMerchantIds } from "@/features/sub-merchants/utils/sub-merchant-ids";
 import { withdrawalPaths } from "./withdrawal.paths";
@@ -36,6 +36,7 @@ export async function listWithdrawals(filter: WithdrawalListFilter): Promise<BeR
       subMerchantIds: formatSubMerchantIds(filter.subMerchantIds),
       createdFrom: filter.createdFrom,
       createdTo: filter.createdTo,
+      pocket: filter.pocket,
     },
   });
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
@@ -52,12 +53,19 @@ export const createWithdrawal = (body: WithdrawalCreateBody): Promise<BeResult<W
   });
 
 /** BE derives the Master from the Sub and answers 404 for a Sub outside the caller's scope. */
-/** `bankAccountId`: the receiving account chosen in the form; BE prices the fee for it (and checks it belongs to the Sub). */
-export const getWithdrawalBalance = (subMerchantId: string, bankAccountId?: string): Promise<BeResult<WithdrawalBalance>> =>
+/**
+ * `bankAccountId`: the receiving account chosen in the form; BE prices the fee for it (and checks it belongs to the Sub).
+ * `pocket` (GĐ6): ask for one pocket's figures; without it BE answers the old Sub-wide figures plus both pockets.
+ */
+export const getWithdrawalBalance = (
+  subMerchantId: string,
+  bankAccountId?: string,
+  pocket?: WithdrawalPocket,
+): Promise<BeResult<WithdrawalBalance>> =>
   merchantClient().get({
     path: withdrawalPaths.balance,
     schema: withdrawalBalanceSchema,
-    query: { subMerchantId, ...(bankAccountId ? { bankAccountId } : {}) },
+    query: { subMerchantId, ...(bankAccountId ? { bankAccountId } : {}), ...(pocket ? { pocket } : {}) },
   });
 
 /** The operation is fixed here; the code is tied to this (account, amount) pair, so the caller names both. */

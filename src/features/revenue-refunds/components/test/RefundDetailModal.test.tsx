@@ -45,6 +45,20 @@ describe("RefundDetailModal", () => {
     expect(screen.getByText("Đã đối chiếu với khách")).toBeTruthy();
   });
 
+  it("shows the pocket the refund is taken from (Nguồn hoàn) and hides the row when BE does not know it", async () => {
+    mswServer.use(http.get(url, () => HttpResponse.json({ ...detail, fundingPocket: "OTHER", fundingPocketLabel: "Số dư thu-chi hộ khác" })));
+    renderModal();
+    expect(await screen.findByText("Nguồn hoàn")).toBeTruthy();
+    expect(screen.getByText("Số dư thu-chi hộ khác")).toBeTruthy();
+  });
+
+  it("older refund without a funding pocket has no Nguồn hoàn row", async () => {
+    mswServer.use(http.get(url, () => HttpResponse.json({ ...detail, fundingPocket: null, fundingPocketLabel: null })));
+    renderModal();
+    expect(await screen.findByText("Hoàn phí gốc")).toBeTruthy();
+    expect(screen.queryByText("Nguồn hoàn")).toBeNull();
+  });
+
   it.each([403, 404])("shows the unavailable message on %i and closes via the button", async (status) => {
     mswServer.use(http.get(url, () => HttpResponse.json({ message: "Không tìm thấy lệnh hoàn tiền." }, { status })));
     const onClose = renderModal();

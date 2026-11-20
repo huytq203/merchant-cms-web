@@ -9,7 +9,7 @@ import { EMPTY_VALUE, REQUEST_TYPE_LABELS } from "../constants/Withdrawal.consta
 import { useWithdrawalDetail } from "../hooks/use-withdrawal-detail";
 import type { Withdrawal } from "../types/types";
 import { WITHDRAWAL_STEPS, withdrawalNote, withdrawalStepStates } from "../utils/withdrawal-timeline";
-import { withdrawalBreakdown } from "../utils/withdrawal-mapper";
+import { pocketSourceLabel, withdrawalBreakdown } from "../utils/withdrawal-mapper";
 import { WithdrawalStatusBadge } from "./WithdrawalStatusBadge";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void; listed: Withdrawal | null };
@@ -44,6 +44,8 @@ function WithdrawalSections({ withdrawal }: { withdrawal: Withdrawal }) {
           </DetailItem>
           <DetailItem label="Chủ tài khoản">{withdrawal.bankAccountName}</DetailItem>
           <DetailItem label="Hình thức">{REQUEST_TYPE_LABELS[withdrawal.requestType]}</DetailItem>
+          {/* GĐ6: nguồn tiền đã bị trừ; lệnh trước GĐ6 không phân nguồn nên ẩn cả dòng thay vì hiện "—". */}
+          {withdrawal.pocket ? <DetailItem label="Nguồn tiền">{pocketSourceLabel(withdrawal.pocket)}</DetailItem> : null}
           <DetailItem label="Ngày yêu cầu">{formatDate(withdrawal.createdAt)}</DetailItem>
           {/* Chưa chắc môi trường thật có trả mã tham chiếu NH (05/11): không có mã thì ẩn cả dòng,
               không hiện "Chưa có" để merchant khỏi tưởng lệnh còn thiếu bước. */}
@@ -56,6 +58,28 @@ function WithdrawalSections({ withdrawal }: { withdrawal: Withdrawal }) {
           </DetailItem>
         </DetailList>
       </DetailSection>
+      {/* CC-02: lệnh ngăn khác lấy cả tiền nạp / hoàn trả; không có dòng quỹ thì ẩn cả mục. */}
+      {withdrawal.funds && withdrawal.funds.length > 0 ? (
+        <DetailSection title="Tiền nạp và hoàn trả">
+          <ul className="divide-y divide-border text-sm">
+            {withdrawal.funds.map((fund) => (
+              <li key={fund.lotId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2">
+                <span className="min-w-0">
+                  <span className="block font-medium">{fund.sourceTypeLabel}</span>
+                  <span className="block break-words text-muted-foreground">
+                    {[fund.sourceCode, fund.postedAt ? formatDate(fund.postedAt) : null].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                <span className="font-mono tabular-nums">{formatAmount(fund.included)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="flex items-baseline justify-between gap-4 pt-2 text-sm font-semibold">
+            <span>Tổng tiền nạp và hoàn trả</span>
+            <span className="font-mono tabular-nums">{formatAmount(withdrawal.fundsTotal ?? withdrawal.funds.reduce((sum, fund) => sum + fund.included, 0))}</span>
+          </p>
+        </DetailSection>
+      ) : null}
     </div>
   );
 }

@@ -71,3 +71,16 @@ describe("withdrawal balance route", () => {
     expect((await call()).status).toBe(502);
   });
 });
+
+describe("withdrawal balance route pocket (GĐ6)", () => {
+  it("balancePassesPocketQuery: forwards the pocket, and refuses an unknown one before asking BE", async () => {
+    expect((await call(`?subMerchantId=${subMerchantId}&pocket=OTHER`)).status).toBe(200);
+    expect(getWithdrawalBalance).toHaveBeenCalledWith(subMerchantId, undefined, "OTHER");
+    const accountId = "44444444-4444-4444-8444-444444444444";
+    await call(`?subMerchantId=${subMerchantId}&bankAccountId=${accountId}&pocket=WALLET`);
+    expect(getWithdrawalBalance).toHaveBeenLastCalledWith(subMerchantId, accountId, "WALLET");
+    getWithdrawalBalance.mockClear();
+    expect((await call(`?subMerchantId=${subMerchantId}&pocket=BOTH`)).status).toBe(400);
+    expect(getWithdrawalBalance).not.toHaveBeenCalled();
+  });
+});

@@ -1,4 +1,4 @@
-/** Mirrors the BE `MerchantPermission` catalogue (48 names, 12 groups), in the BE display order. */
+/** Mirrors the BE `MerchantPermission` catalogue (51 names, 12 groups), in the BE display order. */
 export const MERCHANT_PERMISSIONS = [
   "VIEW_TRANSACTION",
   "EXPORT_TRANSACTION",
@@ -48,6 +48,10 @@ export const MERCHANT_PERMISSIONS = [
   "VIEW_HOLD",
   "MANAGE_HOLD_RULE",
   "RELEASE_HOLD_EARLY",
+  // 3 mã Chi hộ (BE V128): thêm cuối danh mục, không nhóm nào được gán sẵn.
+  "CREATE_DISBURSEMENT",
+  "VIEW_DISBURSEMENT",
+  "EXPORT_DISBURSEMENT",
 ] as const;
 
 export type MerchantPermission = (typeof MERCHANT_PERMISSIONS)[number];

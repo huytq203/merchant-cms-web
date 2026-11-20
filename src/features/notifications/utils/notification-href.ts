@@ -32,6 +32,10 @@ export function notificationHref(notification: HrefInput): string | null {
   if (detailPage) return targetId ? `${detailPage}?detail=${encodeURIComponent(targetId)}` : detailPage;
   const listPage = LIST_PAGE[targetType];
   if (listPage) return listPage;
+  // Lệnh chi hộ có trang chi tiết riêng (`/disbursements/orders/<id>`), không dùng `?detail=`; thiếu id thì về danh sách lệnh.
+  if (targetType === "DISBURSEMENT") {
+    return targetId ? `/disbursements/orders/${encodeURIComponent(targetId)}` : "/disbursements/orders";
+  }
   if (targetType === "FREEZE_LIST") {
     return subMerchantId ? `/revenue-freezes?subMerchantId=${encodeURIComponent(subMerchantId)}` : "/revenue-freezes";
   }

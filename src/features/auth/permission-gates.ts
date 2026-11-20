@@ -30,5 +30,6 @@ export const PERMISSION_GATES = {
     "MANAGE_USER", "APPROVE_USER_SCOPE",
     "VIEW_BANK_ACCOUNT", "MANAGE_BANK_ACCOUNT",
     "VIEW_DISPUTE", "CREATE_DISPUTE",
+    "VIEW_DISBURSEMENT", "CREATE_DISBURSEMENT",
   ],
 } as const satisfies Record<string, readonly MerchantPermission[]>;

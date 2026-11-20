@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { filterRoutesByAccess, findLandingPath, routesConfig } from "@/app/(cms)/_layout/constants/route.constants";
+import { filterRoutesByAccess, findLandingPath, getBreadcrumbs, routesConfig } from "@/app/(cms)/_layout/constants/route.constants";
 
 const titles = (sections: ReturnType<typeof filterRoutesByAccess>) =>
   sections.flatMap((section) => section.items.map((item) => item.title));
@@ -88,6 +88,33 @@ describe("màn Hoàn tiền (gộp /refund vào /revenue-refunds)", () => {
     const section = routesConfig.find((candidate) => candidate.items.some((item) => item.href === "/revenue-refunds"));
     expect(section?.items.map((item) => item.title)).toEqual(expect.arrayContaining(["Danh sách đơn hàng", "Hoàn tiền"]));
     expect(titles(filterRoutesByAccess(routesConfig, { permissions: ["VIEW_REFUND"], hasMerchant: true }))).toContain("Hoàn tiền");
+  });
+});
+
+describe("menu Chi hộ", () => {
+  it("menuHiddenWithoutViewDisbursement", () => {
+    // Chỉ có quyền tạo mà không có quyền xem thì không thấy menu: màn tổng quan đòi VIEW_DISBURSEMENT.
+    const createOnly = titles(filterRoutesByAccess(routesConfig, { permissions: ["CREATE_DISBURSEMENT"], hasMerchant: true }));
+    expect(createOnly).not.toContain("Chi hộ");
+    const viewer = titles(filterRoutesByAccess(routesConfig, { permissions: ["VIEW_DISBURSEMENT"], hasMerchant: true }));
+    expect(viewer).toContain("Chi hộ");
+    // Session chỉ gán Sub (không có Master) vẫn dùng được: BE giới hạn theo phạm vi phiên.
+    expect(titles(filterRoutesByAccess(routesConfig, { permissions: ["VIEW_DISBURSEMENT"], hasMerchant: false }))).toContain("Chi hộ");
+  });
+
+  it("points to /disbursements and names its sub pages in the breadcrumb", () => {
+    const item = routesConfig.flatMap((section) => section.items).find((candidate) => candidate.title === "Chi hộ");
+    expect(item?.href).toBe("/disbursements");
+    expect(getBreadcrumbs("/disbursements/new")).toEqual([{ title: "Chi hộ", href: "/disbursements" }, { title: "Tạo lệnh chi hộ" }]);
+    expect(getBreadcrumbs("/disbursements/topups")).toEqual([{ title: "Chi hộ", href: "/disbursements" }, { title: "Nạp tiền" }]);
+    expect(getBreadcrumbs("/disbursements/batches/abc")).toEqual([{ title: "Chi hộ", href: "/disbursements" }, { title: "Chi tiết lô" }]);
+    // Task 5.15: lịch sử lệnh, chi tiết lệnh và danh sách lô.
+    expect(getBreadcrumbs("/disbursements/orders")).toEqual([{ title: "Chi hộ", href: "/disbursements" }, { title: "Lịch sử chi hộ" }]);
+    expect(getBreadcrumbs("/disbursements/orders/66666666-6666-4666-8666-666666666666")).toEqual([
+      { title: "Chi hộ", href: "/disbursements" },
+      { title: "Chi tiết lệnh" },
+    ]);
+    expect(getBreadcrumbs("/disbursements/batches")).toEqual([{ title: "Chi hộ", href: "/disbursements" }, { title: "Lô chi hộ" }]);
   });
 });
 

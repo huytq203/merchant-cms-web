@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea/Textarea";
 import { bankAccountStatusLabel, bankAccountStatusTone, bankDisplayName } from "@/features/bank-accounts/utils/bank-mapper";
 import type { WithdrawalCreateFlow } from "../hooks/use-withdrawal-create-flow";
 import { WithdrawalBalancePanel } from "./WithdrawalBalancePanel";
+import { WithdrawalPocketPicker } from "./WithdrawalPocketPicker";
 
 type Props = { flow: WithdrawalCreateFlow; onCancel: () => void };
 
@@ -17,10 +18,11 @@ type Props = { flow: WithdrawalCreateFlow; onCancel: () => void };
  * lý do (BE 5736) hoặc TK bị khóa (5738) hiện nguyên văn ở khung số dư.
  */
 export function WithdrawalNewStep1({ flow, onCancel }: Props) {
-  const { values, errors, change, receivingAccount, account, balance, blocker, subChoices } = flow;
+  const { values, errors, change, receivingAccount, account, balance, blocker, subChoices, hasPockets, needsPocket, pockets, pocket } = flow;
   const subSelectOptions = subChoices.map((choice) => ({ value: choice.id, label: choice.label }));
   const accountLoadError = receivingAccount.isError ? receivingAccount.error.message : undefined;
-  const canContinue = Boolean(account) && Boolean(balance.data) && !blocker;
+  // Đã tách ngăn thì phải chọn một nguồn tiền trước khi đi tiếp (mỗi lệnh một nguồn).
+  const canContinue = Boolean(account) && Boolean(balance.data) && !blocker && !needsPocket;
 
   return (
     <form onSubmit={flow.review} className="mt-2 space-y-4">
@@ -55,7 +57,14 @@ export function WithdrawalNewStep1({ flow, onCancel }: Props) {
           )}
         </dl>
       ) : null}
-      <WithdrawalBalancePanel balance={balance} hasSub={Boolean(values.subMerchantId)} blocker={blocker} />
+      {hasPockets ? <WithdrawalPocketPicker pockets={pockets} value={pocket} onChange={flow.choosePocket} /> : null}
+      {needsPocket ? (
+        <Notice tone="info">Chọn nguồn tiền để xem số tiền rút, phí và thực nhận.</Notice>
+      ) : (
+        <WithdrawalBalancePanel balance={balance} hasSub={Boolean(values.subMerchantId)} blocker={blocker} />
+      )}
+      {/* Tự động rút: câu chặn của Sub áp cho cả hai nguồn nên vẫn hiện khi chưa chọn nguồn. */}
+      {needsPocket && blocker ? <Notice tone="warning">{blocker}</Notice> : null}
       <Textarea
         label="Ghi chú"
         placeholder="Ví dụ: Rút tiền cuối tháng"

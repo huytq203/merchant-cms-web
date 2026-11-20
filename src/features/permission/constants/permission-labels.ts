@@ -52,6 +52,9 @@ export const PERMISSION_LABELS: Record<MerchantPermission, string> = {
   VIEW_HOLD: 'Xem số dư đóng băng',
   MANAGE_HOLD_RULE: 'Cấu hình quy tắc tạm giữ',
   RELEASE_HOLD_EARLY: 'Giải phóng sớm khoản tạm giữ',
+  CREATE_DISBURSEMENT: 'Tạo lệnh chi hộ',
+  VIEW_DISBURSEMENT: 'Xem chi hộ',
+  EXPORT_DISBURSEMENT: 'Xuất dữ liệu chi hộ',
 };
 
 /** Falls back to the raw code when BE adds a permission the FE has no label for yet. */

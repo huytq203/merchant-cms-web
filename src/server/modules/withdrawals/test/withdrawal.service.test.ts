@@ -208,3 +208,57 @@ describe("withdrawal balance and OTP", () => {
     expect(body).toEqual({ subMerchantId, bankAccountId, amount: 6_000_000 });
   });
 });
+
+// GĐ6 Task 6.10: nguồn tiền (ngăn) đi cùng mọi lời gọi BE của luồng rút.
+describe("withdrawal service pockets (GĐ6)", () => {
+  const subMerchantId = "11111111-1111-4111-8111-111111111111";
+  const balance = {
+    subMerchantId, availableBalance: 1, heldBalance: 0, pendingSettlement: 0, readyAmount: 1, setoff: 0, fee: 0, netReceived: 1,
+    zeroNet: false, dailyLimitRemaining: null, dailyCountRemaining: null, asOf: "2026-10-26T03:00:00Z",
+  };
+
+  it("createSendsPocket", async () => {
+    let body: Record<string, unknown> = {};
+    mswServer.use(http.post(path, async ({ request }) => {
+      body = (await request.json()) as Record<string, unknown>;
+      return HttpResponse.json(envelope({ ...record, pocket: "OTHER", pocketLabel: "Lệnh rút" }));
+    }));
+    const result = await createWithdrawal({ subMerchantId, amount: 9, pocket: "OTHER", idempotencyKey: "k", otp: { otpSessionId: "s", otp: "123456" } });
+    expect(body.pocket).toBe("OTHER");
+    expect(result).toMatchObject({ success: true, data: { pocket: "OTHER", pocketLabel: "Lệnh rút" } });
+  });
+
+  it("otpChallengeSendsPocket", async () => {
+    let body: unknown;
+    mswServer.use(http.post(`${path}/otp-challenge`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json(envelope({ otpSessionId: "s", maskedRecipient: "a***@b.vn", expiresInSeconds: 300, canResendAfterSeconds: 60 }));
+    }));
+    await requestWithdrawalOtp({ subMerchantId, amount: 6_000_000, pocket: "WALLET" });
+    expect(body).toEqual({ subMerchantId, amount: 6_000_000, pocket: "WALLET" });
+  });
+
+  it("balancePassesPocketQuery", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(`${path}/balance`, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(balance));
+    }));
+    await getWithdrawalBalance(subMerchantId, undefined, "OTHER");
+    expect(Object.fromEntries(query!)).toEqual({ subMerchantId, pocket: "OTHER" });
+    await getWithdrawalBalance(subMerchantId, "44444444-4444-4444-8444-444444444444", "WALLET");
+    expect(Object.fromEntries(query!)).toEqual({ subMerchantId, bankAccountId: "44444444-4444-4444-8444-444444444444", pocket: "WALLET" });
+  });
+
+  it("listPassesPocketFilter", async () => {
+    let query: URLSearchParams | undefined;
+    mswServer.use(http.get(path, ({ request }) => {
+      query = new URL(request.url).searchParams;
+      return HttpResponse.json(envelope(page([record])));
+    }));
+    await listWithdrawals({ page: 1, pageSize: 10, pocket: "WALLET" });
+    expect(query!.get("pocket")).toBe("WALLET");
+    await listWithdrawals({ page: 1, pageSize: 10 });
+    expect(query!.has("pocket")).toBe(false);
+  });
+});

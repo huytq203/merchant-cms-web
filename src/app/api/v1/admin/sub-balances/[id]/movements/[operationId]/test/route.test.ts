@@ -6,8 +6,8 @@ vi.mock("@/lib/auth/session", () => ({ getServerSession }));
 vi.mock("@/server/modules/sub-balances/sub-balance.service", () => ({ getSubBalanceMovement }));
 import { GET } from "../route";
 
-const get = (id = SUB_ID, operationId = OP_ORDER) =>
-  GET(new Request("http://localhost/x"), { params: Promise.resolve({ id, operationId }) });
+const get = (id = SUB_ID, operationId = OP_ORDER, query = "") =>
+  GET(new Request(`http://localhost/x${query}`), { params: Promise.resolve({ id, operationId }) });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -34,7 +34,15 @@ describe("sub balance movement detail route", () => {
     const response = await get();
     expect(response.status).toBe(200);
     expect((await response.json()).label).toBe(orderDetail.label);
-    expect(getSubBalanceMovement).toHaveBeenCalledWith(SUB_ID, OP_ORDER);
+    expect(getSubBalanceMovement).toHaveBeenCalledWith(SUB_ID, OP_ORDER, undefined);
+  });
+
+  it("detailPassesPocket: forwards the pocket the list was read with; a wrong one is 400", async () => {
+    await get(SUB_ID, OP_ORDER, "?pocket=OTHER");
+    expect(getSubBalanceMovement).toHaveBeenCalledWith(SUB_ID, OP_ORDER, "OTHER");
+    const bad = await get(SUB_ID, OP_ORDER, "?pocket=ALL");
+    expect(bad.status).toBe(400);
+    expect((await bad.json()).message).toMatch(/Nguồn số dư không hợp lệ/);
   });
 
   it("keeps the BE 404 for an operation of another Sub", async () => {

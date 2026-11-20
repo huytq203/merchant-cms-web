@@ -26,7 +26,7 @@ export function movementRangeToDates(range: MovementRange, today: string, custom
  * escrow pages are lists (there is no detail route), so they open the list, narrowed by the order code where the page
  * supports it. Null hides the button.
  */
-export function movementBusinessHref(link: Pick<MovementLink, "type" | "code"> | null | undefined, subMerchantId: string): string | null {
+export function movementBusinessHref(link: Pick<MovementLink, "type" | "code" | "id"> | null | undefined, subMerchantId: string): string | null {
   if (!link) return null;
   switch (link.type) {
     case "ORDER":
@@ -37,6 +37,9 @@ export function movementBusinessHref(link: Pick<MovementLink, "type" | "code"> |
       return "/revenue-refunds";
     case "FREEZE":
       return `/revenue-freezes?${new URLSearchParams({ subMerchantId })}`;
+    case "DISBURSEMENT":
+      // Lệnh chi hộ (GĐ5): `id` là operationId của lệnh bên disbursement; thiếu thì không có trang để mở.
+      return link.id ? `/disbursements/orders/${encodeURIComponent(link.id)}` : null;
     case "ESCROW":
     // Hoàn trả ký quỹ về doanh thu Sub: chưa có trang chi tiết theo mã hoàn trả, mở trang ký quỹ.
     case "ESCROW_RETURN":

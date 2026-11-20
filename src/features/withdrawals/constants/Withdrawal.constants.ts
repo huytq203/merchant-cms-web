@@ -1,6 +1,6 @@
 import type { BadgeProps } from "@/components/ui/badge/Badge";
 import type { StatusTone } from "@/components/page/StatusBadge";
-import type { WithdrawalStatus, WithdrawalStatusGroup } from "../schemas/withdrawal.schema";
+import type { WithdrawalPocket, WithdrawalStatus, WithdrawalStatusGroup } from "../schemas/withdrawal.schema";
 
 type StatusOption = { value: WithdrawalStatus; label: string; variant: BadgeProps["variant"] };
 
@@ -29,6 +29,21 @@ export const REQUEST_TYPE_LABELS = {
 } as const;
 
 export const EMPTY_VALUE = "—";
+
+/**
+ * GĐ6 (chi hộ): tên hai nguồn tiền của Sub. BE gửi sẵn tên trên từng lệnh/ngăn; bảng này chỉ là dự phòng khi BE gửi
+ * ngăn mà thiếu tên, và là tên dùng cho bộ lọc.
+ */
+export const POCKET_SOURCE_LABELS: Record<WithdrawalPocket, string> = {
+  WALLET: "Số dư thu hộ ví",
+  OTHER: "Số dư thu-chi hộ khác",
+};
+
+/** Tên gọi lệnh theo nguồn (CẦN CHỐT 10): lấy từ ví là "Yêu cầu chi tiền", từ ngăn khác là "Lệnh rút". */
+export const POCKET_ORDER_LABELS: Record<WithdrawalPocket, string> = {
+  WALLET: "Yêu cầu chi tiền",
+  OTHER: "Lệnh rút",
+};
 
 /**
  * The 14 BE statuses are steps of one payout pipeline. The merchant filters by the stage a request is in;

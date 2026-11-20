@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/page/StatusBadge";
 import { EMPTY_VALUE, REQUEST_TYPE_LABELS } from "../constants/Withdrawal.constants";
 import { WithdrawalStatusBadge } from "../components/WithdrawalStatusBadge";
 import type { Withdrawal } from "../types/types";
-import { withdrawalBreakdown, withdrawalTitle } from "../utils/withdrawal-mapper";
+import { orderTypeLabel, withdrawalBreakdown, withdrawalTitle } from "../utils/withdrawal-mapper";
 
 export type WithdrawalColumnActions = {
   onView: (withdrawal: Withdrawal) => void;
@@ -44,6 +44,12 @@ export function getWithdrawalColumns(actions: WithdrawalColumnActions, page: num
           ) : null}
         </div>
       ),
+    },
+    {
+      // GĐ6: "Yêu cầu chi tiền" (nguồn ví) hoặc "Lệnh rút" (nguồn khác); lệnh trước GĐ6 không có nguồn nên hiện "—".
+      id: "orderType",
+      header: "Loại lệnh",
+      cell: ({ row }) => <span>{orderTypeLabel(row.original)}</span>,
     },
     {
       id: "amount",

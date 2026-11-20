@@ -1,14 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button/Button";
 import { Input } from "@/components/ui/input/Input";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet/Sheet";
 import { cn } from "@/lib/utils/cn";
-import { formatAmount } from "@/lib/utils/helper";
 import { vnToday } from "@/lib/utils/vn-time";
-import type { MovementTypeFilter } from "../movement-types";
+import { downloadMovementsCsv } from "../movement-queries";
+import type { MovementPocket, MovementTypeFilter } from "../movement-types";
+import { exportRangeError, formatBalance, MOVEMENT_TYPE_LABELS } from "../utils/movement-format";
 import { movementRangeToDates, type MovementRange } from "../utils/movement-range";
 import { MovementDetail } from "./MovementDetail";
 import { MovementList } from "./MovementList";
@@ -18,6 +19,14 @@ interface Props {
   subCode?: string | null;
   subName?: string | null;
   availableBalance: number;
+  /** Which source the popup opens on. Absent = "Tất cả" as before; the "Số dư thu-chi hộ khác" row opens it on OTHER (CẦN CHỐT 13 GĐ7). */
+  initialPocket?: MovementPocket;
+  /** Text of the button that opens the popup. */
+  triggerLabel?: string;
+  /** Whether the user holds EXPORT_BALANCE; the BE checks it again, so hiding the button is only a courtesy. */
+  canExport?: boolean;
+  /** Displayed balance of each source (the thu-chi hộ khác one is net of the Trả sau debt and may be negative); absent = not known. */
+  pocketBalances?: Partial<Record<MovementPocket, number | null>>;
 }
 
 const TYPE_CHIPS: { value: MovementTypeFilter; label: string }[] = [
@@ -27,6 +36,27 @@ const TYPE_CHIPS: { value: MovementTypeFilter; label: string }[] = [
   { value: "REFUND", label: "Hoàn tiền" },
   { value: "FREEZE", label: "Đóng băng" },
 ];
+
+/** Chi hộ and nạp rows only exist at the thu-chi hộ khác pocket, so their chips are offered only there. */
+const OTHER_POCKET_CHIPS: { value: MovementTypeFilter; label: string }[] = [
+  { value: "DISBURSEMENT", label: MOVEMENT_TYPE_LABELS.DISBURSEMENT },
+  { value: "TOPUP", label: MOVEMENT_TYPE_LABELS.TOPUP },
+];
+
+/** "ALL" is not sent to the BE: no `pocket` means every source with no Trả sau debt, exactly the popup before GĐ7. */
+type PocketChoice = MovementPocket | "ALL";
+const POCKET_CHIPS: { value: PocketChoice; label: string }[] = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "WALLET", label: "Thu hộ ví" },
+  { value: "OTHER", label: "Thu-chi hộ khác" },
+];
+
+const POCKET_TITLES: Record<PocketChoice, string> = {
+  ALL: "Biến động số dư khả dụng",
+  WALLET: "Biến động số dư thu hộ ví",
+  OTHER: "Biến động số dư thu-chi hộ khác",
+};
+const POCKET_BALANCE_LABELS: Record<MovementPocket, string> = { WALLET: "Số dư thu hộ ví", OTHER: "Số dư thu-chi hộ khác" };
 
 /** 7 ngày is the default of every Portal screen with figures per day; 90 ngày is the longest preset. */
 const RANGE_CHIPS: { value: MovementRange; label: string }[] = [
@@ -72,17 +102,58 @@ type View = { name: "list" } | { name: "detail"; id: string; label: string };
  * mounted but hidden while a detail is open, which keeps its pages, and the body's scroll position is restored on return.
  * Nothing is fetched until the dialog opens, because the content mounts only while open.
  */
-export function SubBalanceMovementsDialog({ subMerchantId, subCode, subName, availableBalance }: Props) {
+export function SubBalanceMovementsDialog({
+  subMerchantId, subCode, subName, availableBalance, initialPocket, triggerLabel = "Xem biến động số dư", canExport = false, pocketBalances,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ name: "list" });
+  const [pocketChoice, setPocketChoice] = useState<PocketChoice>(initialPocket ?? "ALL");
   const [type, setType] = useState<MovementTypeFilter>("ALL");
+  const [exporting, setExporting] = useState(false);
+  // The failure is remembered with the filter it belongs to, so it disappears as soon as the user changes the filter.
+  const [exportFailure, setExportFailure] = useState<{ key: string; message: string } | null>(null);
   const [range, setRange] = useState<MovementRange>("7d");
   const [custom, setCustom] = useState({ from: "", to: "" });
   const bodyRef = useRef<HTMLDivElement>(null);
   const savedScroll = useRef(0);
 
   const { fromDate, toDate } = movementRangeToDates(range, vnToday(), custom);
-  const subtitle = [subCode, subName, `Số dư khả dụng hiện tại ${formatAmount(availableBalance)}`].filter(Boolean).join(" · ");
+  const pocket = pocketChoice === "ALL" ? undefined : pocketChoice;
+  // The balance in the subtitle follows the chosen source; for a source whose balance the page does not know it is left out
+  // rather than showing the total of another scope.
+  const pocketBalance = pocket ? pocketBalances?.[pocket] : availableBalance;
+  const balanceText = pocket
+    ? (pocketBalance == null ? null : `${POCKET_BALANCE_LABELS[pocket]} hiện tại ${formatBalance(pocketBalance)}`)
+    : `Số dư khả dụng hiện tại ${formatBalance(availableBalance)}`;
+  const subtitle = [subCode, subName, balanceText].filter(Boolean).join(" · ");
+  const typeChips = pocket === "OTHER" ? [...TYPE_CHIPS, ...OTHER_POCKET_CHIPS] : TYPE_CHIPS;
+  const filterKey = [pocketChoice, type, fromDate, toDate].join("|");
+
+  const choosePocket = (next: PocketChoice) => {
+    setPocketChoice(next);
+    // A chi hộ/nạp chip does not exist outside the thu-chi hộ khác pocket: do not leave it selected and invisible.
+    if (next !== "OTHER" && (type === "DISBURSEMENT" || type === "TOPUP")) setType("ALL");
+  };
+
+  const exportCsv = async () => {
+    // The same range rule as the BE (both dates, at most 93 days) so a wrong range never leaves the browser.
+    const rangeError = exportRangeError(fromDate, toDate);
+    if (rangeError) {
+      setExportFailure({ key: filterKey, message: rangeError });
+      return;
+    }
+    setExportFailure(null);
+    setExporting(true);
+    try {
+      await downloadMovementsCsv(subMerchantId, { type, pocket, fromDate, toDate });
+    } catch (error) {
+      // The BE sentence (6334 too many rows, 93 days, ledger unreachable) is already Vietnamese: show it as it is.
+      setExportFailure({ key: filterKey, message: error instanceof Error ? error.message : "Không xuất được file, vui lòng thử lại" });
+    } finally {
+      setExporting(false);
+    }
+  };
+  const exportMessage = exportFailure?.key === filterKey ? exportFailure.message : null;
 
   const openDetail = (id: string, label: string) => {
     savedScroll.current = bodyRef.current?.scrollTop ?? 0;
@@ -102,7 +173,15 @@ export function SubBalanceMovementsDialog({ subMerchantId, subCode, subName, ava
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>Xem biến động số dư</Button>
+      {/* A button that opens on a source names it, so two "Xem biến động" buttons on one page stay distinguishable. */}
+      <Button
+        variant={initialPocket ? "ghost" : "outline"}
+        size={initialPocket ? "sm" : undefined}
+        aria-label={initialPocket ? `${triggerLabel} ${POCKET_TITLES[initialPocket].replace("Biến động số dư ", "")}` : undefined}
+        onClick={() => setOpen(true)}
+      >
+        {triggerLabel}
+      </Button>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent size="full" className="w-full overflow-x-hidden sm:w-[640px]">
           <SheetHeader>
@@ -114,14 +193,15 @@ export function SubBalanceMovementsDialog({ subMerchantId, subCode, subName, ava
                 <SheetTitle className="min-w-0 break-words">{view.label}</SheetTitle>
               </div>
             ) : (
-              <SheetTitle>Biến động số dư khả dụng</SheetTitle>
+              <SheetTitle>{POCKET_TITLES[pocketChoice]}</SheetTitle>
             )}
             <SheetDescription className="break-words">{subtitle}</SheetDescription>
           </SheetHeader>
           <SheetBody ref={bodyRef}>
             <div hidden={view.name === "detail"}>
               <div className="mb-3 grid gap-3">
-                <ChipGroup label="Loại biến động" chips={TYPE_CHIPS} value={type} onChange={setType} />
+                <ChipGroup label="Nguồn số dư" chips={POCKET_CHIPS} value={pocketChoice} onChange={choosePocket} />
+                <ChipGroup label="Loại biến động" chips={typeChips} value={type} onChange={setType} />
                 <ChipGroup label="Khoảng thời gian" chips={RANGE_CHIPS} value={range} onChange={setRange} />
                 {range === "custom" ? (
                   <div className="flex flex-wrap items-end gap-3">
@@ -133,10 +213,18 @@ export function SubBalanceMovementsDialog({ subMerchantId, subCode, subName, ava
                     </div>
                   </div>
                 ) : null}
+                {canExport ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" size="sm" leftIcon={<Download className="h-4 w-4" aria-hidden="true" />} isLoading={exporting} onClick={() => void exportCsv()}>
+                      Xuất CSV
+                    </Button>
+                    {exportMessage ? <p role="alert" className="min-w-0 break-words text-sm text-danger">{exportMessage}</p> : null}
+                  </div>
+                ) : null}
               </div>
-              <MovementList subMerchantId={subMerchantId} filter={{ type, fromDate, toDate }} onSelect={(movement) => openDetail(movement.id, movement.label)} />
+              <MovementList subMerchantId={subMerchantId} filter={{ type, pocket, fromDate, toDate }} onSelect={(movement) => openDetail(movement.id, movement.label)} />
             </div>
-            {view.name === "detail" ? <MovementDetail subMerchantId={subMerchantId} operationId={view.id} /> : null}
+            {view.name === "detail" ? <MovementDetail subMerchantId={subMerchantId} operationId={view.id} pocket={pocket} /> : null}
           </SheetBody>
         </SheetContent>
       </Sheet>

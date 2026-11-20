@@ -8,7 +8,11 @@ import type { SubBalanceReport } from "@/features/sub-balances/types";
 import { pageSchema } from "@/lib/be/envelope";
 import { ok } from "@/lib/http/result";
 import { movementDetailSchema, movementSchema } from "@/features/sub-balances/movement-schemas";
-import type { MovementDetail, MovementFilter, MovementListResult } from "@/features/sub-balances/movement-types";
+import type { MovementDetail, MovementExportFilter, MovementFilter, MovementListResult, MovementPocket } from "@/features/sub-balances/movement-types";
+import { readAccessToken } from "@/lib/auth/session-cookies";
+import { getServerEnv } from "@/lib/env/server";
+import { classifyFetchError, toBeError } from "@/lib/be/errors";
+import { fail } from "@/lib/http/result";
 
 // Merchant Portal endpoint: the BE reads the ledger on every call and answers 503 when it cannot,
 // and 404 for a Sub outside the session scope.
@@ -32,7 +36,7 @@ export async function listSubBalanceMovements(subMerchantId: string, filter: Mov
   const result = await merchantClient().get({
     path: `${SUB_BALANCES}/${encodeURIComponent(subMerchantId)}/movements`,
     schema: movementPageSchema,
-    query: { type: filter.type, fromDate: filter.fromDate, toDate: filter.toDate, page: filter.page, size: filter.size },
+    query: { type: filter.type, pocket: filter.pocket, fromDate: filter.fromDate, toDate: filter.toDate, page: filter.page, size: filter.size },
   });
   if (!result.success) return result;
   const page = result.data;
@@ -48,9 +52,44 @@ export async function listSubBalanceMovements(subMerchantId: string, filter: Mov
 }
 
 /** One movement with its breakdown lines; the BE answers 404 for an operation that is not this Sub's. */
-export function getSubBalanceMovement(subMerchantId: string, operationId: string): Promise<BeResult<MovementDetail>> {
+export function getSubBalanceMovement(subMerchantId: string, operationId: string, pocket?: MovementPocket): Promise<BeResult<MovementDetail>> {
   return merchantClient().get({
     path: `${SUB_BALANCES}/${encodeURIComponent(subMerchantId)}/movements/${encodeURIComponent(operationId)}`,
     schema: movementDetailSchema,
+    // Same pocket as the list the row was clicked in, so the amount and balance match the row.
+    query: { pocket },
+  });
+}
+
+export type CsvFile = { body: ArrayBuffer; contentType: string; contentDisposition: string | null };
+
+/**
+ * CSV biến động của một Sub (quyền `EXPORT_BALANCE`, khoảng ngày ≤ 93 ngày, ≤ 10.000 dòng do BE kiểm). Byte CSV (BOM, CRLF) và hai
+ * header `Content-Type`/`Content-Disposition` của BE được giữ nguyên, không đọc lại nội dung; lỗi (400, 6334, 503) là BeResult thất bại.
+ * BE đọc sổ cái nhiều lần cho file lớn nên hạn riêng dài hơn đọc JSON.
+ */
+export async function exportSubBalanceMovements(subMerchantId: string, filter: MovementExportFilter): Promise<BeResult<CsvFile>> {
+  const token = await readAccessToken();
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(filter)) if (value) query.set(key, String(value));
+  let response: Response;
+  try {
+    response = await fetch(`${getServerEnv().MERCHANT_BASE_URL}${SUB_BALANCES}/${encodeURIComponent(subMerchantId)}/movements/export?${query}`, {
+      headers: { Accept: "text/csv, application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      cache: "no-store",
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    const failure = classifyFetchError(error);
+    return fail(failure, failure.code);
+  }
+  if (!response.ok) {
+    const failure = toBeError(response.status, await response.json().catch(() => undefined));
+    return fail(failure, failure.code);
+  }
+  return ok({
+    body: await response.arrayBuffer(),
+    contentType: response.headers.get("content-type") ?? "text/csv; charset=utf-8",
+    contentDisposition: response.headers.get("content-disposition"),
   });
 }

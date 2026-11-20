@@ -37,7 +37,11 @@ export default async function SubBalancesPage({ searchParams }: Props) {
   return (
     <Shell title={title} picker={<SubMerchantPicker choices={choices.data} value={subMerchantId} />}>
       {report.success ? (
-        <SubBalanceView report={report.data} canWithdraw={hasPermission(user.permissions, "CREATE_WITHDRAWAL")} />
+        <SubBalanceView
+          report={report.data}
+          canWithdraw={hasPermission(user.permissions, "CREATE_WITHDRAWAL")}
+          canExport={hasPermission(user.permissions, "EXPORT_BALANCE")}
+        />
       ) : (
         <ServerResultState state="error" message={subBalanceErrorMessage(report.error)} />
       )}

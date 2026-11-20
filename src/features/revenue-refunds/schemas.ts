@@ -34,6 +34,9 @@ export const revenueRefundSchema = z.object({
   subMerchantName: z.string().nullish(),
   terminalCode: z.string().nullish(),
   terminalType: z.string().nullish(),
+  // CC-05 (19/11): ngăn tiền hoàn bị trừ và nhãn "Nguồn hoàn" do BE viết; null với yêu cầu hoàn cũ.
+  fundingPocket: z.enum(["WALLET", "OTHER"]).nullish().catch(null),
+  fundingPocketLabel: z.string().nullish(),
 });
 
 /**

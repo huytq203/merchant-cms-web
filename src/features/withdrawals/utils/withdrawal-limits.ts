@@ -1,10 +1,13 @@
 import { formatAmount } from "@/lib/utils/helper";
-import type { WithdrawalBalance } from "../schemas/withdrawal.schema";
+import type { PocketWithdrawalView, WithdrawalBalance } from "../schemas/withdrawal.schema";
 
 type Limits = Pick<
   WithdrawalBalance,
   "readyAmount" | "dailyLimitRemaining" | "dailyCountRemaining" | "minimumAmount" | "maximumAmount"
 > & Partial<Pick<WithdrawalBalance, "automaticSettlement" | "blocker" | "blockerMessage" | "netReceived">>;
+
+/** Không có khoản nào để rút (cũng là câu của từng nguồn tiền khi ngăn trống). */
+export const NOTHING_READY_BLOCKER = "Chưa có khoản nào sẵn sàng để rút";
 
 /** BE `FEE_EXCEEDS_REMAINDER`: after the escrow setoff, what is left cannot pay the withdrawal fee; BE refuses the request. */
 export const FEE_EXCEEDS_REMAINDER_BLOCKER = "Số tiền còn lại sau cấn trừ ký quỹ không đủ trả phí rút";
@@ -39,7 +42,7 @@ export function withdrawalBlocker(balance: Limits | undefined): string | null {
   // Checked first: no amount rule matters when manual requests are not accepted at all.
   if (balance.automaticSettlement) return AUTOMATIC_SETTLEMENT_BLOCKER;
   const { readyAmount } = balance;
-  if (readyAmount <= 0) return "Chưa có khoản nào sẵn sàng để rút";
+  if (readyAmount <= 0) return NOTHING_READY_BLOCKER;
   // BE says up front that it would refuse the request (setoff leaves too little for the fee). An older BE that does not
   // send `blocker` shows the same case as a negative net. A net of exactly 0 is not blocked: it is confirmed on step 2.
   if (balance.blocker) return balance.blockerMessage || FEE_EXCEEDS_REMAINDER_BLOCKER;
@@ -56,5 +59,17 @@ export function withdrawalBlocker(balance: Limits | undefined): string | null {
   if (balance.dailyLimitRemaining !== null && readyAmount > balance.dailyLimitRemaining) {
     return `Số tiền sẵn sàng rút vượt hạn mức rút còn lại hôm nay ${formatAmount(balance.dailyLimitRemaining)}`;
   }
+  return null;
+}
+
+/**
+ * Vì sao một nguồn tiền (ngăn) không chọn được, bằng câu merchant đọc; null = chọn được. BE đang chặn (`blocker`, ví dụ
+ * dư nợ Trả sau phủ hết khả dụng) thì hiện nguyên câu của BE; không có gì để rút thì dùng câu chung của màn rút.
+ */
+export function pocketChoiceBlocker(
+  view: Pick<PocketWithdrawalView, "withdrawableAmount" | "blocker" | "blockerMessage">,
+): string | null {
+  if (view.blocker) return view.blockerMessage || "Chưa thể rút từ nguồn tiền này";
+  if (view.withdrawableAmount <= 0) return NOTHING_READY_BLOCKER;
   return null;
 }

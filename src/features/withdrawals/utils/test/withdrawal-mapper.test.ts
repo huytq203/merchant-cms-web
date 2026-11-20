@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isAwaitingApproval,
+  orderTypeLabel,
+  pocketSourceLabel,
   toReceivingAccount,
   toWithdrawalCreateRequest,
   withdrawalBreakdown,
@@ -94,5 +96,25 @@ describe("withdrawalTitle", () => {
     const base = { bankCode: "VCB", bankAccountMasked: "xxxx1789" };
     expect(withdrawalTitle({ ...base, transactionCode: "WD2601" })).toBe("WD2601");
     expect(withdrawalTitle({ ...base, transactionCode: null })).toBe("Vietcombank xxxx1789");
+  });
+});
+
+// GĐ6 Task 6.11: tên gọi nguồn tiền / loại lệnh.
+describe("pocket labels (GĐ6)", () => {
+  it("pocketLabelLegacyShowsDash: an old request has no pocket, so the order type is a dash", () => {
+    expect(orderTypeLabel({ pocket: null, pocketLabel: null })).toBe("—");
+    expect(orderTypeLabel({ pocket: null, pocketLabel: "   " })).toBe("—");
+    expect(orderTypeLabel({ pocket: "WALLET", pocketLabel: "Yêu cầu chi tiền" })).toBe("Yêu cầu chi tiền");
+  });
+
+  it("falls back to the name FE knows when BE sent a pocket without its label", () => {
+    expect(orderTypeLabel({ pocket: "WALLET", pocketLabel: null })).toBe("Yêu cầu chi tiền");
+    expect(orderTypeLabel({ pocket: "OTHER", pocketLabel: null })).toBe("Lệnh rút");
+  });
+
+  it("names the source of the money by pocket, and a dash when there is none", () => {
+    expect(pocketSourceLabel("WALLET")).toBe("Số dư thu hộ ví");
+    expect(pocketSourceLabel("OTHER")).toBe("Số dư thu-chi hộ khác");
+    expect(pocketSourceLabel(null)).toBe("—");
   });
 });
