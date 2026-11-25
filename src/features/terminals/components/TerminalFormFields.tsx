@@ -106,7 +106,6 @@ export function TerminalIdentityFields({ values, errors, change, detail }: Props
                 onChange={(value) => change("province", typeof value === "string" ? value : "")}
                 error={errors.province}
               />
-              {errors.province && <p role="alert" className="text-xs text-danger">{errors.province}</p>}
             </div>
           </>
         )}

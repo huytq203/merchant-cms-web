@@ -55,7 +55,8 @@ export function UserBasicFields({ form, isEdit, readOnly, emailError }: Props) {
           />
         )}
       </FormModalField>
-      <FormModalField label="Số điện thoại" required error={issues.phone}>
+      {/* Sửa User cũ chưa có SĐT vẫn được để trống (giữ nguyên), nên chỉ đánh dấu bắt buộc khi tạo mới. */}
+      <FormModalField label="Số điện thoại" required={!isEdit} error={issues.phone}>
         {(control) => (
           <Input
             {...control}

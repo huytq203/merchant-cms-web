@@ -110,3 +110,21 @@ describe("terminal cũ chưa có tỉnh", () => {
     expect(terminalFormSchemaFor(null).safeParse({ ...form, province: "" }).success).toBe(false);
   });
 });
+
+describe("terminal QR cũ chưa có địa chỉ", () => {
+  const legacy = { terminalType: "QR", address: null, province: null } as TerminalDetail;
+  const legacyForm = { ...form, terminalType: "QR" as const, address: "", province: "" };
+
+  it("vẫn lưu được khi chỉ sửa trường khác", () => {
+    expect(terminalFormSchemaFor(legacy).safeParse({ ...legacyForm, name: "Tên mới" }).success).toBe(true);
+  });
+
+  it("bắt nhập địa chỉ khi đổi loại sang POS", () => {
+    const messages = messagesOf(terminalFormSchemaFor(legacy).safeParse({ ...legacyForm, terminalType: "POS" }));
+    expect(messages).toContain("Terminal POS/QR cần địa chỉ điểm bán");
+  });
+
+  it("vẫn bắt địa chỉ khi tạo mới", () => {
+    expect(terminalFormSchemaFor(null).safeParse(legacyForm).success).toBe(false);
+  });
+});

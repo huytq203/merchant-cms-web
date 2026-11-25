@@ -89,7 +89,8 @@ export const scopeProposalFormSchema = z.object({
 });
 
 /** Gộp khoảng trắng liên tiếp và cắt hai đầu, giống bước chuẩn hóa của BE. */
-const collapseSpaces = (value: string) => value.trim().replace(/\s+/g, " ");
+// NFC trước: tên dán từ macOS/Excel hay ở dạng NFD (chữ + dấu tổ hợp), regex chữ cái sẽ coi dấu là ký tự lạ.
+const collapseSpaces = (value: string) => value.normalize("NFC").trim().replace(/\s+/g, " ");
 
 /** Viết hoa chữ cái đầu mỗi từ (giữ nguyên phần còn lại để không làm hỏng tên viết hoa sẵn). */
 export const capitalizeWords = (value: string) =>

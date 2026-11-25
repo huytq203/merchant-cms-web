@@ -11,7 +11,8 @@ const updateSchema = z.object({
   fullName: userFullNameSchema,
   // Vắng hoặc rỗng = giữ nguyên SĐT cũ (User cũ chưa có SĐT vẫn sửa được tên); có giá trị mới thì kiểm đầy đủ.
   // Rỗng hoặc chỉ khoảng trắng bị bỏ hẳn (undefined): BE hiểu vắng/null là giữ nguyên, còn "" là lỗi.
-  phone: z.string().optional().transform((value) => value?.trim() || undefined).pipe(userPhoneSchema.optional()),
+  // null cũng là "giữ nguyên" theo contract BE.
+  phone: z.string().nullish().transform((value) => value?.trim() || undefined).pipe(userPhoneSchema.optional()),
 });
 
 export async function GET(_request: Request, context: Context) {
@@ -28,7 +29,10 @@ export async function PUT(request: Request, context: Context) {
   const access = await requireUserAccess();
   if (!access.ok) return access.response;
   const body = updateSchema.safeParse(await request.json().catch(() => null));
-  if (!body.success) return NextResponse.json({ message: "Dữ liệu không hợp lệ" }, { status: 400 });
+  if (!body.success) {
+    // Trả câu lỗi đầu tiên của schema (tiếng Việt) giống route tạo User, để form hiện đúng nguyên nhân.
+    return NextResponse.json({ message: body.error.issues[0]?.message ?? "Dữ liệu không hợp lệ" }, { status: 400 });
+  }
   const { id } = await context.params;
   const invalidId = invalidIdResponse(id);
   if (invalidId) return invalidId;

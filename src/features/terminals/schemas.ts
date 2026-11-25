@@ -63,8 +63,12 @@ export function terminalFormSchemaFor(baseline?: Baseline) {
       const address = normalize(value.address);
       const addressChanged = !baseline || address !== normalize(baseline.address);
       const typeChanged = !baseline || value.terminalType !== baseline.terminalType;
+      // Giống BE: Terminal QR cũ chưa có địa chỉ chỉ bị bắt nhập khi tạo mới, đổi địa chỉ hoặc đổi loại,
+      // để merchant vẫn sửa được tên, ghi chú… mà không phải bổ sung địa chỉ.
       if (!address) {
-        context.addIssue({ code: "custom", path: ["address"], message: "Terminal POS/QR cần địa chỉ điểm bán" });
+        if (addressChanged || typeChanged) {
+          context.addIssue({ code: "custom", path: ["address"], message: "Terminal POS/QR cần địa chỉ điểm bán" });
+        }
       } else if (addressChanged && address.length > TERMINAL_ADDRESS_MAX) {
         context.addIssue({ code: "custom", path: ["address"], message: "Địa chỉ tối đa 200 ký tự" });
       }
