@@ -50,4 +50,19 @@ describe("merchant user PUT route", () => {
     const request = new Request(`http://localhost${new URL(base).pathname}`, { method: "PUT", body: JSON.stringify({ fullName: "Tên Mới", phone: "123" }) });
     expect((await PUT(request, { params: Promise.resolve({ id }) })).status).toBe(400);
   });
+
+  it.each(["", "   "])("drops an empty phone (%j) instead of forwarding it to the BE", async (phone) => {
+    let sent: Record<string, unknown> | undefined;
+    mswServer.use(
+      http.get(base, () => HttpResponse.json({ success: true, message: "success", detail: "Get success", data: detail })),
+      http.put(base, async ({ request: incoming }) => {
+        sent = (await incoming.json()) as Record<string, unknown>;
+        return HttpResponse.json({ success: true, message: "success", detail: "Update success", data: { id } });
+      }),
+    );
+    const request = new Request(`http://localhost${new URL(base).pathname}`, { method: "PUT", body: JSON.stringify({ fullName: "Tên Mới", phone }) });
+    expect((await PUT(request, { params: Promise.resolve({ id }) })).status).toBe(200);
+    expect(sent).toBeDefined();
+    expect(sent).not.toHaveProperty("phone");
+  });
 });

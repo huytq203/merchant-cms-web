@@ -10,7 +10,8 @@ const updateSchema = z.object({
   // Cùng luật họ tên/SĐT với form tạo (C-U2); BE cũng kiểm lại.
   fullName: userFullNameSchema,
   // Vắng hoặc rỗng = giữ nguyên SĐT cũ (User cũ chưa có SĐT vẫn sửa được tên); có giá trị mới thì kiểm đầy đủ.
-  phone: z.union([z.literal(""), userPhoneSchema]).optional(),
+  // Rỗng hoặc chỉ khoảng trắng bị bỏ hẳn (undefined): BE hiểu vắng/null là giữ nguyên, còn "" là lỗi.
+  phone: z.string().optional().transform((value) => value?.trim() || undefined).pipe(userPhoneSchema.optional()),
 });
 
 export async function GET(_request: Request, context: Context) {
