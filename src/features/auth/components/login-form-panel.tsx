@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import type { Route } from "next";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -16,7 +17,15 @@ import {
   useVerifyOtpMutation,
 } from "@/features/auth/hooks/use-login-mutations";
 import type { LoginInput } from "@/features/auth/schemas";
+import {
+  CHANGE_PASSWORD_EXPIRED_MESSAGE,
+  CHANGE_PASSWORD_EXPIRED_REASON,
+  PASSWORD_CHANGED_MESSAGE,
+  PASSWORD_CHANGED_REASON,
+  saveChangePasswordTicket,
+} from "@/features/auth/utils/change-password-ticket";
 import { safeCallback } from "@/features/auth/utils/safe-callback";
+import { CHANGE_PASSWORD_PATH } from "@/lib/auth/auth-routing";
 
 interface LoginFormPanelProps {
   onForgotPassword: () => void;
@@ -24,7 +33,14 @@ interface LoginFormPanelProps {
 
 export function LoginFormPanel({ onForgotPassword }: LoginFormPanelProps) {
   const router = useRouter();
-  const callbackUrl = safeCallback(useSearchParams().get("callbackUrl"));
+  const searchParams = useSearchParams();
+  const callbackUrl = safeCallback(searchParams.get("callbackUrl"));
+  // The change-password page sends the user back here when its one-time ticket ran out.
+  const reason = searchParams.get("reason");
+  const expiredNotice =
+    reason === CHANGE_PASSWORD_EXPIRED_REASON ? CHANGE_PASSWORD_EXPIRED_MESSAGE
+    : reason === PASSWORD_CHANGED_REASON ? PASSWORD_CHANGED_MESSAGE
+    : null;
 
   const login = useLoginMutation();
   const verify = useVerifyOtpMutation();
@@ -32,7 +48,7 @@ export function LoginFormPanel({ onForgotPassword }: LoginFormPanelProps) {
 
   const [challenge, setChallenge] = React.useState<OtpChallengeView | null>(null);
   const [otpVersion, setOtpVersion] = React.useState(0);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(expiredNotice);
   const [noticeMessage, setNoticeMessage] = React.useState<string | null>(null);
 
   async function handleLogin(values: LoginInput) {
@@ -48,6 +64,12 @@ export function LoginFormPanel({ onForgotPassword }: LoginFormPanelProps) {
     setNoticeMessage(null);
     const result = await verify.mutateAsync({ requestId: challenge.requestId, otp });
     if (!result.success) return setError(result.error);
+    if (result.data.mustChangePassword) {
+      // Temporary password: no session yet. The ticket goes to sessionStorage and the user must pick a new password.
+      saveChangePasswordTicket(result.data.ticket, result.data.ticketExpiresInSeconds);
+      router.replace(CHANGE_PASSWORD_PATH as Route);
+      return;
+    }
     router.replace(callbackUrl);
     router.refresh();
   }

@@ -15,12 +15,12 @@ describe("getResetPasswordBlock", () => {
     expect(getResetPasswordBlock({ id: actorId, ...active }, actorId)).toBeTruthy();
   });
 
-  it("blocks locked and pending users with a reason each", () => {
-    const lockedBlock = getResetPasswordBlock({ id: "other", ...locked }, actorId);
-    const pendingBlock = getResetPasswordBlock({ id: "other", ...pending }, actorId);
-    expect(lockedBlock).toBeTruthy();
-    expect(pendingBlock).toBeTruthy();
-    expect(lockedBlock).not.toBe(pendingBlock);
+  it("allows a pending user: the reset resends the activation mail", () => {
+    expect(getResetPasswordBlock({ id: "other", ...pending }, actorId)).toBeUndefined();
+  });
+
+  it("blocks a locked user until they are unlocked", () => {
+    expect(getResetPasswordBlock({ id: "other", ...locked }, actorId)).toBeTruthy();
   });
 });
 

@@ -3,12 +3,11 @@ import { userStatusOf } from "./user-view";
 
 type UserIdentity = Pick<MerchantUser, "id" | "active" | "locked">;
 
-/** Why the actor cannot reset this user's password, or undefined when allowed. */
+/** Why the actor cannot reset this user's password, or undefined when allowed. A pending user is allowed: the reset resends the activation mail. */
 export function getResetPasswordBlock(user: UserIdentity, actorId: string): string | undefined {
   if (user.id === actorId) return "Bạn không thể đặt lại mật khẩu của chính mình.";
   const status = userStatusOf(user);
   if (status === "LOCKED") return "Tài khoản đang bị khóa. Mở khóa trước khi đặt lại mật khẩu.";
-  if (status === "PENDING") return "Chỉ đặt lại được cho tài khoản đang hoạt động.";
   return undefined;
 }
 

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button/Button";
 import { useUsers, type UserFilter } from "../user-queries";
 import type { UserDialogsState } from "../hooks/use-user-dialogs";
 import { UserTable } from "./UserTable";
-import { userStatusOf } from "../utils/user-view";
 
 type Props = {
   filter: UserFilter;
@@ -48,7 +47,7 @@ export function UserResults({ filter, actorId, openFor, onPageChange, onAdd }: P
           onEdit={(user) => openFor("edit", user)}
           onLock={(user) => openFor("lock", user)}
           onUnlock={(user) => openFor("unlock", user)}
-          onReset={(user) => openFor(userStatusOf(user) === "PENDING" ? "resend" : "reset", user)}
+          onReset={(user) => openFor("reset", user)}
         />
       )}
     </ResultCard>

@@ -17,6 +17,14 @@ describe("toBeError", () => {
     });
   });
 
+  it.each([
+    ["CHANGE_PASSWORD_TICKET_INVALID", "2020", "Phiên đổi mật khẩu đã hết hạn, vui lòng đăng nhập lại."],
+    ["TEMP_PASSWORD_EXPIRED", "2019", "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ quản trị viên để đặt lại mật khẩu."],
+  ])("takes the code from the enum in message, not from the numeric status field (%s)", (code, numeric, detail) => {
+    const error = toBeError(400, { success: false, status: numeric, message: code, detail });
+    expect(error).toEqual({ status: 400, code, message: detail });
+  });
+
   it("reads errorCode, message and field details from an ErrorResponse", () => {
     const error = toBeError(400, {
       status: 400,

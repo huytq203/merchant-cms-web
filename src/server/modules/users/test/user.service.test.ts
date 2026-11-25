@@ -162,19 +162,24 @@ describe("merchant user service", () => {
     expect(bodies).toEqual([{ reason: "Reason for lock" }, { ids: [groupId] }]);
   });
 
-  it("resets a password with no request body and never returns the BE payload", async () => {
+  it("resets a password with no request body and returns only mode and emailSent", async () => {
     const captured: { body?: string } = {};
     mswServer.use(http.post(`${path}/${id}/reset-password`, async ({ request }) => {
       captured.body = await request.text();
-      return HttpResponse.json(envelope({ ...user, password: "secret" }));
+      return HttpResponse.json(envelope({ userId: id, mode: "TEMP_PASSWORD", emailSent: true, password: "secret" }));
     }));
-    expect(await resetUserPassword(id)).toEqual({ success: true, data: { success: true } });
+    expect(await resetUserPassword(id)).toEqual({ success: true, data: { mode: "TEMP_PASSWORD", emailSent: true } });
     expect(captured.body).toBe("");
   });
 
-  it("does not fail when the BE reset response has no user payload", async () => {
+  it.each(["TEMP_PASSWORD", "RESET_LINK", "ACTIVATION_RESENT"] as const)("passes %s with a failed mail through", async (mode) => {
+    mswServer.use(http.post(`${path}/${id}/reset-password`, () => HttpResponse.json(envelope({ userId: id, mode, emailSent: false }))));
+    expect(await resetUserPassword(id)).toEqual({ success: true, data: { mode, emailSent: false } });
+  });
+
+  it("treats an old BE reply with no payload as a sent reset link", async () => {
     mswServer.use(http.post(`${path}/${id}/reset-password`, () => HttpResponse.json(envelope(null))));
-    expect(await resetUserPassword(id)).toEqual({ success: true, data: { success: true } });
+    expect(await resetUserPassword(id)).toEqual({ success: true, data: { mode: "RESET_LINK", emailSent: true } });
   });
 
   it("gets, approves, and rejects the pending scope proposal nested under its user", async () => {

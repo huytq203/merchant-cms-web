@@ -62,6 +62,18 @@ describe("createBeClient", () => {
     );
   });
 
+  it("redacts the one-time change-password ticket from the development log", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const log = vi.spyOn(console, "dir").mockImplementation(() => undefined);
+    mswServer.use(
+      http.get(`${BASE}/ticket`, () => HttpResponse.json(envelope({ mustChangePassword: true, changePasswordTicket: "tk-secret", ticketExpiresInSeconds: 600 }))),
+    );
+    await client.get({ path: "/ticket", schema: z.object({ mustChangePassword: z.boolean(), changePasswordTicket: z.string(), ticketExpiresInSeconds: z.number() }) });
+    const logged = JSON.stringify(log.mock.calls);
+    expect(logged).not.toContain("tk-secret");
+    expect(logged).toContain("mustChangePassword");
+  });
+
   it("sends the bearer token by default and omits it when auth is false", async () => {
     const seen: (string | null)[] = [];
     mswServer.use(

@@ -5,7 +5,13 @@ export const DASHBOARD_PATH = "/dashboard";
 /** The page the activation and reset-password emails link to. */
 export const SET_PASSWORD_PATH = "/auth/set-password";
 
-const PUBLIC_PATHS: ReadonlySet<string> = new Set([LOGIN_PATH, SET_PASSWORD_PATH]);
+/**
+ * Forced change of a temporary password after login. Public on purpose: the user holds only a
+ * one-time ticket, no session, so every other route still sends them back to the login page.
+ */
+export const CHANGE_PASSWORD_PATH = "/auth/change-password";
+
+const PUBLIC_PATHS: ReadonlySet<string> = new Set([LOGIN_PATH, SET_PASSWORD_PATH, CHANGE_PASSWORD_PATH]);
 
 export function decideAuthAction(input: {
   pathname: string;

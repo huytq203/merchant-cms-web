@@ -11,7 +11,6 @@ import type { UserDialogsState } from "../hooks/use-user-dialogs";
 import { UserDetailModal } from "./UserDetailModal";
 import { UserLockDialog } from "./UserLockDialog";
 import { UserModal } from "./UserModal";
-import { UserResendActivationDialog } from "./UserResendActivationDialog";
 import { UserResetPasswordDialog } from "./UserResetPasswordDialog";
 import { UserUnlockDialog } from "./UserUnlockDialog";
 import { userStatusOf } from "../utils/user-view";
@@ -80,7 +79,7 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
         if (reviewId) void commandAction.rejectScopeProposal(reviewId, reason);
       }}
       onReset={() => {
-        if (target) openFor(userStatusOf(target) === "PENDING" ? "resend" : "reset", target);
+        if (target) openFor("reset", target);
       }}
       onToggleLock={() => {
         if (target) openFor(userStatusOf(target) === "LOCKED" ? "unlock" : "lock", target);
@@ -92,7 +91,7 @@ function UserDetailDialog({ dialogs, actions, openFor, actorId, onOpenChange, me
   );
 }
 
-function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: SectionProps) {
+function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange, merchants }: SectionProps & Pick<Props, "merchants">) {
   const { activeDialog, target } = dialogs;
   const { commandAction } = actions;
 
@@ -118,26 +117,16 @@ function UserCommandDialogs({ dialogs, actions, actorId, onOpenChange }: Section
           if (target) void commandAction.confirm("unlock", target.id);
         }}
       />
-      <UserResendActivationDialog
-        open={activeDialog === "resend"}
-        onOpenChange={onOpenChange}
-        user={target}
-        isPending={commandAction.pending.resendActivation}
-        error={commandAction.error}
-        onConfirm={() => {
-          if (target) void commandAction.confirm("resend-activation", target.id);
-        }}
-      />
       <UserResetPasswordDialog
         open={activeDialog === "reset"}
         onOpenChange={onOpenChange}
         user={target}
         actorId={actorId}
+        merchants={merchants}
         isPending={commandAction.pending.resetPassword}
-        isSuccess={commandAction.isPasswordResetDone}
         error={commandAction.error}
         onConfirm={() => {
-          if (target) void commandAction.requestPasswordReset(target.id);
+          if (target) void commandAction.requestPasswordReset(target);
         }}
       />
     </>
@@ -157,7 +146,7 @@ export function UserDialogs({ dialogs, openFor, actions, merchantId, merchantIds
     <>
       <UserFormDialog {...section} merchantId={merchantId} merchantIds={merchantIds} merchants={merchants} />
       <UserDetailDialog {...section} merchants={merchants} canApproveScope={canApproveScope} />
-      <UserCommandDialogs {...section} />
+      <UserCommandDialogs {...section} merchants={merchants} />
       {/* `?detail=<id>` từ thông báo/push: tải người dùng rồi mở hộp chi tiết ở trên. */}
       <DetailDeepLink query={userQueries.detail} onLoaded={(user) => openFor("detail", user)} />
     </>

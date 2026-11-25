@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/http/api-client";
+import type { PasswordResetResult } from "../schemas/password-reset.schema";
 import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
 
 const root = "/v1/merchant/merchant-users";
@@ -47,16 +48,10 @@ export function useUnlockUser() {
   );
 }
 
+/** No toast here: which one to show depends on `emailSent`, so the caller decides once it has the result. */
 export function useResetUserPassword() {
-  return useUserMutation(async ({ id }: { id: string }) => {
-    await apiClient.post<unknown>(itemPath(id, "/reset-password"));
-    return { success: true as const };
-  });
-}
-
-export function useResendUserActivation() {
   return useUserMutation(({ id }: { id: string }) =>
-    apiClient.post<{ id: string }>(itemPath(id, "/resend-activation"), undefined, toastOf("Đã gửi lại email kích hoạt")),
+    apiClient.post<PasswordResetResult>(itemPath(id, "/reset-password"), undefined, { toast: false }),
   );
 }
 

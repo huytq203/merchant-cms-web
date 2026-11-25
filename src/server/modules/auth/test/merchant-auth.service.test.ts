@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createBeClient } from "@/lib/be/client";
 import { isRefreshRejected } from "@/server/modules/auth/merchant-auth.service";
 import {
+  changeFirstLoginPassword,
   logoutSession,
   refreshTokens,
   refreshTokensOnce,
@@ -141,5 +142,50 @@ describe("refreshTokensOnce", () => {
 
     await refreshTokensOnce("r-same", client);
     expect(calls).toBe(2);
+  });
+});
+
+describe("temporary password first login", () => {
+  const mustChange = { mustChangePassword: true, changePasswordTicket: "tk-1", ticketExpiresInSeconds: 600 };
+
+  it("returns the change-password ticket (and no tokens) when verify-otp asks for a new password", async () => {
+    mswServer.use(http.post(`${AUTH}/login/verify-otp`, () => HttpResponse.json(envelope(mustChange))));
+    const result = await verifyLoginOtp("req-1", "123456", client);
+    expect(result).toMatchObject({ success: true, data: mustChange });
+    expect(result.success && "accessToken" in result.data).toBe(false);
+  });
+
+  it("still returns tokens when the flag is false or absent", async () => {
+    mswServer.use(http.post(`${AUTH}/login/verify-otp`, () => HttpResponse.json(envelope({ ...tokens, mustChangePassword: false }))));
+    expect(await verifyLoginOtp("req-1", "123456", client)).toMatchObject({ success: true, data: tokens });
+  });
+
+  it("posts ticket and both passwords to first-login/change-password without a bearer", async () => {
+    let body: unknown;
+    let auth: string | null = "unset";
+    mswServer.use(
+      http.post(`${AUTH}/first-login/change-password`, async ({ request }) => {
+        body = await request.json();
+        auth = request.headers.get("authorization");
+        return HttpResponse.json(envelope(tokens));
+      }),
+    );
+    const result = await changeFirstLoginPassword({ ticket: "tk-1", newPassword: "MatKhau@2026x", confirmPassword: "MatKhau@2026x" }, client);
+    expect(body).toEqual({ ticket: "tk-1", newPassword: "MatKhau@2026x", confirmPassword: "MatKhau@2026x" });
+    expect(auth).toBeNull();
+    expect(result).toMatchObject({ success: true, data: tokens });
+  });
+
+  it("surfaces the ticket error code and message", async () => {
+    mswServer.use(
+      http.post(`${AUTH}/first-login/change-password`, () =>
+        HttpResponse.json(
+          { success: false, status: "2020", message: "CHANGE_PASSWORD_TICKET_INVALID", detail: "Phiên đổi mật khẩu đã hết hạn, vui lòng đăng nhập lại." },
+          { status: 400 },
+        ),
+      ),
+    );
+    const result = await changeFirstLoginPassword({ ticket: "old", newPassword: "x", confirmPassword: "x" }, client);
+    expect(result).toMatchObject({ success: false, error: { code: "CHANGE_PASSWORD_TICKET_INVALID", message: "Phiên đổi mật khẩu đã hết hạn, vui lòng đăng nhập lại." } });
   });
 });

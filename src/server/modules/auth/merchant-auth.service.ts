@@ -8,9 +8,11 @@ import {
   loginChallengeSchema,
   otpChallengeSchema,
   tokenPairSchema,
+  verifyOtpResultSchema,
   type LoginChallenge,
   type OtpChallenge,
   type TokenPair,
+  type VerifyOtpResult,
 } from "@/server/modules/auth/merchant-auth.dto";
 
 export const MERCHANT_AUTH_PATH = "/api/v1/merchant/auth";
@@ -33,15 +35,34 @@ export function requestLoginOtp(
   });
 }
 
-/** Step 2: exchanges a correct OTP for tokens. */
+/** Step 2: exchanges a correct OTP for tokens, or for a change-password ticket while the password is temporary. */
 export function verifyLoginOtp(
   requestId: string,
   otp: string,
   client: BeClient = identityClient(),
-): Promise<BeResult<TokenPair>> {
+): Promise<BeResult<VerifyOtpResult>> {
   return client.post({
     path: `${MERCHANT_AUTH_PATH}/login/verify-otp`,
     body: { requestId, otp },
+    schema: verifyOtpResultSchema,
+    auth: false,
+  });
+}
+
+export interface FirstLoginPasswordInput {
+  ticket: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Spends the ticket from verify-otp to replace the temporary password; answers with tokens like a normal login. */
+export function changeFirstLoginPassword(
+  input: FirstLoginPasswordInput,
+  client: BeClient = identityClient(),
+): Promise<BeResult<TokenPair>> {
+  return client.post({
+    path: `${MERCHANT_AUTH_PATH}/first-login/change-password`,
+    body: input,
     schema: tokenPairSchema,
     auth: false,
   });

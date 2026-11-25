@@ -1,21 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { ApiError } from "@/lib/http/api-client";
 import type { MerchantUser, UserFormValues } from "../schemas/user.schema";
+import { notifyPasswordReset } from "../utils/password-reset-feedback";
 import { hasSameIds } from "../utils/user-mapper";
 import {
   useAssignUserGroups,
   useCreateUser,
   useLockUser,
-  useResendUserActivation,
   useResetUserPassword,
   useUnlockUser,
   useUpdateUser,
 } from "./use-user-mutations";
 import { useScopeProposalActions } from "./use-scope-proposal-actions";
 
-export type UserCommand = "lock" | "unlock" | "assign-groups" | "resend-activation";
+export type UserCommand = "lock" | "unlock" | "assign-groups";
 
 type UserCommandInput =
   | { command: "lock"; reason: string }
@@ -85,7 +86,6 @@ export function useUserCommandActions(onDone: () => void) {
   const lock = useLockUser();
   const unlock = useUnlockUser();
   const resetPassword = useResetUserPassword();
-  const resendActivation = useResendUserActivation();
   const assignGroups = useAssignUserGroups();
   const [error, setError] = useState<string>();
   const proposal = useScopeProposalActions(setError);
@@ -94,7 +94,6 @@ export function useUserCommandActions(onDone: () => void) {
     try {
       if (command === "lock" && input?.command === "lock") await lock.mutateAsync({ id, reason: input.reason });
       if (command === "unlock") await unlock.mutateAsync({ id });
-      if (command === "resend-activation") await resendActivation.mutateAsync({ id });
       if (command === "assign-groups" && input?.command === "assign-groups") {
         await assignGroups.mutateAsync({ id, groupIds: input.groupIds });
       }
@@ -103,13 +102,20 @@ export function useUserCommandActions(onDone: () => void) {
       setError(messageOf(failure, "Thao tác thất bại"));
     }
   };
-  /** Stays open on success so the dialog can show the result; the caller closes it with "Xong". */
-  const requestPasswordReset = async (id: string) => {
+  /**
+   * Success closes the dialog and reports through a toast (green, or yellow when the mail failed).
+   * A failure keeps the dialog open for a retry and adds a red toast with the BE message.
+   */
+  const requestPasswordReset = async (user: Pick<MerchantUser, "id" | "email">) => {
     setError(undefined);
     try {
-      await resetPassword.mutateAsync({ id });
+      const result = await resetPassword.mutateAsync({ id: user.id });
+      notifyPasswordReset(result, user.email);
+      onDone();
     } catch (failure) {
-      setError(messageOf(failure, "Không gửi được yêu cầu đặt lại mật khẩu"));
+      const message = messageOf(failure, "Không gửi được yêu cầu đặt lại mật khẩu");
+      setError(message);
+      toast.error(message);
     }
   };
 
@@ -125,10 +131,8 @@ export function useUserCommandActions(onDone: () => void) {
       lock: lock.isPending,
       unlock: unlock.isPending,
       resetPassword: resetPassword.isPending,
-      resendActivation: resendActivation.isPending,
       assignGroups: assignGroups.isPending,
     },
-    isPasswordResetDone: resetPassword.isSuccess,
     ...proposal,
     assignGroups,
   };

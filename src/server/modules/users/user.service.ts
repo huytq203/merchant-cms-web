@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pageSchema } from "@/lib/be/envelope";
 import { merchantClient } from "@/lib/be/services";
 import { ok } from "@/lib/http/result";
+import { LEGACY_PASSWORD_RESET_RESULT, passwordResetResultSchema, type PasswordResetResult } from "@/features/users/schemas/password-reset.schema";
 import type { BeResult } from "@/lib/be/client";
 import { assignableGroupSchema, merchantUserSchema, scopeAssignmentResultSchema, scopeChangeResultSchema, scopeProposalSchema, type AssignableGroup, type MerchantUser, type ScopeAssignmentResult, type ScopeChangeResult, type ScopeProposal, type ScopeProposalFormValues, type UserFormValues } from "@/features/users/schemas/user.schema";
 import { toCreateUserRequest, toUpdateUserRequest } from "@/features/users/utils/user-mapper";
@@ -70,10 +71,14 @@ export async function unlockUser(id: string): Promise<BeResult<MerchantUser>> {
   return readAfterWrite(await merchantClient().post({ path: userPaths.unlock(id), schema: writtenUserSchema }));
 }
 
-/** The BE queues the reset itself and takes no body; whatever it returns is dropped so no secret reaches the browser. */
-export async function resetUserPassword(id: string): Promise<BeResult<{ success: true }>> {
-  const result = await merchantClient().post({ path: userPaths.resetPassword(id), schema: z.unknown() });
-  return result.success ? ok({ success: true }) : result;
+/**
+ * The BE takes no body. For an active user it mails a temporary password, for a pending user the
+ * activation mail again; the answer says which and whether the mail went out. Only `mode` and
+ * `emailSent` are kept so no id or secret reaches the browser.
+ */
+export async function resetUserPassword(id: string): Promise<BeResult<PasswordResetResult>> {
+  const result = await merchantClient().post({ path: userPaths.resetPassword(id), schema: passwordResetResultSchema.nullish() });
+  return result.success ? ok(result.data ?? LEGACY_PASSWORD_RESET_RESULT) : result;
 }
 
 export async function assignUserGroups(id: string, groupIds: string[]): Promise<BeResult<MerchantUser>> {

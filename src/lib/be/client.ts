@@ -30,7 +30,7 @@ export interface BeClientOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
-const SENSITIVE_RESPONSE_FIELD = /token|password|secret|otp|^authorization$/i;
+const SENSITIVE_RESPONSE_FIELD = /token|password|secret|otp|ticket|^authorization$/i;
 
 function redactResponseForLog(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactResponseForLog);

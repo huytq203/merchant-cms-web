@@ -3,7 +3,7 @@
 import { loginSchema, otpSchema, type LoginInput } from "@/features/auth/schemas";
 import { writeSessionCookies } from "@/lib/auth/session-cookies";
 import { fail, ok, type Result } from "@/lib/http/result";
-import type { OtpChallenge } from "@/server/modules/auth/merchant-auth.dto";
+import { isMustChangePassword, type OtpChallenge } from "@/server/modules/auth/merchant-auth.dto";
 import { requestLoginOtp, resendOtp, verifyLoginOtp } from "@/server/modules/auth/merchant-auth.service";
 
 export type OtpChallengeView = {
@@ -40,16 +40,31 @@ export async function loginAction(input: LoginInput): Promise<Result<OtpChalleng
   return ok(toView(result.data));
 }
 
-/** Step 2: a correct OTP yields tokens, stored in HTTP-only cookies. */
-export async function verifyLoginOtpAction(input: { requestId: string; otp: string }): Promise<Result<{ redirectTo: string }>> {
+/** What a correct OTP leads to: a session, or the forced change of a temporary password first. */
+export type VerifyOtpOutcome =
+  | { mustChangePassword: false; redirectTo: string }
+  | { mustChangePassword: true; ticket: string; ticketExpiresInSeconds: number };
+
+/**
+ * Step 2: a correct OTP yields tokens, stored in HTTP-only cookies. While the password is temporary
+ * no cookie is set: the one-time ticket goes to the page, which spends it on the change-password step.
+ */
+export async function verifyLoginOtpAction(input: { requestId: string; otp: string }): Promise<Result<VerifyOtpOutcome>> {
   const parsed = otpSchema.safeParse({ otp: input.otp });
   if (!parsed.success || !input.requestId) {
     return fail(parsed.success ? "Phiên xác thực không hợp lệ" : "Mã OTP gồm 6 chữ số", "VALIDATION");
   }
   const result = await verifyLoginOtp(input.requestId, parsed.data.otp);
   if (!result.success) return fail(result.error.message, result.error.code);
+  if (isMustChangePassword(result.data)) {
+    return ok({
+      mustChangePassword: true,
+      ticket: result.data.changePasswordTicket,
+      ticketExpiresInSeconds: result.data.ticketExpiresInSeconds,
+    });
+  }
   await writeSessionCookies(result.data);
-  return ok({ redirectTo: DEFAULT_REDIRECT });
+  return ok({ mustChangePassword: false, redirectTo: DEFAULT_REDIRECT });
 }
 
 export async function resendLoginOtpAction(input: { requestId: string }): Promise<Result<OtpChallengeView>> {

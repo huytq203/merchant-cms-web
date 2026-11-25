@@ -62,9 +62,33 @@ describe("login actions", () => {
     ));
     const { verifyLoginOtpAction } = await load();
     const result = await verifyLoginOtpAction({ requestId: "req-1", otp: "123456" });
-    expect(result).toEqual({ success: true, data: { redirectTo: "/dashboard" } });
+    expect(result).toEqual({ success: true, data: { mustChangePassword: false, redirectTo: "/dashboard" } });
     const names = cookieStore.set.mock.calls.map((call) => call[0]);
     expect(names).toEqual(["access_token", "refresh_token"]);
+  });
+
+  it("shows the Vietnamese BE message when the temporary password has expired", async () => {
+    const message = "Mật khẩu tạm đã hết hạn. Vui lòng liên hệ quản trị viên để đặt lại mật khẩu.";
+    mswServer.use(http.post(`${AUTH}/login`, () =>
+      HttpResponse.json({ success: false, status: "2019", message: "TEMP_PASSWORD_EXPIRED", detail: message }, { status: 401 }),
+    ));
+    const { loginAction } = await load();
+    const result = await loginAction({ email: "a@shop.vn", password: "Tam123!" });
+    expect(result).toMatchObject({ success: false, error: message, code: "TEMP_PASSWORD_EXPIRED" });
+    expect(cookieStore.set).not.toHaveBeenCalled();
+  });
+
+  it("hands back the change-password ticket and sets no cookies when a new password is required", async () => {
+    mswServer.use(http.post(`${AUTH}/login/verify-otp`, () =>
+      HttpResponse.json(envelope({ mustChangePassword: true, changePasswordTicket: "tk-1", ticketExpiresInSeconds: 600 })),
+    ));
+    const { verifyLoginOtpAction } = await load();
+    const result = await verifyLoginOtpAction({ requestId: "req-1", otp: "123456" });
+    expect(result).toEqual({
+      success: true,
+      data: { mustChangePassword: true, ticket: "tk-1", ticketExpiresInSeconds: 600 },
+    });
+    expect(cookieStore.set).not.toHaveBeenCalled();
   });
 
   it("keeps the user on the form and sets no cookies after a wrong OTP", async () => {

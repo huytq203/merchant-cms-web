@@ -131,6 +131,17 @@ describe("user mutations", () => {
     await waitFor(() => expect(listCalls).toBe(2));
   });
 
+  it("returns mode and emailSent from a reset and leaves the toast to the caller", async () => {
+    mswServer.use(http.post(`${base}/${id}/reset-password`, () => HttpResponse.json({ mode: "TEMP_PASSWORD", emailSent: false })));
+    const { result } = await renderMutation(useResetUserPassword);
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.mutation.mutateAsync({ id });
+    });
+    expect(outcome).toEqual({ mode: "TEMP_PASSWORD", emailSent: false });
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it("assigns groups as an id list", async () => {
     const sent = captureBody("post", `${base}/${id}/assign-groups`);
     const { result } = await renderMutation(useAssignUserGroups);

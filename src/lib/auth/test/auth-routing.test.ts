@@ -13,6 +13,8 @@ describe("decideAuthAction", () => {
     ["/login", false, false, "allow"],
     ["/auth/set-password", false, false, "allow"],
     ["/auth/set-password", false, true, "refresh"],
+    ["/auth/change-password", false, false, "allow"],
+    ["/auth/change-password", false, true, "refresh"],
   ])("%s access=%s refresh=%s → %s", (pathname, hasAccessToken, hasRefreshToken, expected) => {
     expect(decideAuthAction({ pathname, hasAccessToken, hasRefreshToken })).toBe(expected);
   });

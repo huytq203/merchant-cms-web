@@ -5,7 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw";
+import { toast } from "sonner";
 import { UserContainer } from "../UserContainer";
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }));
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }), usePathname: () => "/users", useSearchParams: () => new URLSearchParams() }));
@@ -82,6 +85,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
   mswServer.resetHandlers();
   push.mockClear();
 });
@@ -206,30 +210,33 @@ describe("user container", () => {
     expect(await screen.findByText("Đã duyệt")).toBeInTheDocument();
   });
 
-  it("resends the activation mail for a pending user after confirming", async () => {
-    let called = false;
-    mswServer.use(http.post(`${base}/${userId}/resend-activation`, () => {
-      called = true;
-      return HttpResponse.json({ id: userId });
-    }));
-    mswServer.use(http.get(base, () => HttpResponse.json({ rows: [{ ...row, active: false, locked: false }], total: 1 })));
+  it("resets a pending user through the reset dialog: activation mail, green toast, dialog closes", async () => {
+    let resetBody: string | undefined;
+    mswServer.use(
+      http.post(`${base}/${userId}/reset-password`, async ({ request }) => {
+        resetBody = await request.text();
+        return HttpResponse.json({ mode: "ACTIVATION_RESENT", emailSent: true });
+      }),
+      http.get(base, () => HttpResponse.json({ rows: [{ ...row, active: false, locked: false }], total: 1 })),
+    );
     renderWithClient();
     await screen.findByText("Vận hành");
     await userEvent.click(await screen.findByRole("button", { name: /Gửi lại kích hoạt Test User/ }));
     const dialog = await openDialog();
-    expect(dialog.getByText("user@example.com")).toBeInTheDocument();
-    await userEvent.click(dialog.getByRole("button", { name: "Gửi lại email" }));
-    await waitFor(() => expect(called).toBe(true));
+    expect(dialog.getByText("Hệ thống sẽ gửi lại email kích hoạt tới user@example.com.")).toBeInTheDocument();
+    await userEvent.click(dialog.getByRole("button", { name: "Đặt lại mật khẩu" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Đã gửi lại email kích hoạt tới user@example.com"));
+    expect(resetBody).toBe("");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("resets a password with no OTP and no request body, then confirms without showing secrets", async () => {
+  it("resets an active user's password with no OTP and no body: green toast, dialog closes, no secrets shown", async () => {
     let resetBody: string | undefined;
     mswServer.use(http.post(
       `${base}/${userId}/reset-password`,
       async ({ request }) => {
         resetBody = await request.text();
-        return HttpResponse.json({ success: true, password: "secret-value", token: "secret-token" });
+        return HttpResponse.json({ mode: "TEMP_PASSWORD", emailSent: true });
       },
     ));
     await renderReadyContainer();
@@ -237,26 +244,42 @@ describe("user container", () => {
     const dialog = await openDialog();
     expect(dialog.queryByRole("textbox")).not.toBeInTheDocument();
     await userEvent.click(dialog.getByRole("button", { name: "Đặt lại mật khẩu" }));
-    expect(await dialog.findByRole("status")).toHaveTextContent("Đã gửi yêu cầu đặt lại mật khẩu");
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("user@example.com")));
+    expect(toast.warning).not.toHaveBeenCalled();
     expect(resetBody).toBe("");
-    expect(screen.queryByText(/secret-value|secret-token/)).not.toBeInTheDocument();
-    await userEvent.click(dialog.getByRole("button", { name: "Xong" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
-  it("keeps the reset dialog open with an alert and a retry when the BE fails", async () => {
+  it("shows the yellow toast and closes the dialog when the mail could not be sent", async () => {
+    mswServer.use(http.post(`${base}/${userId}/reset-password`, () => HttpResponse.json({ mode: "TEMP_PASSWORD", emailSent: false })));
+    await renderReadyContainer();
+    await userEvent.click(await screen.findByRole("button", { name: /Đặt lại mật khẩu Test User/ }));
+    const dialog = await openDialog();
+    await userEvent.click(dialog.getByRole("button", { name: "Đặt lại mật khẩu" }));
+    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith(
+      "Đặt lại mật khẩu thành công nhưng email gửi thất bại. Vui lòng thử gửi lại hoặc thông báo trực tiếp User.",
+    ));
+    expect(toast.success).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("keeps the reset dialog open with a red toast and a retry when the BE answers 503", async () => {
     let failing = true;
     mswServer.use(http.post(`${base}/${userId}/reset-password`, () => (
-      failing ? HttpResponse.json({ message: "Hệ thống đang bận" }, { status: 503 }) : HttpResponse.json({ success: true })
+      failing
+        ? HttpResponse.json({ message: "Chưa đặt lại được mật khẩu. Vui lòng thử lại." }, { status: 503 })
+        : HttpResponse.json({ mode: "TEMP_PASSWORD", emailSent: true })
     )));
     await renderReadyContainer();
     await userEvent.click(await screen.findByRole("button", { name: /Đặt lại mật khẩu Test User/ }));
     const dialog = await openDialog();
     await userEvent.click(dialog.getByRole("button", { name: "Đặt lại mật khẩu" }));
     expect(await dialog.findByRole("alert")).toHaveTextContent("Chưa gửi được yêu cầu. Hệ thống đang gặp sự cố, thử lại sau ít phút.");
+    expect(toast.error).toHaveBeenCalledWith("Chưa đặt lại được mật khẩu. Vui lòng thử lại.");
     failing = false;
     await userEvent.click(dialog.getByRole("button", { name: "Thử lại" }));
-    expect(await dialog.findByRole("status")).toBeInTheDocument();
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("does not offer reset password on the current user's own row", async () => {
