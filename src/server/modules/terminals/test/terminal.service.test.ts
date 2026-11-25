@@ -11,7 +11,7 @@ const id = "33333333-3333-4333-8333-333333333333";
 const contactPhone = { value: null, source: null, inherited: true, suspended: false };
 const row = { id, tid: "TML000001", name: "Quầy 1", terminalType: "POS", address: "Hà Nội", status: "ACTIVE", subMerchantId, merchantId, contactPhone };
 const detail = { ...row, merchantCode: "M01", contactPerson: null, note: null, typeChangeWarning: null, updatedAt: null };
-const values = { subMerchantId, name: "Quầy 1", terminalType: "POS" as const, address: "Hà Nội", contactPerson: "", inheritContactPhone: true, contactPhone: "", note: "" };
+const values = { subMerchantId, name: "Quầy 1", terminalType: "POS" as const, address: "Hà Nội", province: "Hà Nội", contactPerson: "", inheritContactPhone: true, contactPhone: "", note: "" };
 const envelope = (data: unknown) => ({ success: true, data });
 const page = (content: unknown[], totalElements = content.length) => ({ content, totalElements, totalPages: 1, number: 0, size: 10 });
 

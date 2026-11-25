@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { terminalFormSchema, type TerminalFormValues } from "../schemas";
+import { terminalFormSchemaFor, type TerminalFormValues } from "../schemas";
 import type { TerminalDetail } from "../types";
 import { terminalFormInitialValues } from "../utils/terminal-form";
 
@@ -23,7 +23,7 @@ export function useTerminalForm(
   };
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
-    const parsed = terminalFormSchema.safeParse(values);
+    const parsed = terminalFormSchemaFor(detail).safeParse(values);
     if (!parsed.success) {
       const next: TerminalFormErrors = {};
       for (const issue of parsed.error.issues) {

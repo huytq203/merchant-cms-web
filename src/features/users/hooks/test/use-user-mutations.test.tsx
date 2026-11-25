@@ -24,6 +24,7 @@ const filter = { page: 1, pageSize: 10 };
 const createValues = {
   email: "user@example.com",
   fullName: "Test User",
+  phone: "0912345678",
   groupIds: ["group-1"],
   merchantIds: [],
   subMerchantIds: [],

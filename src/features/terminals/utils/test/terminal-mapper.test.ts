@@ -11,6 +11,11 @@ describe("terminal labels", () => {
     }
   });
 
+  it("labels the lock by source like the Admin CMS", () => {
+    expect(terminalStatusLabel({ status: "INACTIVE", lockSource: "DIRECT" })).toBe("Bị khóa · Khóa riêng");
+    expect(terminalStatusLabel({ status: "INACTIVE", lockSource: "CASCADE" })).toBe("Bị khóa · Khóa theo cấp trên");
+  });
+
   it("keeps a lock-source-less INACTIVE terminal as a direct lock", () => {
     expect(terminalStatusLabel({ status: "INACTIVE", lockSource: null })).toBe(terminalStatusLabel({ status: "INACTIVE", lockSource: "DIRECT" }));
   });

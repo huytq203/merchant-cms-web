@@ -21,6 +21,7 @@ const values: TerminalFormValues = {
   name: "Quầy 1",
   terminalType: "POS",
   address: "Hà Nội",
+  province: "Hà Nội",
   contactPerson: "",
   inheritContactPhone: true,
   contactPhone: "",

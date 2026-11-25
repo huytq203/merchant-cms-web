@@ -20,7 +20,7 @@ const existingUser: MerchantUser = {
   keycloakUserId: "keycloak-user",
   email: "user@example.com",
   fullName: "Test User",
-  phone: null,
+  phone: "0912345678",
   active: true,
   locked: false,
   groups: [groupId],
@@ -83,6 +83,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof UserModal>> = {}
 async function fillRequired() {
   await userEvent.type(screen.getByRole("textbox", { name: /Email/ }), "new@example.com");
   await userEvent.type(screen.getByRole("textbox", { name: /Họ và tên/ }), "New User");
+  await userEvent.type(screen.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
   await userEvent.click(await screen.findByRole("checkbox", { name: "Vận hành" }));
 }
 
@@ -92,7 +93,6 @@ describe("user modal: create", () => {
   it("submits email, name, phone and the chosen group for the whole merchant", async () => {
     const onSubmit = renderModal();
     await fillRequired();
-    await userEvent.type(screen.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
     await submitCreate();
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       email: "new@example.com",
@@ -334,6 +334,7 @@ describe("user modal: scope follows the group level", () => {
   const fillBasics = async () => {
     await userEvent.type(screen.getByRole("textbox", { name: /Email/ }), "new@example.com");
     await userEvent.type(screen.getByRole("textbox", { name: /Họ và tên/ }), "New User");
+    await userEvent.type(screen.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
   };
 
   it("labels each group with its level", async () => {
@@ -382,5 +383,30 @@ describe("user modal: scope follows the group level", () => {
     await screen.findByRole("checkbox", { name: "Quản lí cấp sub" });
     await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
     expect(onSubmit).toHaveBeenCalled();
+  });
+});
+
+describe("user modal: họ tên và SĐT (C-U2)", () => {
+  it("keeps only digits in the phone and capitalizes the name when leaving the field", async () => {
+    renderModal();
+    const phone = screen.getByRole("textbox", { name: /Số điện thoại/ });
+    await userEvent.type(phone, "09a1-2 3456789012");
+    expect(phone).toHaveValue("09123456789");
+    const name = screen.getByRole("textbox", { name: /Họ và tên/ });
+    await userEvent.type(name, "  nguyễn   văn an ");
+    await userEvent.tab();
+    expect(name).toHaveValue("Nguyễn Văn An");
+  });
+
+  it("blocks a submit with a bad name or no phone and shows the contract messages", async () => {
+    const onSubmit = renderModal();
+    await userEvent.type(screen.getByRole("textbox", { name: /Email/ }), "new@example.com");
+    await userEvent.type(screen.getByRole("textbox", { name: /Họ và tên/ }), "An 2");
+    await screen.findByRole("checkbox", { name: "Vận hành" });
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Vận hành" }));
+    await submitCreate();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Họ tên không được chứa số hoặc ký tự đặc biệt.")).toBeInTheDocument();
+    expect(screen.getByText("SĐT phải có 10-11 chữ số.")).toBeInTheDocument();
   });
 });

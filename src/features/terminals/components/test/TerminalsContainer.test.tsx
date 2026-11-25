@@ -123,10 +123,13 @@ describe("terminals container", () => {
     await userEvent.click(within(dialog).getAllByRole("combobox")[0]!);
     await userEvent.click(await screen.findByRole("option", { name: /SM001/ }));
     await userEvent.click(within(dialog).getByRole("button", { name: "Thêm Terminal" }));
-    expect(await within(dialog).findByText("Nhập địa chỉ đặt máy POS")).toBeInTheDocument();
-    await userEvent.type(screen.getByRole("textbox", { name: /Địa chỉ đặt máy POS/ }), "Hà Nội");
+    expect(await within(dialog).findByText("Terminal POS/QR cần địa chỉ điểm bán")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: /Địa chỉ đặt máy POS/ }), "1 Lê Lợi");
+    // Tỉnh/Thành phố chọn từ danh mục có tìm kiếm.
+    await userEvent.type(within(dialog).getByPlaceholderText("Chọn hoặc gõ để tìm tỉnh/thành phố"), "Huế");
+    await userEvent.click(await screen.findByRole("option", { name: "Huế" }));
     await userEvent.click(within(dialog).getByRole("button", { name: "Thêm Terminal" }));
-    await waitFor(() => expect(body).toMatchObject({ subMerchantId, terminalType: "POS", address: "Hà Nội" }));
+    await waitFor(() => expect(body).toMatchObject({ subMerchantId, terminalType: "POS", address: "1 Lê Lợi", province: "Huế" }));
   });
 
   it("hides create, edit, lock and unlock when the session may only view", async () => {

@@ -71,6 +71,14 @@ describe("merchant user service", () => {
     expect(Object.fromEntries(query!)).toEqual({ merchantId, page: "1", size: "10", q: "test" });
   });
 
+  it("drops DRAFT users from the list and from the total", async () => {
+    const draft = { ...user, id: "99999999-9999-4999-8999-999999999999", status: "DRAFT" };
+    mswServer.use(http.get(path, () => HttpResponse.json(envelope({ content: [user, draft], totalElements: 2, totalPages: 1, number: 0, size: 10 }))));
+    const result = await listUsers({ merchantId, page: 1, pageSize: 10 });
+    expect(result).toMatchObject({ success: true, data: { total: 1 } });
+    expect(result.success && result.data.rows.map((row) => row.id)).toEqual([id]);
+  });
+
   it("forwards status, permission group and scope (Master-wide or one Sub) to the BE", async () => {
     let query: URLSearchParams | undefined;
     mswServer.use(http.get(path, ({ request }) => {

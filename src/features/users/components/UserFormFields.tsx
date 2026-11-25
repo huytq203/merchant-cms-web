@@ -4,6 +4,7 @@ import { Lock } from "lucide-react";
 import { FormModalField, FormModalGrid } from "@/components/modal/FormModalField";
 import { Input } from "@/components/ui/input/Input";
 import type { UserForm } from "../hooks/use-user-form";
+import { normalizeFullName } from "../schemas/user.schema";
 
 interface Props {
   form: UserForm;
@@ -44,24 +45,29 @@ export function UserBasicFields({ form, isEdit, readOnly, emailError }: Props) {
           <Input
             {...control}
             placeholder="Ví dụ: Nguyễn Văn An"
-            maxLength={255}
+            maxLength={100}
             autoComplete="off"
             disabled={readOnly}
             value={values.fullName}
             onChange={(event) => setField("fullName", event.target.value)}
+            // Rời ô thì chuẩn hóa: bỏ khoảng trắng thừa và viết hoa chữ đầu mỗi từ.
+            onBlur={() => setField("fullName", normalizeFullName(values.fullName))}
           />
         )}
       </FormModalField>
-      <FormModalField label="Số điện thoại" error={issues.phone}>
+      <FormModalField label="Số điện thoại" required error={issues.phone}>
         {(control) => (
           <Input
             {...control}
             type="tel"
+            inputMode="numeric"
+            maxLength={11}
             placeholder="Ví dụ: 0912345678"
             autoComplete="off"
             disabled={readOnly}
             value={values.phone}
-            onChange={(event) => setField("phone", event.target.value)}
+            // Chỉ nhận chữ số (10-11 số) nên bỏ mọi ký tự khác ngay khi gõ hoặc dán.
+            onChange={(event) => setField("phone", event.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
           />
         )}
       </FormModalField>

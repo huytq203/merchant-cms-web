@@ -1,13 +1,15 @@
 import { invalidIdResponse } from "@/lib/be/route-id";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { userFullNameSchema, userPhoneSchema } from "@/features/users/schemas/user.schema";
 import { updateUser } from "@/server/modules/users/user.service";
 import { requireOwnedUser, requireUserAccess, serviceResponse } from "@/server/modules/users/require-user-access";
 
 type Context = { params: Promise<{ id: string }> };
 const updateSchema = z.object({
-  fullName: z.string().trim().min(1).max(255),
-  phone: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{9,15}$/)]).optional(),
+  // Cùng luật họ tên/SĐT với form tạo (C-U2); BE cũng kiểm lại.
+  fullName: userFullNameSchema,
+  phone: userPhoneSchema,
 });
 
 export async function GET(_request: Request, context: Context) {

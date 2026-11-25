@@ -19,7 +19,7 @@ export const terminalTypeOptions = (Object.keys(terminalTypeLabels) as TerminalT
 
 export const terminalStatusLabels: Record<TerminalStatus, string> = {
   ACTIVE: "Đang hoạt động",
-  INACTIVE: "Đã khóa",
+  INACTIVE: "Bị khóa",
   TERMINATED: "Đã đóng",
 };
 
@@ -28,4 +28,19 @@ export const terminalStatusOptions = (Object.keys(terminalStatusLabels) as Termi
   label: terminalStatusLabels[value],
 }));
 
-export const cascadeLockLabel = "Khóa theo Master";
+/** Nhãn khóa giống Admin CMS: phân biệt khóa trực tiếp trên Terminal với khóa lan từ cấp trên (BE chưa trả rõ Sub hay Master). */
+export const directLockLabel = "Bị khóa · Khóa riêng";
+export const cascadeLockLabel = "Bị khóa · Khóa theo cấp trên";
+
+/** 34 tỉnh/thành sau sáp nhập (07/2025); chép đúng chuỗi và thứ tự của BE, BE từ chối giá trị ngoài danh sách. */
+export const terminalProvinces = [
+  "Hà Nội", "Huế", "Hải Phòng", "Đà Nẵng", "TP. Hồ Chí Minh", "Cần Thơ",
+  "An Giang", "Bắc Ninh", "Cà Mau", "Cao Bằng", "Điện Biên", "Đắk Lắk", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Tĩnh",
+  "Hưng Yên", "Khánh Hòa", "Lai Châu", "Lâm Đồng", "Lạng Sơn", "Lào Cai", "Nghệ An", "Ninh Bình", "Phú Thọ", "Quảng Ngãi",
+  "Quảng Ninh", "Quảng Trị", "Sơn La", "Tây Ninh", "Thái Nguyên", "Thanh Hóa", "Tuyên Quang", "Vĩnh Long",
+] as const;
+
+export const terminalProvinceOptions = terminalProvinces.map((value) => ({ value: value as string, label: value as string }));
+
+/** Địa chỉ điểm bán tối đa 200 ký tự (BE, C-T1). */
+export const TERMINAL_ADDRESS_MAX = 200;

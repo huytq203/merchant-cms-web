@@ -13,6 +13,7 @@ const session = { userId: "actor", merchantIds: [merchantId], subMerchantIds: []
 const body = {
   email: "user@example.com",
   fullName: "Test User",
+  phone: "0912345678",
   groupIds: [groupId],
   merchantIds: [merchantId],
   subMerchantIds: [],

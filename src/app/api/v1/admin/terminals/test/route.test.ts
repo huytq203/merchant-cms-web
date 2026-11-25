@@ -11,7 +11,7 @@ import { GET, POST } from "../route";
 
 const subMerchantId = "11111111-1111-4111-8111-111111111111";
 const session = { subMerchantIds: [subMerchantId], permissions: ["MANAGE_TERMINAL"] };
-const values = { subMerchantId, name: "Quầy", terminalType: "POS", address: "Hà Nội", contactPerson: "", inheritContactPhone: true, contactPhone: "", note: "" };
+const values = { subMerchantId, name: "Quầy", terminalType: "POS", address: "Hà Nội", province: "Hà Nội", contactPerson: "", inheritContactPhone: true, contactPhone: "", note: "" };
 const get = (query = "") => new Request(`http://localhost/api/v1/admin/terminals${query}`);
 const post = (body: unknown) => new Request("http://localhost/api/v1/admin/terminals", { method: "POST", body: JSON.stringify(body) });
 

@@ -29,6 +29,8 @@ const detail: TerminalDetail = {
   note: null,
 };
 
+const provincePlaceholder = "Chọn hoặc gõ để tìm tỉnh/thành phố";
+
 function renderForm(props: Partial<React.ComponentProps<typeof TerminalFormModal>> = {}) {
   mswServer.use(http.get("/api/v1/admin/sub-merchants/choices", () => HttpResponse.json([{ id: subMerchantId, code: "SM001", name: "Halo Tech", status: "ACTIVE" }])));
   const onSubmit = vi.fn().mockResolvedValue(undefined);
@@ -48,13 +50,18 @@ describe("terminal form", () => {
     expect(screen.queryByRole("textbox", { name: /Mã Terminal/ })).not.toBeInTheDocument();
   });
 
-  it("offers the three types as one-tap options and asks for an address only for POS", async () => {
+  it("offers the three types as one-tap options and asks for address and province for POS and QR, not ONLINE", async () => {
     renderForm();
     const types = within(screen.getByRole("group", { name: "Loại Terminal" }));
     expect(types.getByRole("button", { name: "POS" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("textbox", { name: /Địa chỉ đặt máy POS/ })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(provincePlaceholder)).toBeInTheDocument();
     await userEvent.click(types.getByRole("button", { name: "QR" }));
-    expect(screen.queryByRole("textbox", { name: /Địa chỉ đặt máy POS/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Địa chỉ điểm bán/ })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(provincePlaceholder)).toBeInTheDocument();
+    await userEvent.click(types.getByRole("button", { name: "Online" }));
+    expect(screen.queryByRole("textbox", { name: /Địa chỉ/ })).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(provincePlaceholder)).not.toBeInTheDocument();
   });
 
   it("shows each error under its own field", async () => {
@@ -62,7 +69,8 @@ describe("terminal form", () => {
     await userEvent.click(screen.getByRole("button", { name: "Thêm Terminal" }));
     expect(await screen.findByText("Tên Terminal là bắt buộc")).toBeInTheDocument();
     expect(screen.getAllByText("Chọn Sub-merchant")).toHaveLength(2);
-    expect(screen.getByText("Nhập địa chỉ đặt máy POS")).toBeInTheDocument();
+    expect(screen.getByText("Terminal POS/QR cần địa chỉ điểm bán")).toBeInTheDocument();
+    expect(screen.getAllByText("Vui lòng chọn Tỉnh/Thành phố").length).toBeGreaterThan(0);
   });
 
   it("inherits the phone from the Sub-merchant by default and asks for one when 'Nhập riêng' is left empty", async () => {
@@ -83,5 +91,20 @@ describe("terminal form", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
     await userEvent.click(within(screen.getByRole("group", { name: "Loại Terminal" })).getByRole("button", { name: "Online" }));
     expect(screen.getByRole("note")).toHaveTextContent("Đổi loại Terminal có thể ảnh hưởng thiết bị đã gắn.");
+  });
+
+  it("lets only digits into the hand-typed phone, at most 10", async () => {
+    renderForm();
+    await userEvent.click(within(screen.getByRole("group", { name: /Nguồn số điện thoại/ })).getByRole("button", { name: "Nhập riêng" }));
+    const phone = screen.getByRole("textbox", { name: "Số điện thoại" });
+    await userEvent.type(phone, "09a1-2 345678999");
+    expect(phone).toHaveValue("0912345678");
+  });
+
+  it("does not demand a province from an untouched legacy terminal", async () => {
+    const onSubmit = renderForm({ detail: { ...detail, terminalType: "POS", address: "Số 1 Lê Lợi", province: null } });
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    expect(screen.queryByText("Vui lòng chọn Tỉnh/Thành phố")).not.toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalled();
   });
 });

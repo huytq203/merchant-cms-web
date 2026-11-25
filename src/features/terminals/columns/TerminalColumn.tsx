@@ -59,6 +59,7 @@ export function getTerminalColumns(actions: Actions, page: number, pageSize: num
     },
     { accessorKey: "subMerchantName", header: "Sub-merchant" },
     { accessorKey: "address", header: "Địa chỉ", cell: ({ row }) => row.original.address || "—" },
+    { accessorKey: "province", header: "Tỉnh/Thành phố", cell: ({ row }) => row.original.province || "—" },
     {
       id: "txn7d",
       header: "GD 7 ngày",

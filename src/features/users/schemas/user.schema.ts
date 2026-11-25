@@ -15,6 +15,8 @@ export const merchantUserSchema = z.object({
   keycloakUserId: z.string().nullish(),
   email: z.email(),
   fullName: z.string().nullish(),
+  /** Trạng thái BE nếu có (chỉ để nhận ra bản nháp DRAFT của Admin, không hiện ở Portal). */
+  status: z.string().nullish(),
   phone: z.string().nullable(),
   active: z.boolean(),
   locked: z.boolean(),
@@ -86,10 +88,39 @@ export const scopeProposalFormSchema = z.object({
   reason: z.string().trim().min(SCOPE_REASON_MIN_LENGTH, `Nhập tối thiểu ${SCOPE_REASON_MIN_LENGTH} ký tự`).max(500),
 });
 
+/** Gộp khoảng trắng liên tiếp và cắt hai đầu, giống bước chuẩn hóa của BE. */
+const collapseSpaces = (value: string) => value.trim().replace(/\s+/g, " ");
+
+/** Viết hoa chữ cái đầu mỗi từ (giữ nguyên phần còn lại để không làm hỏng tên viết hoa sẵn). */
+export const capitalizeWords = (value: string) =>
+  value.replace(/(^|\s)(\p{L})/gu, (_match, space: string, letter: string) => space + letter.toLocaleUpperCase("vi"));
+
+/** Chuẩn hóa họ tên khi rời ô: gộp khoảng trắng rồi viết hoa chữ đầu mỗi từ. */
+export const normalizeFullName = (value: string) => capitalizeWords(collapseSpaces(value));
+
+/** Họ tên (C-U2): 2-100 ký tự, chỉ chữ cái và khoảng trắng; mỗi lần chỉ báo một câu để form không đè lẫn nhau. */
+export const userFullNameSchema = z
+  .string()
+  .transform(normalizeFullName)
+  .superRefine((value, context) => {
+    if (!value) context.addIssue({ code: "custom", message: "Họ tên không được để trống." });
+    else if (!/^[\p{L} ]+$/u.test(value)) context.addIssue({ code: "custom", message: "Họ tên không được chứa số hoặc ký tự đặc biệt." });
+    else if (value.length < 2 || value.length > 100) context.addIssue({ code: "custom", message: "Họ tên phải từ 2 đến 100 ký tự." });
+  });
+
+/** SĐT bắt buộc (C-U2, SRS 2.8): 10-11 chữ số, bắt đầu 0, số thứ hai từ 3 đến 9. */
+export const userPhoneSchema = z
+  .string()
+  .transform((value) => value.trim())
+  .superRefine((value, context) => {
+    if (!/^\d{10,11}$/.test(value)) context.addIssue({ code: "custom", message: "SĐT phải có 10-11 chữ số." });
+    else if (!/^0[3-9]/.test(value)) context.addIssue({ code: "custom", message: "Đầu số không đúng định dạng VN." });
+  });
+
 export const userFormSchema = z.object({
   email: z.email("Email không hợp lệ"),
-  fullName: z.string().trim().min(1, "Vui lòng nhập họ tên").max(255),
-  phone: z.union([z.literal(""), z.string().regex(/^\+?[0-9]{9,15}$/, "Số điện thoại không hợp lệ")]).optional(),
+  fullName: userFullNameSchema,
+  phone: userPhoneSchema,
   groupIds: z.array(z.string()).min(1, "Vui lòng chọn ít nhất một nhóm quyền"),
   merchantIds: z.array(z.string()).default([]),
   subMerchantIds: z.array(z.string()).default([]),

@@ -4,11 +4,12 @@ import { Lock } from "lucide-react";
 import { InheritableField } from "@/components/form/InheritableField";
 import { SegmentedControl } from "@/components/form/SegmentedControl";
 import { DetailSection } from "@/components/modal/DetailModal";
+import { ComboBox } from "@/components/ui/combobox/ComboBox";
 import { Input } from "@/components/ui/input/Input";
 import { Select } from "@/components/ui/select/Select";
 import { Textarea } from "@/components/ui/textarea/Textarea";
 import { useSubMerchantOptions } from "@/features/sub-merchants/hooks/use-sub-merchant-options";
-import { terminalTypeOptions } from "../constants/terminal.constants";
+import { terminalProvinceOptions, terminalTypeOptions } from "../constants/terminal.constants";
 import type { ChangeTerminalField, TerminalFormErrors } from "../hooks/use-terminal-form";
 import type { TerminalFormValues } from "../schemas";
 import type { TerminalDetail } from "../types";
@@ -83,15 +84,31 @@ export function TerminalIdentityFields({ values, errors, change, detail }: Props
             </p>
           )}
         </div>
-        {values.terminalType === "POS" && (
-          <Input
-            label="Địa chỉ đặt máy POS"
-            placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
-            required
-            value={values.address}
-            error={errors.address}
-            onChange={(event) => change("address", event.target.value)}
-          />
+        {/* ONLINE không có điểm bán nên ẩn cả địa chỉ lẫn tỉnh; POS/QR bắt buộc cả hai. */}
+        {values.terminalType !== "ONLINE" && (
+          <>
+            <Input
+              label={values.terminalType === "POS" ? "Địa chỉ đặt máy POS" : "Địa chỉ điểm bán"}
+              placeholder="Số nhà, đường, phường/xã"
+              required
+              value={values.address}
+              error={errors.address}
+              onChange={(event) => change("address", event.target.value)}
+            />
+            <div className="flex flex-col gap-1.5">
+              <ComboBox
+                label="Tỉnh/Thành phố"
+                required
+                placeholder="Chọn hoặc gõ để tìm tỉnh/thành phố"
+                emptyText="Không tìm thấy tỉnh/thành phố"
+                options={terminalProvinceOptions}
+                value={values.province}
+                onChange={(value) => change("province", typeof value === "string" ? value : "")}
+                error={errors.province}
+              />
+              {errors.province && <p role="alert" className="text-xs text-danger">{errors.province}</p>}
+            </div>
+          </>
         )}
       </div>
     </DetailSection>
@@ -118,9 +135,12 @@ export function TerminalContactFields({ values, errors, change }: Omit<Props, "d
             <Input
               id={id}
               placeholder="Ví dụ: 0912345678"
+              inputMode="numeric"
+              maxLength={10}
               value={values.contactPhone}
               error={errors.contactPhone}
-              onChange={(event) => change("contactPhone", event.target.value)}
+              // Chỉ nhận chữ số (10 số, bắt đầu bằng 0) nên bỏ mọi ký tự khác ngay khi gõ hoặc dán.
+              onChange={(event) => change("contactPhone", event.target.value.replace(/\D/g, "").slice(0, 10))}
             />
           )}
         </InheritableField>

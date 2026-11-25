@@ -63,6 +63,7 @@ function TerminalFields({ detail, onLock, onUnlock }: Pick<Props, "onLock" | "on
             ) : empty}
           </DetailItem>
           {detail.address ? <DetailItem label="Địa chỉ" wide>{detail.address}</DetailItem> : null}
+          {detail.province ? <DetailItem label="Tỉnh/Thành phố">{detail.province}</DetailItem> : null}
           {detail.note ? <DetailItem label="Ghi chú" wide>{detail.note}</DetailItem> : null}
         </DetailList>
       </DetailSection>

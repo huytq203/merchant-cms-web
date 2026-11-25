@@ -35,7 +35,10 @@ export async function listUsers(filter: UserFilter): Promise<BeResult<{ rows: Me
       ...(filter.scope === "MASTER" ? { masterWide: true } : { subMerchantId: filter.scope }),
     },
   });
-  return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
+  if (!result.success) return result;
+  // Bản nháp là của Admin: BE đã lọc, đây là chốt chặn thêm để Portal không bao giờ hiện User DRAFT.
+  const rows = result.data.content.filter((row) => row.status !== "DRAFT");
+  return ok({ rows, total: Math.max(0, result.data.totalElements - (result.data.content.length - rows.length)) });
 }
 
 export function getUser(id: string): Promise<BeResult<MerchantUser>> {

@@ -30,7 +30,7 @@ describe("merchant user PUT route", () => {
     );
     const request = new Request(`http://localhost${new URL(base).pathname}`, {
       method: "PUT",
-      body: JSON.stringify({ fullName: "User", phone: "" }),
+      body: JSON.stringify({ fullName: "User", phone: "0912345678" }),
     });
     const response = await PUT(request, { params: Promise.resolve({ id }) });
     expect(response.status).toBe(200);

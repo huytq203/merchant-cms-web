@@ -115,6 +115,7 @@ describe("user container", () => {
     const dialog = await openDialog();
     await userEvent.type(await dialog.findByRole("textbox", { name: /Email/ }), "new@example.com");
     await userEvent.type(dialog.getByRole("textbox", { name: /Họ và tên/ }), "New User");
+    await userEvent.type(dialog.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
     await userEvent.click(await dialog.findByRole("checkbox", { name: "Vận hành" }));
     await userEvent.click(dialog.getByRole("button", { name: "Thêm người dùng" }));
     await waitFor(() => expect(body).toMatchObject({ email: "new@example.com", fullName: "New User", groupIds: [groupId], subMerchantIds: [] }));
@@ -127,6 +128,7 @@ describe("user container", () => {
     const dialog = await openDialog();
     await userEvent.type(await dialog.findByRole("textbox", { name: /Email/ }), "user@example.com");
     await userEvent.type(dialog.getByRole("textbox", { name: /Họ và tên/ }), "Test User");
+    await userEvent.type(dialog.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
     await userEvent.click(await dialog.findByRole("checkbox", { name: "Vận hành" }));
     await userEvent.click(dialog.getByRole("button", { name: "Thêm người dùng" }));
     await waitFor(() => expect(dialog.getByRole("textbox", { name: /Email/ })).toHaveAccessibleDescription("Email đã tồn tại"));
@@ -292,6 +294,7 @@ describe("user container", () => {
     await userEvent.click(await dialog.findByRole("checkbox", { name: "Kế toán" }));
     await userEvent.clear(dialog.getByRole("textbox", { name: /Họ và tên/ }));
     await userEvent.type(dialog.getByRole("textbox", { name: /Họ và tên/ }), "Renamed User");
+    await userEvent.type(dialog.getByRole("textbox", { name: /Số điện thoại/ }), "0912345678");
     await userEvent.click(dialog.getByRole("button", { name: "Lưu thay đổi" }));
     const alert = await dialog.findByRole("alert");
     expect(alert).toHaveTextContent("Đã cập nhật thông tin");

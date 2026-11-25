@@ -1,5 +1,5 @@
 import type { TerminalFormValues } from "../schemas";
-import { cascadeLockLabel, terminalStatusLabels, terminalTypeLabels } from "../constants/terminal.constants";
+import { cascadeLockLabel, directLockLabel, terminalStatusLabels, terminalTypeLabels } from "../constants/terminal.constants";
 import type { TerminalRow } from "../types";
 
 type LockState = Pick<TerminalRow, "status" | "lockSource">;
@@ -10,7 +10,10 @@ function terminalFields(values: TerminalFormValues) {
   return {
     name: values.name.trim(),
     terminalType: values.terminalType,
-    ...(values.terminalType === "POS" ? { address: values.address.trim() } : {}),
+    // ONLINE không có địa chỉ/tỉnh: không gửi để BE lưu null.
+    ...(values.terminalType !== "ONLINE"
+      ? { address: values.address.trim(), ...(values.province ? { province: values.province } : {}) }
+      : {}),
     contactPerson: optionalText(values.contactPerson),
     inheritContactPhone: values.inheritContactPhone,
     ...(values.inheritContactPhone ? {} : { contactPhone: values.contactPhone.trim() }),
@@ -33,6 +36,6 @@ export const canUnlockTerminal = (node: LockState): boolean =>
 export const terminalTypeLabel = (type: TerminalRow["terminalType"]): string => terminalTypeLabels[type];
 
 export function terminalStatusLabel(node: LockState): string {
-  if (node.status === "INACTIVE" && node.lockSource === "CASCADE") return cascadeLockLabel;
+  if (node.status === "INACTIVE") return node.lockSource === "CASCADE" ? cascadeLockLabel : directLockLabel;
   return terminalStatusLabels[node.status];
 }
