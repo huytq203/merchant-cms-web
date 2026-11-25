@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { z } from "zod";
 import { userFormSchema, type AssignableGroup, type MerchantUser, type UserFormValues } from "../schemas/user.schema";
 import { MIXED_LEVEL_MESSAGE, selectedScopeLevel, type SelectedScopeLevel } from "../utils/group-scope-level";
 
@@ -41,13 +42,18 @@ function effectiveScope(values: UserFormState, level: SelectedScopeLevel, isCrea
   return values.scope;
 }
 
-function validate(values: UserFormState, level: SelectedScopeLevel, isCreate: boolean) {
+function validate(values: UserFormState, level: SelectedScopeLevel, isCreate: boolean, initialPhone: string) {
   const scope = effectiveScope(values, level, isCreate);
   const subMerchantIds = scope === "all" ? [] : values.subMerchantIds;
-  const parsed = userFormSchema.safeParse({
+  // SĐT chỉ bắt buộc khi tạo hoặc khi người dùng nhập giá trị mới. Khi sửa mà ô trống, không đổi, hoặc bị khóa
+  // (tự sửa mình, không gõ được) thì bỏ qua kiểm và không gửi phone, BE giữ nguyên số cũ.
+  const phone = values.phone.trim();
+  const phoneUntouched = !isCreate && (phone === "" || phone === initialPhone);
+  const schema = phoneUntouched ? userFormSchema.extend({ phone: z.string() }) : userFormSchema;
+  const parsed = schema.safeParse({
     email: values.email.trim(),
     fullName: values.fullName,
-    phone: values.phone.trim(),
+    phone: phoneUntouched ? "" : phone,
     groupIds: values.groupIds,
     // Empty for a Sub-only manager (no Master of its own): never send [""].
     merchantIds: values.merchantId ? [values.merchantId] : [],
@@ -87,7 +93,7 @@ export function useUserForm(
   };
   const scopeLevel = selectedScopeLevel(values.groupIds, groups);
   const submit = () => {
-    const result = validate(values, scopeLevel, !user);
+    const result = validate(values, scopeLevel, !user, (user?.phone ?? "").trim());
     setIssues(result.issues);
     if (result.data && Object.keys(result.issues).length === 0) onSubmit(result.data);
   };

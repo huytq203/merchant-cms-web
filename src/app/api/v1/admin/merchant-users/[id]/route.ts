@@ -9,7 +9,8 @@ type Context = { params: Promise<{ id: string }> };
 const updateSchema = z.object({
   // Cùng luật họ tên/SĐT với form tạo (C-U2); BE cũng kiểm lại.
   fullName: userFullNameSchema,
-  phone: userPhoneSchema,
+  // Vắng hoặc rỗng = giữ nguyên SĐT cũ (User cũ chưa có SĐT vẫn sửa được tên); có giá trị mới thì kiểm đầy đủ.
+  phone: z.union([z.literal(""), userPhoneSchema]).optional(),
 });
 
 export async function GET(_request: Request, context: Context) {

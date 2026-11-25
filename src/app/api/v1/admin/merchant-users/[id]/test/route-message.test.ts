@@ -36,4 +36,18 @@ describe("merchant user PUT route", () => {
     expect(response.status).toBe(200);
     expect(decodeURIComponent(response.headers.get("X-Api-Message") ?? "")).toBe("Update success");
   });
+
+  it.each([{ fullName: "Tên Mới" }, { fullName: "Tên Mới", phone: "" }])("saves without a phone (keeps the old one): %j", async (payload) => {
+    mswServer.use(
+      http.get(base, () => HttpResponse.json({ success: true, message: "success", detail: "Get success", data: detail })),
+      http.put(base, () => HttpResponse.json({ success: true, message: "success", detail: "Update success", data: { id } })),
+    );
+    const request = new Request(`http://localhost${new URL(base).pathname}`, { method: "PUT", body: JSON.stringify(payload) });
+    expect((await PUT(request, { params: Promise.resolve({ id }) })).status).toBe(200);
+  });
+
+  it("still rejects a malformed new phone", async () => {
+    const request = new Request(`http://localhost${new URL(base).pathname}`, { method: "PUT", body: JSON.stringify({ fullName: "Tên Mới", phone: "123" }) });
+    expect((await PUT(request, { params: Promise.resolve({ id }) })).status).toBe(400);
+  });
 });

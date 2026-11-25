@@ -410,3 +410,21 @@ describe("user modal: họ tên và SĐT (C-U2)", () => {
     expect(screen.getByText("SĐT phải có 10-11 chữ số.")).toBeInTheDocument();
   });
 });
+
+describe("user modal: SĐT không bắt buộc khi không sửa được (C-U2)", () => {
+  it("saves a legacy user with no phone when only the name changes", async () => {
+    const onSubmit = renderModal({ user: { ...existingUser, phone: null }, actorId: "someone-else" });
+    await userEvent.clear(screen.getByRole("textbox", { name: /Họ và tên/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: /Họ và tên/ }), "Tên Mới");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ fullName: "Tên Mới", phone: "" }));
+  });
+
+  it("still validates a new phone typed while editing", async () => {
+    const onSubmit = renderModal({ user: { ...existingUser, phone: null }, actorId: "someone-else" });
+    await userEvent.type(screen.getByRole("textbox", { name: /Số điện thoại/ }), "0212345678");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText("Đầu số không đúng định dạng VN.")).toBeInTheDocument();
+  });
+});
