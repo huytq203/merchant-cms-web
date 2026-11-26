@@ -23,6 +23,18 @@ describe("ReceivingAccountCard", () => {
     expect(screen.queryByText(/để chi hộ/)).not.toBeInTheDocument();
   });
 
+  it("groups by source of the original order when no refund is chosen", () => {
+    render(<ReceivingAccountCard purpose="HOAN" groupBySource accounts={[
+      { ...account, accountNumber: "0011000654321", accountType: "WALLET_ESCROW" },
+      { ...account, accountType: "COLLECTION_DISBURSEMENT" },
+    ]} />);
+    const wallet = screen.getByRole("heading", { name: "Đơn thanh toán bằng ví FlexPay" }).closest("section") as HTMLElement;
+    const other = screen.getByRole("heading", { name: "Đơn thanh toán bằng nguồn khác" }).closest("section") as HTMLElement;
+    expect(within(wallet).getByText("0011000654321")).toBeInTheDocument();
+    expect(within(other).getByText("0011000123456")).toBeInTheDocument();
+    expect(within(other).getByText("SUB001")).toBeInTheDocument();
+  });
+
   it("says not configured when no account of that purpose exists", () => {
     render(<ReceivingAccountCard accounts={[]} purpose="HOAN" />);
     expect(screen.getByText("Chưa cấu hình tài khoản nhận tiền")).toBeInTheDocument();

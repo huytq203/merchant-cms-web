@@ -10,7 +10,6 @@ type Props = { rows: DisbursementTopup[]; total: number; subId: string; page: nu
 
 const TONES: Record<string, StatusTone> = {
   PENDING_APPROVAL: "warning",
-  APPROVING: "info",
   APPROVED: "success",
   REJECTED: "danger",
   CANCELLED: "neutral",

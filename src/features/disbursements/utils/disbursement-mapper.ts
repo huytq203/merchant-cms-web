@@ -94,12 +94,12 @@ export function balanceSummary(overview: DisbursementOverview): BalanceSummary {
 
 // ------------------------------------------------------------------ nạp tiền
 
+/** SRS (4) STT 19: chỉ 4 trạng thái; đã hạch toán hay chưa nằm ở cột "Hạch toán", không phải trạng thái. DRAFT không hiện ở Portal. */
 const TOPUP_LABELS: Record<string, string> = {
-  PENDING_APPROVAL: "Chờ duyệt",
-  APPROVING: "Đang ghi nhận",
-  APPROVED: "Đã ghi nhận",
+  PENDING_APPROVAL: "Chờ phê duyệt",
+  APPROVED: "Hoàn thành",
   REJECTED: "Từ chối",
-  CANCELLED: "Đã hủy",
+  CANCELLED: "Hủy",
 };
 
 export const TOPUP_STATUS_OPTIONS = Object.entries(TOPUP_LABELS).map(([value, label]) => ({ value, label }));

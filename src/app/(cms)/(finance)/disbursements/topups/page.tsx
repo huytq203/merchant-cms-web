@@ -44,13 +44,12 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
   }
   const status = single(query.status);
   const page = Math.max(1, Number.parseInt(single(query.page) ?? "1", 10) || 1);
-  // Mục đích nạp quyết định TK nhận tiền: mặc định Chi hộ; Hoàn cần kèm giao dịch hoàn (refundId) để biết nguồn tiền.
+  // Mục đích nạp quyết định TK nhận tiền: mặc định Chi hộ; Hoàn kèm giao dịch hoàn (refundId) thì đúng TK theo nguồn, chưa kèm thì chia hai nhóm theo nguồn.
   const purpose: TopupPurpose = single(query.purpose) === "HOAN" ? "HOAN" : "CHI_HO";
   const refundParam = single(query.refundId);
   const refundId = purpose === "HOAN" && refundParam && UUID_PATTERN.test(refundParam) ? refundParam : undefined;
-  const needsRefund = purpose === "HOAN" && !refundId;
   const [accounts, topups] = await Promise.all([
-    needsRefund ? Promise.resolve(null) : listReceivingAccounts(subId, purpose, refundId),
+    listReceivingAccounts(subId, purpose, refundId),
     listDisbursementTopups(subId, { page, pageSize: PAGE_SIZE, ...(status && KNOWN_STATUSES.has(status) ? { status } : {}) }),
   ]);
   return (
@@ -67,10 +66,8 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
           </Link>
         ))}
       </nav>
-      {accounts === null ? (
-        <ServerResultState state="empty" message="Chọn giao dịch hoàn đang chờ nguồn tiền để xem tài khoản nhận tiền nạp." />
-      ) : accounts.success ? (
-        <ReceivingAccountCard accounts={accounts.data} purpose={purpose} />
+      {accounts.success ? (
+        <ReceivingAccountCard accounts={accounts.data} purpose={purpose} groupBySource={purpose === "HOAN" && !refundId} />
       ) : (
         <ServerResultState state="error" message={domainErrorMessage(accounts.error)} />
       )}

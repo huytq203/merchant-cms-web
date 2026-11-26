@@ -7,6 +7,7 @@ import {
   generateRequestCode,
   parseAmountInput,
   summarizeBatch,
+  TOPUP_STATUS_OPTIONS,
   topupStatusLabel,
   validateBatchFile,
 } from "../disbursement-mapper";
@@ -83,11 +84,12 @@ describe("balanceSummary", () => {
 
 describe("topupStatusLabel", () => {
   it("topupStatusLabelsVietnamese", () => {
-    expect(topupStatusLabel("PENDING_APPROVAL")).toBe("Chờ duyệt");
-    expect(topupStatusLabel("APPROVING")).toBe("Đang ghi nhận");
-    expect(topupStatusLabel("APPROVED")).toBe("Đã ghi nhận");
+    expect(topupStatusLabel("PENDING_APPROVAL")).toBe("Chờ phê duyệt");
+    expect(topupStatusLabel("APPROVED")).toBe("Hoàn thành");
     expect(topupStatusLabel("REJECTED")).toBe("Từ chối");
-    expect(topupStatusLabel("CANCELLED")).toBe("Đã hủy");
+    expect(topupStatusLabel("CANCELLED")).toBe("Hủy");
+    // Không còn trạng thái Portal "Đang ghi nhận" (APPROVING) hay Nháp.
+    expect(TOPUP_STATUS_OPTIONS.map((o) => o.value)).toEqual(["PENDING_APPROVAL", "APPROVED", "REJECTED", "CANCELLED"]);
     // Mã BE thêm sau này vẫn hiện được, không rơi thành rỗng.
     expect(topupStatusLabel("NEW_STATUS")).toBe("NEW_STATUS");
   });

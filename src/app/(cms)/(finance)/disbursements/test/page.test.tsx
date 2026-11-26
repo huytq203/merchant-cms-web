@@ -124,15 +124,16 @@ describe("disbursement top-ups page", () => {
       http.get(accountsUrl, () => envelope([{ bankCode: "VCB", bankName: "Vietcombank", accountNumber: "0011223344", accountName: "CONG TY BEAM", subCode: "SUB001" }])),
       http.get(topupsUrl, () => envelope(pageOf([{
         orderCode: "NT001", purpose: "CHI_HO", amount: 2_000_000, transferReference: "FT123", creditedOn: "2026-11-19",
-        status: "Đã ghi nhận", statusCode: "APPROVED", decidedAt: "2026-11-19T05:00:00Z", decisionReason: null,
+        status: "Hoàn thành", statusCode: "APPROVED", accountingStatus: "POSTED", decidedAt: "2026-11-19T05:00:00Z", decisionReason: null,
       }]))),
     );
     await renderTopups();
     expect(screen.getByText("0011223344")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /sao chép/i }).length).toBeGreaterThan(0);
     expect(screen.getByText("NT001")).toBeInTheDocument();
-    // Nhãn "Đã ghi nhận" còn nằm ở bộ lọc nên chỉ xét trong bảng.
-    expect(within(screen.getByRole("table")).getByText("Đã ghi nhận")).toBeInTheDocument();
+    // Nhãn "Hoàn thành" còn nằm ở bộ lọc nên chỉ xét trong bảng; hạch toán ở cột riêng.
+    expect(within(screen.getByRole("table")).getByText("Hoàn thành")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Đã hạch toán")).toBeInTheDocument();
   });
 
   it("asks BE for the accounts of the chosen purpose and refund", async () => {
@@ -148,15 +149,27 @@ describe("disbursement top-ups page", () => {
     expect(seen[0]?.searchParams.get("refundId")).toBe(REFUND);
   });
 
-  it("does not call BE for Hoàn accounts until a refund is chosen", async () => {
-    let called = false;
+  it("Hoàn without a refund shows the accounts in two groups by source of the original order", async () => {
+    const seen: URL[] = [];
     mswServer.use(
-      http.get(accountsUrl, () => { called = true; return envelope([]); }),
+      http.get(accountsUrl, ({ request }) => {
+        seen.push(new URL(request.url));
+        return envelope([
+          { bankCode: "VCB", bankName: "Vietcombank", accountNumber: "0011000654321", accountName: "BEAM VI", subCode: "SUB001", accountType: "WALLET_ESCROW" },
+          { bankCode: "VCB", bankName: "Vietcombank", accountNumber: "0011000123456", accountName: "BEAM THU CHI HO", subCode: "SUB001", accountType: "COLLECTION_DISBURSEMENT" },
+        ]);
+      }),
       http.get(topupsUrl, () => envelope(pageOf([]))),
     );
     render(await TopupsPage({ searchParams: Promise.resolve({ purpose: "HOAN" }) }) as ReactElement);
-    expect(called).toBe(false);
-    expect(screen.getByText(/Chọn giao dịch hoàn đang chờ nguồn tiền/)).toBeInTheDocument();
+    expect(seen[0]?.searchParams.get("purpose")).toBe("HOAN");
+    expect(seen[0]?.searchParams.has("refundId")).toBe(false);
+    const wallet = screen.getByRole("heading", { name: "Đơn thanh toán bằng ví FlexPay" }).closest("section") as HTMLElement;
+    const other = screen.getByRole("heading", { name: "Đơn thanh toán bằng nguồn khác" }).closest("section") as HTMLElement;
+    expect(within(wallet).getByText("0011000654321")).toBeInTheDocument();
+    expect(within(wallet).queryByText("0011000123456")).not.toBeInTheDocument();
+    expect(within(other).getByText("0011000123456")).toBeInTheDocument();
+    expect(within(other).getByText("SUB001")).toBeInTheDocument();
   });
 
   it("denies access without VIEW_DISBURSEMENT", async () => {

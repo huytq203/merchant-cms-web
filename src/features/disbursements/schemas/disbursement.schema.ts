@@ -148,6 +148,8 @@ export const receivingAccountSchema = z.object({
   accountNumber: z.string(),
   accountName: z.string(),
   subCode: z.string().nullish(),
+  /** WALLET_ESCROW (đơn trả bằng ví FlexPay) | COLLECTION_DISBURSEMENT (nguồn khác); BE chia sẵn khi chưa chọn giao dịch hoàn. */
+  accountType: z.string().nullish(),
 });
 
 export const batchValidateResultSchema = z.object({

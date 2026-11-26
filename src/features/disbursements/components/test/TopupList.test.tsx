@@ -6,7 +6,7 @@ import { TopupList } from "../TopupList";
 
 const row = (over: Partial<DisbursementTopup>): DisbursementTopup => ({
   orderCode: "NT001", purpose: "CHI_HO", amount: 1_000_000, transferReference: "FT1", creditedOn: "2026-11-19",
-  status: "Đã ghi nhận", statusCode: "APPROVED", decidedAt: null, decisionReason: null, accountingStatus: "POSTED", ...over,
+  status: "Hoàn thành", statusCode: "APPROVED", decidedAt: null, decisionReason: null, accountingStatus: "POSTED", ...over,
 });
 afterEach(cleanup);
 
@@ -14,7 +14,7 @@ describe("TopupList", () => {
   it("shows the Hạch toán column and never offers a Nháp filter", () => {
     render(<TopupList subId="s" page={1} pageSize={10} total={3} rows={[
       row({}),
-      row({ orderCode: "NT002", statusCode: "APPROVING", accountingStatus: "UNPOSTED" }),
+      row({ orderCode: "NT002", accountingStatus: "UNPOSTED" }),
       row({ orderCode: "NT003", statusCode: "PENDING_APPROVAL", accountingStatus: null }),
     ]} />);
     const table = screen.getByRole("table");
@@ -22,7 +22,9 @@ describe("TopupList", () => {
     expect(within(table).getByText("Đã hạch toán")).toBeInTheDocument();
     expect(within(table).getByText("Chưa hạch toán")).toBeInTheDocument();
     const pending = within(table).getByText("NT003").closest("tr") as HTMLElement;
-    expect(within(pending).getByText("Chờ duyệt")).toBeInTheDocument();
+    expect(within(pending).getByText("Chờ phê duyệt")).toBeInTheDocument();
+    // Cả hai lệnh đã duyệt đều "Hoàn thành"; hạch toán chỉ khác ở cột riêng.
+    expect(within(table).getAllByText("Hoàn thành")).toHaveLength(2);
     expect(screen.queryByText(/Mới tạo|Nháp/)).not.toBeInTheDocument();
   });
 });
