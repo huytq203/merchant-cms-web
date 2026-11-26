@@ -26,4 +26,12 @@ describe("GET /disbursements/receiving-accounts", () => {
     expect((await GET(get(`subId=${SUB}&purpose=TRA_LAI`))).status).toBe(400);
     expect(listReceivingAccounts).not.toHaveBeenCalled();
   });
+
+  it("requires purpose and a subId whenever a refundId is given", async () => {
+    expect((await GET(get(`subId=${SUB}`))).status).toBe(400);
+    expect((await GET(get(`purpose=HOAN&refundId=${REFUND}`))).status).toBe(400);
+    expect(listReceivingAccounts).not.toHaveBeenCalled();
+    expect((await GET(get("purpose=CHI_HO"))).status).toBe(200);
+    expect(listReceivingAccounts).toHaveBeenCalledWith(undefined, "CHI_HO", undefined);
+  });
 });

@@ -6,7 +6,17 @@ import { formatVnDateTime } from "@/lib/utils/vn-time";
 import type { DisbursementTopup } from "../types/types";
 import { TOPUP_STATUS_OPTIONS, topupAccountingLabel, topupPurposeLabel, topupStatusLabel } from "../utils/disbursement-mapper";
 
-type Props = { rows: DisbursementTopup[]; total: number; subId: string; page: number; pageSize: number; status?: string };
+/** Ngữ cảnh mục đích nạp đang xem (tab trên trang): giữ nguyên khi đổi bộ lọc trạng thái hoặc trang. */
+type TopupContext = { purpose?: string; refundId?: string };
+
+type Props = {
+  rows: DisbursementTopup[];
+  total: number;
+  subId: string;
+  page: number;
+  pageSize: number;
+  status?: string;
+} & TopupContext;
 
 const TONES: Record<string, StatusTone> = {
   PENDING_APPROVAL: "warning",
@@ -15,9 +25,11 @@ const TONES: Record<string, StatusTone> = {
   CANCELLED: "neutral",
 };
 
-/** Địa chỉ trang với bộ lọc/trang mới; trang 1 và "tất cả" không ghi ra URL. */
-function href(subId: string, page: number, status?: string): string {
+/** Địa chỉ trang với bộ lọc/trang mới, giữ mục đích nạp và giao dịch hoàn đang xem; trang 1 và "tất cả" không ghi ra URL. */
+export function topupListHref(subId: string, page: number, status: string | undefined, context: TopupContext = {}): string {
   const params = new URLSearchParams({ subMerchantId: subId });
+  if (context.purpose) params.set("purpose", context.purpose);
+  if (context.refundId) params.set("refundId", context.refundId);
   if (status) params.set("status", status);
   if (page > 1) params.set("page", String(page));
   return `/disbursements/topups?${params.toString()}`;
@@ -29,8 +41,10 @@ const chip = "rounded-lg border px-3 py-1.5 text-sm";
  * Lệnh nạp của Sub, chỉ đọc: Merchant chuyển tiền rồi theo dõi Kế toán đã ghi nhận chưa. Không hiện người duyệt nội bộ.
  * Render ở server nên lọc và phân trang là các đường dẫn thường.
  */
-export function TopupList({ rows, total, subId, page, pageSize, status }: Props) {
+export function TopupList({ rows, total, subId, page, pageSize, status, purpose, refundId }: Props) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const context = { purpose, refundId };
+  const href = (nextPage: number, nextStatus?: string) => topupListHref(subId, nextPage, nextStatus, context);
   return (
     <Card padding="md" role="region" aria-labelledby="topup-heading" className="space-y-4">
       <h2 id="topup-heading" className="text-base font-semibold">Lệnh nạp tiền</h2>
@@ -40,8 +54,8 @@ export function TopupList({ rows, total, subId, page, pageSize, status }: Props)
           return (
             <Link
               key={option.value}
-              href={href(subId, 1, option.value || undefined)}
-              aria-current={active ? "true" : undefined}
+              href={href(1, option.value || undefined)}
+              aria-current={active ? "page" : undefined}
               className={`${chip} ${active ? "border-primary bg-secondary font-semibold text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
             >
               {option.label}
@@ -82,9 +96,9 @@ export function TopupList({ rows, total, subId, page, pageSize, status }: Props)
       )}
       {pages > 1 ? (
         <nav aria-label="Phân trang" className="flex items-center justify-end gap-2 text-sm">
-          {page > 1 ? <Link href={href(subId, page - 1, status)} className={`${chip} border-border`}>Trang trước</Link> : null}
+          {page > 1 ? <Link href={href(page - 1, status)} className={`${chip} border-border`}>Trang trước</Link> : null}
           <span className="text-muted-foreground">{`Trang ${page}/${pages}`}</span>
-          {page < pages ? <Link href={href(subId, page + 1, status)} className={`${chip} border-border`}>Trang sau</Link> : null}
+          {page < pages ? <Link href={href(page + 1, status)} className={`${chip} border-border`}>Trang sau</Link> : null}
         </nav>
       ) : null}
     </Card>

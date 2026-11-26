@@ -8,11 +8,15 @@ import {
   requireSubScope,
 } from "@/server/modules/disbursements/disbursement-response";
 
-const querySchema = z.object({ subId: z.uuid().optional(), purpose: z.enum(["CHI_HO", "HOAN"]).optional(), refundId: z.uuid().optional() });
+// `purpose` bắt buộc (FE luôn gửi); `refundId` chỉ có nghĩa trong phạm vi một Sub nên phải kèm `subId` để kiểm phạm vi.
+const querySchema = z
+  .object({ subId: z.uuid().optional(), purpose: z.enum(["CHI_HO", "HOAN"]), refundId: z.uuid().optional() })
+  .refine((query) => !query.refundId || Boolean(query.subId), { path: ["subId"] });
 
 /**
  * Tài khoản bảo đảm để chuyển tiền nạp theo mục đích (`purpose` CHI_HO | HOAN, HOAN kèm `refundId`); danh sách rỗng nghĩa là
- * chưa cấu hình. `subId` để kèm mã Sub vào nội dung chuyển khoản. BE kiểm `purpose` bắt buộc và hoàn thuộc Sub (404).
+ * chưa cấu hình. `subId` để kèm mã Sub vào nội dung chuyển khoản và kiểm phạm vi; có `refundId` mà thiếu `subId` thì 400.
+ * BE kiểm hoàn thuộc Sub (404).
  */
 export async function GET(request: Request) {
   const access = await requireDisbursementAccess("VIEW_DISBURSEMENT");

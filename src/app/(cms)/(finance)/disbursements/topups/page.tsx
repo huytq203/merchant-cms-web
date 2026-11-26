@@ -6,7 +6,7 @@ import { ServerResultState } from "@/components/page/ServerResultState";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { hasPermission } from "@/features/auth/permissions";
 import { ReceivingAccountCard, type TopupPurpose } from "@/features/disbursements/components/ReceivingAccountCard";
-import { TopupList } from "@/features/disbursements/components/TopupList";
+import { TopupList, topupListHref } from "@/features/disbursements/components/TopupList";
 import { TOPUP_STATUS_OPTIONS } from "@/features/disbursements/utils/disbursement-mapper";
 import { SubMerchantPicker } from "@/features/sub-merchants/components/SubMerchantPicker";
 import { pickSubMerchantId } from "@/features/sub-merchants/utils/sub-merchant-choice";
@@ -42,7 +42,8 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
   if (!subId) {
     return <Shell><ServerResultState state="empty" message="Chưa có Sub-merchant nào để xem lệnh nạp." /></Shell>;
   }
-  const status = single(query.status);
+  const statusParam = single(query.status);
+  const status = statusParam && KNOWN_STATUSES.has(statusParam) ? statusParam : undefined;
   const page = Math.max(1, Number.parseInt(single(query.page) ?? "1", 10) || 1);
   // Mục đích nạp quyết định TK nhận tiền: mặc định Chi hộ; Hoàn kèm giao dịch hoàn (refundId) thì đúng TK theo nguồn, chưa kèm thì chia hai nhóm theo nguồn.
   const purpose: TopupPurpose = single(query.purpose) === "HOAN" ? "HOAN" : "CHI_HO";
@@ -50,7 +51,7 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
   const refundId = purpose === "HOAN" && refundParam && UUID_PATTERN.test(refundParam) ? refundParam : undefined;
   const [accounts, topups] = await Promise.all([
     listReceivingAccounts(subId, purpose, refundId),
-    listDisbursementTopups(subId, { page, pageSize: PAGE_SIZE, ...(status && KNOWN_STATUSES.has(status) ? { status } : {}) }),
+    listDisbursementTopups(subId, { page, pageSize: PAGE_SIZE, ...(status ? { status } : {}) }),
   ]);
   return (
     <Shell picker={<SubMerchantPicker choices={choices.data} value={subId} />}>
@@ -58,8 +59,9 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
         {([["CHI_HO", "Nạp để chi hộ"], ["HOAN", "Nạp để hoàn"]] as const).map(([value, label]) => (
           <Link
             key={value}
-            href={`/disbursements/topups?subMerchantId=${subId}&purpose=${value}`}
-            aria-current={purpose === value ? "true" : undefined}
+            // Đổi mục đích giữ bộ lọc trạng thái, về trang 1; giao dịch hoàn chỉ thuộc tab Hoàn nên bỏ.
+            href={topupListHref(subId, 1, status, { purpose: value })}
+            aria-current={purpose === value ? "page" : undefined}
             className={`rounded-lg border px-3 py-1.5 text-sm ${purpose === value ? "border-primary bg-secondary font-semibold text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
           >
             {label}
@@ -78,7 +80,9 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
           subId={subId}
           page={page}
           pageSize={PAGE_SIZE}
-          status={status && KNOWN_STATUSES.has(status) ? status : undefined}
+          status={status}
+          purpose={purpose}
+          refundId={refundId}
         />
       ) : (
         <ServerResultState state="error" message={domainErrorMessage(topups.error)} />

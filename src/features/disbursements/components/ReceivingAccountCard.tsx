@@ -53,6 +53,10 @@ const SOURCE_GROUPS: { type: string; title: string }[] = [
   { type: "WALLET_ESCROW", title: "Đơn thanh toán bằng ví FlexPay" },
   { type: "COLLECTION_DISBURSEMENT", title: "Đơn thanh toán bằng nguồn khác" },
 ];
+const KNOWN_TYPES = new Set(SOURCE_GROUPS.map((group) => group.type));
+const isKnownType = (account: ReceivingAccount) => Boolean(account.accountType && KNOWN_TYPES.has(account.accountType));
+
+const accountKey = (account: ReceivingAccount) => `${account.bankCode}-${account.accountNumber}`;
 
 /**
  * Tài khoản bảo đảm để chuyển tiền nạp theo mục đích (`purpose`). Portal chỉ xem: nạp tiền không tự tạo ở đây, Kế toán ghi
@@ -73,40 +77,55 @@ export function ReceivingAccountCard({ accounts, purpose = "CHI_HO", groupBySour
       </Card>
     );
   }
-  if (groupBySource) {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">{HOAN_GROUP_GUIDE}</p>
-        {SOURCE_GROUPS.map((group) => {
-          const inGroup = accounts.filter((account) => account.accountType === group.type);
-          return (
-            <section key={group.type} aria-labelledby={`source-${group.type}`} className="space-y-3">
-              <h3 id={`source-${group.type}`} className="text-sm font-semibold">{group.title}</h3>
-              {inGroup.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Chưa cấu hình tài khoản nhận tiền cho nguồn này.</p>
-              ) : (
-                inGroup.map((account) => <AccountCard key={`${account.bankCode}-${account.accountNumber}`} account={account} />)
-              )}
-            </section>
-          );
-        })}
-      </div>
-    );
-  }
+  // Không TK nào có loại biết được (BE cũ/cấu hình thiếu loại): không chia nhóm được, hiện danh sách phẳng.
+  if (groupBySource && accounts.some(isKnownType)) return <GroupedBySource accounts={accounts} />;
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">{GUIDE[purpose]}</p>
+      <p className="text-sm text-muted-foreground">{groupBySource ? HOAN_GROUP_GUIDE : GUIDE[purpose]}</p>
       {accounts.map((account) => (
-        <AccountCard key={`${account.bankCode}-${account.accountNumber}`} account={account} />
+        <AccountCard key={accountKey(account)} account={account} />
       ))}
     </div>
   );
 }
 
-function AccountCard({ account }: { account: ReceivingAccount }) {
+/**
+ * Hai nhóm theo nguồn của đơn gốc; TK thiếu loại hoặc loại lạ vào nhóm "Tài khoản khác" (không gắn nhầm vào nguồn nào).
+ * Tiêu đề theo thứ bậc: h2 cả khối → h3 nhóm → h4 từng tài khoản.
+ */
+function GroupedBySource({ accounts }: { accounts: ReceivingAccount[] }) {
+  const others = accounts.filter((account) => !isKnownType(account));
+  return (
+    <section aria-labelledby="receiving-heading" className="space-y-4">
+      <h2 id="receiving-heading" className="text-base font-semibold">Tài khoản nhận tiền nạp</h2>
+      <p className="text-sm text-muted-foreground">{HOAN_GROUP_GUIDE}</p>
+      {SOURCE_GROUPS.map((group) => {
+        const inGroup = accounts.filter((account) => account.accountType === group.type);
+        return (
+          <section key={group.type} aria-labelledby={`source-${group.type}`} className="space-y-3">
+            <h3 id={`source-${group.type}`} className="text-sm font-semibold">{group.title}</h3>
+            {inGroup.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Chưa cấu hình tài khoản nhận tiền cho nguồn này.</p>
+            ) : (
+              inGroup.map((account) => <AccountCard key={accountKey(account)} account={account} heading="h4" />)
+            )}
+          </section>
+        );
+      })}
+      {others.length > 0 ? (
+        <section aria-labelledby="source-OTHER" className="space-y-3">
+          <h3 id="source-OTHER" className="text-sm font-semibold">Tài khoản khác</h3>
+          {others.map((account) => <AccountCard key={accountKey(account)} account={account} heading="h4" />)}
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function AccountCard({ account, heading: Heading = "h2" }: { account: ReceivingAccount; heading?: "h2" | "h4" }) {
   return (
     <Card padding="md" role="region" aria-label={`Tài khoản nhận tiền ${account.bankName ?? account.bankCode}`}>
-      <h2 className="mb-2 text-base font-semibold">{`Tài khoản nhận tiền nạp · ${account.bankName ?? account.bankCode}`}</h2>
+      <Heading className="mb-2 text-base font-semibold">{`Tài khoản nhận tiền nạp · ${account.bankName ?? account.bankCode}`}</Heading>
       <dl>
         <Line label="Số tài khoản" value={account.accountNumber} copyLabel="số tài khoản" />
         <Line label="Chủ tài khoản" value={account.accountName} copyLabel="tên chủ tài khoản" />

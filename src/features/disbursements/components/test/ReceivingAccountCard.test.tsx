@@ -35,6 +35,27 @@ describe("ReceivingAccountCard", () => {
     expect(within(other).getByText("SUB001")).toBeInTheDocument();
   });
 
+  it("puts accounts without a known type under Tài khoản khác, never under a source group", () => {
+    render(<ReceivingAccountCard purpose="HOAN" groupBySource accounts={[
+      { ...account, accountNumber: "0011000654321", accountType: "WALLET_ESCROW" },
+      { ...account, accountType: null },
+      { ...account, accountNumber: "0011000999999", accountType: "SOMETHING_NEW" },
+    ]} />);
+    const other = screen.getByRole("heading", { name: "Tài khoản khác" }).closest("section") as HTMLElement;
+    expect(within(other).getByText("0011000123456")).toBeInTheDocument();
+    expect(within(other).getByText("0011000999999")).toBeInTheDocument();
+    // Thứ bậc tiêu đề: khối h2 → nhóm h3 → từng TK h4.
+    expect(screen.getByRole("heading", { level: 2, name: "Tài khoản nhận tiền nạp" })).toBeInTheDocument();
+    expect(within(other).getAllByRole("heading", { level: 4 })).toHaveLength(2);
+  });
+
+  it("falls back to a flat list when no account has a known type", () => {
+    render(<ReceivingAccountCard purpose="HOAN" groupBySource accounts={[{ ...account, accountType: null }]} />);
+    expect(screen.queryByText(/Chưa cấu hình/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Đơn thanh toán bằng ví FlexPay" })).not.toBeInTheDocument();
+    expect(screen.getByText("0011000123456")).toBeInTheDocument();
+  });
+
   it("says not configured when no account of that purpose exists", () => {
     render(<ReceivingAccountCard accounts={[]} purpose="HOAN" />);
     expect(screen.getByText("Chưa cấu hình tài khoản nhận tiền")).toBeInTheDocument();
