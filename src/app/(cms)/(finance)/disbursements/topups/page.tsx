@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/page/PageHeader";
 import { ServerResultState } from "@/components/page/ServerResultState";
 import { AccessDenied } from "@/features/auth/components/access-denied";
 import { hasPermission } from "@/features/auth/permissions";
-import { ReceivingAccountCard } from "@/features/disbursements/components/ReceivingAccountCard";
+import { ReceivingAccountCard, type TopupPurpose } from "@/features/disbursements/components/ReceivingAccountCard";
 import { TopupList } from "@/features/disbursements/components/TopupList";
 import { TOPUP_STATUS_OPTIONS } from "@/features/disbursements/utils/disbursement-mapper";
 import { SubMerchantPicker } from "@/features/sub-merchants/components/SubMerchantPicker";
@@ -18,6 +19,8 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 
 const PAGE_SIZE = 10;
 const KNOWN_STATUSES = new Set(TOPUP_STATUS_OPTIONS.map((option) => option.value));
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const single = (value: string | string[] | undefined) => (typeof value === "string" ? value : undefined);
 
@@ -41,14 +44,33 @@ export default async function DisbursementTopupsPage({ searchParams }: Props) {
   }
   const status = single(query.status);
   const page = Math.max(1, Number.parseInt(single(query.page) ?? "1", 10) || 1);
+  // Mục đích nạp quyết định TK nhận tiền: mặc định Chi hộ; Hoàn cần kèm giao dịch hoàn (refundId) để biết nguồn tiền.
+  const purpose: TopupPurpose = single(query.purpose) === "HOAN" ? "HOAN" : "CHI_HO";
+  const refundParam = single(query.refundId);
+  const refundId = purpose === "HOAN" && refundParam && UUID_PATTERN.test(refundParam) ? refundParam : undefined;
+  const needsRefund = purpose === "HOAN" && !refundId;
   const [accounts, topups] = await Promise.all([
-    listReceivingAccounts(subId),
+    needsRefund ? Promise.resolve(null) : listReceivingAccounts(subId, purpose, refundId),
     listDisbursementTopups(subId, { page, pageSize: PAGE_SIZE, ...(status && KNOWN_STATUSES.has(status) ? { status } : {}) }),
   ]);
   return (
     <Shell picker={<SubMerchantPicker choices={choices.data} value={subId} />}>
-      {accounts.success ? (
-        <ReceivingAccountCard accounts={accounts.data} />
+      <nav aria-label="Mục đích nạp" className="flex flex-wrap gap-2">
+        {([["CHI_HO", "Nạp để chi hộ"], ["HOAN", "Nạp để hoàn"]] as const).map(([value, label]) => (
+          <Link
+            key={value}
+            href={`/disbursements/topups?subMerchantId=${subId}&purpose=${value}`}
+            aria-current={purpose === value ? "true" : undefined}
+            className={`rounded-lg border px-3 py-1.5 text-sm ${purpose === value ? "border-primary bg-secondary font-semibold text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      {accounts === null ? (
+        <ServerResultState state="empty" message="Chọn giao dịch hoàn đang chờ nguồn tiền để xem tài khoản nhận tiền nạp." />
+      ) : accounts.success ? (
+        <ReceivingAccountCard accounts={accounts.data} purpose={purpose} />
       ) : (
         <ServerResultState state="error" message={domainErrorMessage(accounts.error)} />
       )}

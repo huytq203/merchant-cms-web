@@ -135,6 +135,30 @@ describe("disbursement top-ups page", () => {
     expect(within(screen.getByRole("table")).getByText("Đã ghi nhận")).toBeInTheDocument();
   });
 
+  it("asks BE for the accounts of the chosen purpose and refund", async () => {
+    const REFUND = "33333333-3333-4333-8333-333333333333";
+    const seen: URL[] = [];
+    mswServer.use(
+      http.get(accountsUrl, ({ request }) => { seen.push(new URL(request.url)); return envelope([]); }),
+      http.get(topupsUrl, () => envelope(pageOf([]))),
+    );
+    render(await TopupsPage({ searchParams: Promise.resolve({ purpose: "HOAN", refundId: REFUND }) }) as ReactElement);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.searchParams.get("purpose")).toBe("HOAN");
+    expect(seen[0]?.searchParams.get("refundId")).toBe(REFUND);
+  });
+
+  it("does not call BE for Hoàn accounts until a refund is chosen", async () => {
+    let called = false;
+    mswServer.use(
+      http.get(accountsUrl, () => { called = true; return envelope([]); }),
+      http.get(topupsUrl, () => envelope(pageOf([]))),
+    );
+    render(await TopupsPage({ searchParams: Promise.resolve({ purpose: "HOAN" }) }) as ReactElement);
+    expect(called).toBe(false);
+    expect(screen.getByText(/Chọn giao dịch hoàn đang chờ nguồn tiền/)).toBeInTheDocument();
+  });
+
   it("denies access without VIEW_DISBURSEMENT", async () => {
     getServerSession.mockResolvedValue({ ...session, permissions: [] });
     await renderTopups();

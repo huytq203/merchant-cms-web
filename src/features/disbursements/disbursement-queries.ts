@@ -46,9 +46,11 @@ export const disbursementQueries = {
     }),
     enabled: subId !== "",
   }),
-  receivingAccounts: (subId: string) => queryOptions({
-    queryKey: ["disbursements", "receiving-accounts", subId] as const,
-    queryFn: () => apiClient.get<ReceivingAccount[]>(`${DISBURSEMENTS_ENDPOINT}/receiving-accounts`, { query: { subId } }),
+  receivingAccounts: (subId: string, purpose: string, refundId?: string) => queryOptions({
+    queryKey: ["disbursements", "receiving-accounts", subId, purpose, refundId ?? null] as const,
+    queryFn: () => apiClient.get<ReceivingAccount[]>(`${DISBURSEMENTS_ENDPOINT}/receiving-accounts`, {
+      query: { subId, purpose, ...(refundId ? { refundId } : {}) },
+    }),
   }),
   /**
    * Danh sách lệnh. POST để mã lệnh / mã YC / Ref tìm kiếm không nằm trên URL hay log truy cập; trang gửi lên 0-based.

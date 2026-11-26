@@ -138,6 +138,8 @@ export const topupSchema = z.object({
   statusCode: z.string(),
   decidedAt: z.string().nullish(),
   decisionReason: z.string().nullish(),
+  /** UNPOSTED | POSTED với lệnh đã duyệt; BE cũ hoặc lệnh chưa duyệt thì trống. */
+  accountingStatus: z.string().nullish(),
 });
 
 export const receivingAccountSchema = z.object({

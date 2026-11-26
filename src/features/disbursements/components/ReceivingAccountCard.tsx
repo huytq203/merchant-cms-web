@@ -38,11 +38,19 @@ function Line({ label, value, copyLabel }: { label: string; value: string; copyL
   );
 }
 
+export type TopupPurpose = "CHI_HO" | "HOAN";
+
+/** Câu hướng dẫn theo mục đích nạp (SRS (4) FR-TOPUP-14): tiền chuyển đúng TK thì Kế toán mới ghi nhận đúng ngăn. */
+const GUIDE: Record<TopupPurpose, string> = {
+  CHI_HO: "Chuyển tiền nạp để chi hộ vào tài khoản dưới đây.",
+  HOAN: "Chuyển tiền nạp để hoàn vào đúng tài khoản dưới đây, tương ứng nguồn tiền của giao dịch hoàn đã chọn.",
+};
+
 /**
- * Tài khoản bảo đảm để chuyển tiền nạp. Portal chỉ xem: nạp tiền không tự tạo ở đây, Kế toán ghi nhận khi tiền về. Chưa
- * cấu hình thì nói rõ "chưa cấu hình" thay vì để trống.
+ * Tài khoản bảo đảm để chuyển tiền nạp theo mục đích (`purpose`). Portal chỉ xem: nạp tiền không tự tạo ở đây, Kế toán ghi
+ * nhận khi tiền về. Chưa cấu hình tài khoản đúng loại thì nói rõ "chưa cấu hình" thay vì để trống.
  */
-export function ReceivingAccountCard({ accounts }: { accounts: ReceivingAccount[] }) {
+export function ReceivingAccountCard({ accounts, purpose = "CHI_HO" }: { accounts: ReceivingAccount[]; purpose?: TopupPurpose }) {
   if (accounts.length === 0) {
     return (
       <Card padding="md" role="region" aria-labelledby="receiving-heading">
@@ -54,6 +62,7 @@ export function ReceivingAccountCard({ accounts }: { accounts: ReceivingAccount[
   }
   return (
     <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">{GUIDE[purpose]}</p>
       {accounts.map((account) => (
         <Card key={`${account.bankCode}-${account.accountNumber}`} padding="md" role="region" aria-label={`Tài khoản nhận tiền ${account.bankName ?? account.bankCode}`}>
           <h2 className="mb-2 text-base font-semibold">{`Tài khoản nhận tiền nạp · ${account.bankName ?? account.bankCode}`}</h2>

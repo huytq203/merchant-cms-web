@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card/Card";
 import { formatAmount } from "@/lib/utils/helper";
 import { formatVnDateTime } from "@/lib/utils/vn-time";
 import type { DisbursementTopup } from "../types/types";
-import { TOPUP_STATUS_OPTIONS, topupPurposeLabel, topupStatusLabel } from "../utils/disbursement-mapper";
+import { TOPUP_STATUS_OPTIONS, topupAccountingLabel, topupPurposeLabel, topupStatusLabel } from "../utils/disbursement-mapper";
 
 type Props = { rows: DisbursementTopup[]; total: number; subId: string; page: number; pageSize: number; status?: string };
 
@@ -58,7 +58,7 @@ export function TopupList({ rows, total, subId, page, pageSize, status }: Props)
             <caption className="sr-only">Danh sách lệnh nạp tiền</caption>
             <thead className="bg-muted text-xs text-muted-foreground">
               <tr>
-                {["Mã lệnh nạp", "Mục đích", "Số tiền", "Mã tham chiếu", "Ngày ghi Có", "Trạng thái", "Cập nhật", "Lý do"].map((head) => (
+                {["Mã lệnh nạp", "Mục đích", "Số tiền", "Mã tham chiếu", "Ngày ghi Có", "Trạng thái", "Hạch toán", "Cập nhật", "Lý do"].map((head) => (
                   <th key={head} scope="col" className="px-3 py-2 font-medium">{head}</th>
                 ))}
               </tr>
@@ -72,6 +72,7 @@ export function TopupList({ rows, total, subId, page, pageSize, status }: Props)
                   <td className="px-3 py-2">{row.transferReference ?? "—"}</td>
                   <td className="px-3 py-2">{row.creditedOn ?? "—"}</td>
                   <td className="px-3 py-2"><StatusBadge label={topupStatusLabel(row.statusCode)} tone={TONES[row.statusCode] ?? "neutral"} /></td>
+                  <td className="px-3 py-2">{topupAccountingLabel(row.accountingStatus)}</td>
                   <td className="px-3 py-2">{row.decidedAt ? formatVnDateTime(row.decidedAt) : "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground">{row.decisionReason ?? ""}</td>
                 </tr>

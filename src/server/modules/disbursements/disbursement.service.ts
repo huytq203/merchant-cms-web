@@ -82,11 +82,11 @@ export async function listDisbursementTopups(subId: string, filter: TopupListFil
   return result.success ? ok({ rows: result.data.content, total: result.data.totalElements }) : result;
 }
 
-export const listReceivingAccounts = (subId?: string) =>
+export const listReceivingAccounts = (subId?: string, purpose?: string, refundId?: string) =>
   merchantClient().get({
     path: disbursementPaths.receivingAccounts,
     schema: receivingAccountSchema.array(),
-    query: { subId },
+    query: { subId, purpose, refundId },
   });
 
 export type CsvFile = { body: ArrayBuffer; contentType: string; contentDisposition: string | null };

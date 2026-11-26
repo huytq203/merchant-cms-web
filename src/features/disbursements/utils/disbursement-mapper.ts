@@ -106,6 +106,11 @@ export const TOPUP_STATUS_OPTIONS = Object.entries(TOPUP_LABELS).map(([value, la
 
 export const topupStatusLabel = (statusCode: string): string => TOPUP_LABELS[statusCode] ?? statusCode;
 
+/** "Hạch toán" của lệnh nạp; lệnh chưa được duyệt chưa có trạng thái hạch toán nên hiện "—" ở bảng. */
+const TOPUP_ACCOUNTING_LABELS: Record<string, string> = { UNPOSTED: "Chưa hạch toán", POSTED: "Đã hạch toán" };
+export const topupAccountingLabel = (accountingStatus: string | null | undefined): string =>
+  (accountingStatus && TOPUP_ACCOUNTING_LABELS[accountingStatus]) || "—";
+
 const TOPUP_PURPOSE_LABELS: Record<string, string> = { CHI_HO: "Nạp để chi hộ", HOAN: "Nạp để hoàn" };
 export const topupPurposeLabel = (purpose: string): string => TOPUP_PURPOSE_LABELS[purpose] ?? purpose;
 
